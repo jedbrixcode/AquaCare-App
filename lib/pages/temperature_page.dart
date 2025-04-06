@@ -37,8 +37,8 @@ class _TemperaturePageState extends State<TemperaturePage> {
     }
   }
 
-  DatabaseReference _database = FirebaseDatabase.instance.ref().child(
-    "Sensor/Temperature",
+  final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
+    "Sensors",
   );
 
   // Function to fetch temperature in real-time from Firebase
@@ -50,8 +50,8 @@ class _TemperaturePageState extends State<TemperaturePage> {
           currentTemp = int.tryParse(data.toString());
         });
       }
+      print("Fetched temp: $currentTemp");
     });
-    print("Fetched temp: $currentTemp");
   }
 
   @override
@@ -142,7 +142,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                       "Current Temperature: ${currentTemp ?? 'Loading...'}°C",
                     ),
                   ),
-                ); // ✅ FIXED: Moved semicolon after showSnackBar
+                );
               },
               child: Text(
                 "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
