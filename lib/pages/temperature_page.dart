@@ -10,11 +10,6 @@ class TemperaturePage extends StatefulWidget {
 }
 
 class _TemperaturePageState extends State<TemperaturePage> {
-  // define database inside state class
-  final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
-    "Sensors",
-  );
-
   bool isNotificationOn = false;
   int minTemp = 25;
   int maxTemp = 30;
@@ -27,7 +22,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
     _fetchTemperature();
   }
 
-  // kaartehan
+  // Function to determine the color based on temperature
   Color getTemperatureColor() {
     if (currentTemp == null) {
       return Colors.grey; // Neutral color if temp is not available
@@ -42,16 +37,21 @@ class _TemperaturePageState extends State<TemperaturePage> {
     }
   }
 
-  // real-time update for temps
+  DatabaseReference _database = FirebaseDatabase.instance.ref().child(
+    "Sensor/Temperature",
+  );
+
+  // Function to fetch temperature in real-time from Firebase
   void _fetchTemperature() {
     _database.child("Temperature").onValue.listen((event) {
       final data = event.snapshot.value;
       if (data != null) {
         setState(() {
-          currentTemp = int.tryParse(data.toString()) ?? 0;
+          currentTemp = int.tryParse(data.toString());
         });
       }
     });
+    print("Fetched temp: $currentTemp");
   }
 
   @override
@@ -68,7 +68,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
           children: [
             // Notification Toggle
             Container(
-              padding: EdgeInsets.all(10),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: Colors.grey[800],
                 borderRadius: BorderRadius.circular(10),
@@ -142,11 +142,11 @@ class _TemperaturePageState extends State<TemperaturePage> {
                       "Current Temperature: ${currentTemp ?? 'Loading...'}°C",
                     ),
                   ),
-                );
+                ); // ✅ FIXED: Moved semicolon after showSnackBar
               },
               child: Text(
                 "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
-              ), // Should always update
+              ),
             ),
             const SizedBox(height: 10),
 
@@ -158,29 +158,30 @@ class _TemperaturePageState extends State<TemperaturePage> {
               ),
               onPressed: () {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
+                  const SnackBar(
                     content: Text('Default temperature for aquariums is set.'),
                   ),
                 );
               },
-              child: Text("SET TO DEFAULT TEMPERATURE"),
+              child: const Text("SET TO DEFAULT TEMPERATURE"),
             ),
             Expanded(
               child: Align(
                 alignment: Alignment.bottomCenter,
-                child: Text(
+                child: const Text(
                   "Note: Default aquarium temperature for fishes are 26-28°C.",
                   style: TextStyle(color: Colors.black, fontSize: 14),
                 ),
               ),
             ),
-            SizedBox(height: 30),
+            const SizedBox(height: 30),
           ],
         ),
       ),
     );
   }
 
+  // Temperature Selector Widget
   Widget _temperatureSelector(int value, Function(int) onChanged) {
     return Row(
       children: [

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
 import 'package:aquacare_v5/pages/autofeed_page.dart';
 import 'package:aquacare_v5/pages/autolight_page.dart';
 import 'package:aquacare_v5/pages/home_page.dart';
@@ -9,9 +10,15 @@ import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
 import 'package:aquacare_v5/pages/waterquality_page.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (Firebase.apps.isEmpty) {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  }
+
   runApp(const MyApp());
 }
 

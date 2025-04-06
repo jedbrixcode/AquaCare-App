@@ -50,22 +50,23 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY',
-    appId: '1:619002836060:android:2d52fb7bcba62500596299',
-    messagingSenderId: '619002836060',
-    projectId: 'aquamans-47d16',
-    databaseURL: 'https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'aquamans-47d16.firebasestorage.app',
+    apiKey: 'AIzaSyAhL7beuFqY4NMaT4saNDninLM9kbBZwMk',
+    appId: '1:48514923286:android:cdd129564b9a9851232e37',
+    messagingSenderId: '48514923286',
+    projectId: 'aquacare-310103',
+    databaseURL:
+        'https://aquacare-310103-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    storageBucket: 'aquacare-310103.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDYJ571OeKAibV-VpSZ61k2RMFkMNiv-TI',
-    appId: '1:619002836060:ios:042eb68074872a49596299',
-    messagingSenderId: '619002836060',
-    projectId: 'aquamans-47d16',
-    databaseURL: 'https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app',
-    storageBucket: 'aquamans-47d16.firebasestorage.app',
+    apiKey: 'AIzaSyCTvKLQ2Y6jFIiFEGh0TAkI94nUskvk3Yo',
+    appId: '1:48514923286:ios:0b3f820846c7426a232e37',
+    messagingSenderId: '48514923286',
+    projectId: 'aquacare-310103',
+    databaseURL:
+        'https://aquacare-310103-default-rtdb.asia-southeast1.firebasedatabase.app/',
+    storageBucket: 'aquacare-310103.firebasestorage.app',
     iosBundleId: 'com.example.aquacareV5',
   );
-
 }
