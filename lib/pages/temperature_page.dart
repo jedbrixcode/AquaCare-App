@@ -29,9 +29,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
     }
 
     if (currentTemp! > maxTemp) {
-      return Colors.red[700]!; // Hot temp
+      return Colors.red[500]!; // Hot temp
     } else if (currentTemp! < minTemp) {
-      return Colors.blue[400]!; // Cold temp
+      return Colors.blue[500]!; // Cold temp
     } else {
       return Colors.green[300]!; // Optimal temp
     }
