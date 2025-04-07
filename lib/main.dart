@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
 import 'package:aquacare_v5/pages/autofeed_page.dart';
 import 'package:aquacare_v5/pages/autolight_page.dart';
 import 'package:aquacare_v5/pages/home_page.dart';
@@ -12,6 +13,7 @@ import 'package:aquacare_v5/pages/waterquality_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  NotificationService().initNotification();
   await Firebase.initializeApp(
     name: 'aquamans-47d16',
     options: DefaultFirebaseOptions.currentPlatform,

@@ -1,6 +1,6 @@
-// ignore_for_file: library_private_types_in_public_api, avoid_print
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
 
 class TemperaturePage extends StatefulWidget {
   const TemperaturePage({super.key});
@@ -13,45 +13,59 @@ class _TemperaturePageState extends State<TemperaturePage> {
   bool isNotificationOn = false;
   int minTemp = 25;
   int maxTemp = 30;
-  int?
-  currentTemp; // This will be updated from the sensor, not modified manually
+  int? currentTemp;
+  bool hasNotified = false;
+
+  final NotificationService _notificationService = NotificationService();
 
   @override
   void initState() {
     super.initState();
+    _notificationService.initNotification();
     _fetchTemperature();
-  }
-
-  // Function to determine the color based on temperature
-  Color getTemperatureColor() {
-    if (currentTemp == null) {
-      return Colors.grey; // Neutral color if temp is not available
-    }
-
-    if (currentTemp! > maxTemp) {
-      return Colors.red[500]!; // Hot temp
-    } else if (currentTemp! < minTemp) {
-      return Colors.blue[500]!; // Cold temp
-    } else {
-      return Colors.green[300]!; // Optimal temp
-    }
   }
 
   final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
     "Sensors",
   );
 
-  // Function to fetch temperature in real-time from Firebase
   void _fetchTemperature() {
     _database.child("Temperature").onValue.listen((event) {
       final data = event.snapshot.value;
       if (data != null) {
-        setState(() {
-          currentTemp = int.tryParse(data.toString());
-        });
+        int? newTemp = int.tryParse(data.toString());
+
+        if (newTemp != null && newTemp != currentTemp) {
+          setState(() {
+            currentTemp = newTemp;
+          });
+
+          print("Fetched temp: $currentTemp");
+
+          if (isNotificationOn &&
+              (currentTemp! > maxTemp || currentTemp! < minTemp)) {
+            if (!hasNotified) {
+              _notificationService.showNotification(
+                title: 'Temperature Alert!',
+                body: 'Current temperature: $currentTemp°C is out of range.',
+                payLoad: 'Out of range alert',
+              );
+              hasNotified = true;
+            }
+          } else {
+            // Reset if temperature goes back to normal
+            hasNotified = false;
+          }
+        }
       }
-      print("Fetched temp: $currentTemp");
     });
+  }
+
+  Color getTemperatureColor() {
+    if (currentTemp == null) return Colors.grey;
+    if (currentTemp! > maxTemp) return Colors.red[500]!;
+    if (currentTemp! < minTemp) return Colors.blue[500]!;
+    return Colors.green[300]!;
   }
 
   @override
@@ -117,8 +131,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
                   ),
                 ),
                 const SizedBox(width: 10),
-
-                // Set User Preference Button
                 ElevatedButton(
                   onPressed: () {
                     print("Temperature set: Min $minTemp°C, Max $maxTemp°C");
@@ -129,39 +141,27 @@ class _TemperaturePageState extends State<TemperaturePage> {
             ),
             const SizedBox(height: 20),
 
-            // Current Temperature Button
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: getTemperatureColor(), // Ensure this updates
-                minimumSize: const Size(double.infinity, 50),
+            // Static Temperature Display
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: getTemperatureColor(),
+                borderRadius: BorderRadius.circular(10),
               ),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      "Current Temperature: ${currentTemp ?? 'Loading...'}°C",
-                    ),
-                  ),
-                );
-              },
               child: Text(
                 "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
+                style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
             const SizedBox(height: 10),
 
-            // Default Temperature Value Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300], // Keeping it neutral
+                backgroundColor: Colors.grey[300],
                 minimumSize: const Size(double.infinity, 50),
               ),
               onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Default temperature for aquariums is set.'),
-                  ),
-                );
+                // Optional: Add functionality or leave empty
               },
               child: const Text("SET TO DEFAULT TEMPERATURE"),
             ),
@@ -181,7 +181,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
     );
   }
 
-  // Temperature Selector Widget
   Widget _temperatureSelector(int value, Function(int) onChanged) {
     return Row(
       children: [
