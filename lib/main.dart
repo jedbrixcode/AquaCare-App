@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
 import 'package:aquacare_v5/pages/Services/notif_service.dart';
+import 'package:aquacare_v5/pages/Services/socket_service.dart';
+
 import 'package:aquacare_v5/pages/autofeed_page.dart';
 import 'package:aquacare_v5/pages/autolight_page.dart';
 import 'package:aquacare_v5/pages/home_page.dart';
@@ -18,6 +19,11 @@ Future<void> main() async {
     name: 'aquamans-47d16',
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  SocketService().initSocket((type, message) {
+    print("[$type Notification] $message");
+  });
+
   runApp(const MyApp());
 }
 
