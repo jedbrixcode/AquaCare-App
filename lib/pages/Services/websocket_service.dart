@@ -12,17 +12,14 @@ class WebSocketService {
   void connect({
     required Function(String type, String message) onNotificationReceived,
   }) {
-    // Update this if your WebSocket runs on a different host/port
-    final uri = Uri.parse('wss://aquacare-application.onrender.com/');
+    final uri = Uri.parse('wss://aquacarewithwebsocket.onrender.com/');
 
     _channel = WebSocketChannel.connect(uri);
-
     print('Connecting to WebSocket...');
 
     _channel.stream.listen(
       (message) {
         print('Received message: $message');
-
         final data = jsonDecode(message);
 
         if (data.containsKey("alertForPH")) {
@@ -42,7 +39,7 @@ class WebSocketService {
 
   void sendTestMessage() {
     final message = jsonEncode({
-      "PH": 9.5,
+      "PH": 7.5,
       "Temperature": 30.0,
       "Turbidity": 5.0,
     });

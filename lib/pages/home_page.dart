@@ -23,10 +23,10 @@ class HomePage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildButton(context, "TEMPERATURE", '/temperature'),
+              _buildButton(context, "pH LEVEL", '/phlevel'),
               _buildButton(context, "WATER QUALITY", '/waterquality'),
               _buildButton(context, "AUTOMATED FEEDING", '/food'),
               _buildButton(context, "AUTOMATED LIGHTS", '/light'),
-              _buildButton(context, "pH LEVEL", '/phlevel'),
             ],
           ),
         ),

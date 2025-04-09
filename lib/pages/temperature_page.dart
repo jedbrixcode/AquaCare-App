@@ -34,7 +34,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
   void _fetchTemperature() {
     _database.child("Temperature").onValue.listen((event) {
       final data = event.snapshot.value;
-      print("Fetched data from Firebase: $data"); // Debug logging
       if (data != null) {
         double? newTemp = double.tryParse(data.toString());
         if (newTemp != null) {
@@ -43,7 +42,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
               currentTemp = newTemp.toInt();
             });
           }
-          print("Fetched temp: $currentTemp");
+          print("Fetched temp: $currentTemp"); //debug logs
         }
       }
     });
@@ -70,6 +69,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
         }
       });
     }
+    print(
+      'Fetched user pref range: min:$minTemp and max:$maxTemp',
+    ); // debug logs
   }
 
   Color getTemperatureColor() {
@@ -125,7 +127,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
 
             // Static Temperature Display
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 70),
               decoration: BoxDecoration(
                 color: getTemperatureColor(),
                 borderRadius: BorderRadius.circular(10),
@@ -146,7 +148,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     minTemp = value;
                   });
                 }),
+                const SizedBox(width: 10),
                 const Text(" - "),
+                const SizedBox(width: 10),
                 _temperatureSelector(maxTemp, (value) {
                   setState(() {
                     maxTemp = value;
@@ -171,26 +175,36 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     );
                     tempPrefRef.update({'Min': minTemp, 'Max': maxTemp});
 
-                    FirebaseDatabase.instance
-                        .ref()
-                        .child('Notification/isOn')
-                        .set(isNotificationOn);
+                    FirebaseDatabase.instance.ref().child('Notification/isOn');
 
-                    print(
-                      "Preferences saved: Min $minTemp°C, Max $maxTemp°C, isOn: $isNotificationOn",
-                    );
+                    print("Preferences saved: Min $minTemp°C, Max $maxTemp°C");
                   },
                   child: const Text("SET"),
                 ),
               ],
             ),
-
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 minimumSize: const Size(double.infinity, 50),
               ),
-              onPressed: () {},
+              onPressed: () {
+                const int defaultMinTemp = 26;
+                const int defaultMaxTemp = 28;
+
+                final tempPrefRef = FirebaseDatabase.instance.ref().child(
+                  'Notification/Temperature',
+                );
+
+                tempPrefRef.update({
+                  'Min': defaultMinTemp,
+                  'Max': defaultMaxTemp,
+                });
+
+                print(
+                  "Default temperature set: Min $defaultMinTemp°C, Max $defaultMaxTemp°C",
+                );
+              },
               child: const Text("SET TO DEFAULT TEMPERATURE"),
             ),
             Expanded(
@@ -219,11 +233,11 @@ class _TemperaturePageState extends State<TemperaturePage> {
           onPressed: () {
             onChanged(value + 1);
           },
-          icon: const Icon(Icons.arrow_drop_up),
+          icon: const Icon(Icons.arrow_drop_up, size: 40),
         ),
         SizedBox(
-          width: 60,
-          height: 40,
+          width: 70,
+          height: 50,
           child: TextField(
             controller: controller,
             keyboardType: TextInputType.number,
@@ -246,7 +260,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
               onChanged(value - 1);
             }
           },
-          icon: const Icon(Icons.arrow_drop_down),
+          icon: const Icon(Icons.arrow_drop_down, size: 40),
         ),
       ],
     );
