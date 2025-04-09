@@ -13,7 +13,7 @@ class WebSocketService {
     required Function(String type, String message) onNotificationReceived,
   }) {
     // Update this if your WebSocket runs on a different host/port
-    final uri = Uri.parse('ws://aquacare-application.onrender.com:5000');
+    final uri = Uri.parse('wss://aquacare-application.onrender.com/');
 
     _channel = WebSocketChannel.connect(uri);
 
