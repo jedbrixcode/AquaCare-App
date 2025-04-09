@@ -43,7 +43,7 @@ dependencies:
   provider: ^6.1.4
   firebase_ui_auth: ^1.16.1
   flutter_local_notifications: ^19.0.0
-  socket_io_client: ^2.0.3+1
+  web_socket_channel: ^2.4.0
 
 
 

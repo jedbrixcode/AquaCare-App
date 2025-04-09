@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:aquacare_v5/pages/Services/notif_service.dart';
-import 'package:aquacare_v5/pages/Services/socket_service.dart';
+import 'package:aquacare_v5/pages/Services/websocket_service.dart';
 
 import 'package:aquacare_v5/pages/autofeed_page.dart';
 import 'package:aquacare_v5/pages/autolight_page.dart';
@@ -14,17 +14,35 @@ import 'package:aquacare_v5/pages/waterquality_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  NotificationService().initNotification();
-  await Firebase.initializeApp(
-    name: 'aquamans-47d16',
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  try {
+    NotificationService().initNotification();
+    await Firebase.initializeApp(
+      name: 'aquamans-47d16',
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
 
-  SocketService().initSocket((type, message) {
-    print("[$type Notification] $message");
-  });
+    WebSocketService().connect(
+      onNotificationReceived: (type, message) {
+        print("[$type Notification] $message");
 
-  runApp(const MyApp());
+        // Trigger notification for temperature alerts
+        if (type == "Temperature") {
+          NotificationService().showNotification(
+            title: 'Temperature Alert!',
+            body: message,
+            payLoad: 'Temperature alert triggered',
+          );
+        }
+
+        // Handle other types of alerts similarly
+      },
+    );
+
+    runApp(const MyApp());
+  } catch (e, stack) {
+    print("Caught error in main(): $e");
+    print("Stack trace: $stack");
+  }
 }
 
 class MyApp extends StatelessWidget {

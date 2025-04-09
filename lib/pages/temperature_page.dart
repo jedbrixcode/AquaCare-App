@@ -23,6 +23,8 @@ class _TemperaturePageState extends State<TemperaturePage> {
     super.initState();
     _notificationService.initNotification();
     _fetchTemperature();
+    _fetchTemperature();
+    _fetchTemperaturePreferences();
   }
 
   final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
@@ -32,33 +34,42 @@ class _TemperaturePageState extends State<TemperaturePage> {
   void _fetchTemperature() {
     _database.child("Temperature").onValue.listen((event) {
       final data = event.snapshot.value;
+      print("Fetched data from Firebase: $data"); // Debug logging
       if (data != null) {
-        int? newTemp = int.tryParse(data.toString());
-
-        if (newTemp != null && newTemp != currentTemp) {
-          setState(() {
-            currentTemp = newTemp;
-          });
-
-          print("Fetched temp: $currentTemp");
-
-          if (isNotificationOn &&
-              (currentTemp! > maxTemp || currentTemp! < minTemp)) {
-            if (!hasNotified) {
-              _notificationService.showNotification(
-                title: 'Temperature Alert!',
-                body: 'Current temperature: $currentTemp°C is out of range.',
-                payLoad: 'Out of range alert',
-              );
-              hasNotified = true;
-            }
-          } else {
-            // Reset if temperature goes back to normal
-            hasNotified = false;
+        double? newTemp = double.tryParse(data.toString());
+        if (newTemp != null) {
+          if (mounted) {
+            setState(() {
+              currentTemp = newTemp.toInt();
+            });
           }
+          print("Fetched temp: $currentTemp");
         }
       }
     });
+  }
+
+  void _fetchTemperaturePreferences() async {
+    final tempRef = FirebaseDatabase.instance.ref().child(
+      'Notification/Temperature',
+    );
+    final isOnRef = FirebaseDatabase.instance.ref().child('Notification/isOn');
+
+    final tempSnapshot = await tempRef.get();
+    final isOnSnapshot = await isOnRef.get();
+
+    if (mounted) {
+      setState(() {
+        if (tempSnapshot.exists) {
+          final data = tempSnapshot.value as Map;
+          minTemp = data['Min'] ?? minTemp;
+          maxTemp = data['Max'] ?? maxTemp;
+        }
+        if (isOnSnapshot.exists) {
+          isNotificationOn = isOnSnapshot.value == true;
+        }
+      });
+    }
   }
 
   Color getTemperatureColor() {
@@ -100,12 +111,31 @@ class _TemperaturePageState extends State<TemperaturePage> {
                       setState(() {
                         isNotificationOn = value;
                       });
+                      FirebaseDatabase.instance
+                          .ref()
+                          .child('Notification/isOn')
+                          .set(value);
                     },
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 5),
+            const SizedBox(height: 5),
+
+            // Static Temperature Display
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: getTemperatureColor(),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 5),
 
             // Temperature Selector
             Row(
@@ -122,6 +152,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     maxTemp = value;
                   });
                 }),
+                const SizedBox(width: 20),
                 const Text(
                   "°C",
                   style: TextStyle(
@@ -130,39 +161,36 @@ class _TemperaturePageState extends State<TemperaturePage> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 20),
+
+                // Set button for min and max temp to firebase
                 ElevatedButton(
                   onPressed: () {
-                    print("Temperature set: Min $minTemp°C, Max $maxTemp°C");
+                    final tempPrefRef = FirebaseDatabase.instance.ref().child(
+                      'Notification/Temperature',
+                    );
+                    tempPrefRef.update({'Min': minTemp, 'Max': maxTemp});
+
+                    FirebaseDatabase.instance
+                        .ref()
+                        .child('Notification/isOn')
+                        .set(isNotificationOn);
+
+                    print(
+                      "Preferences saved: Min $minTemp°C, Max $maxTemp°C, isOn: $isNotificationOn",
+                    );
                   },
                   child: const Text("SET"),
                 ),
               ],
             ),
-            const SizedBox(height: 20),
-
-            // Static Temperature Display
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: getTemperatureColor(),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
-                style: const TextStyle(fontSize: 18, color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 10),
 
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 minimumSize: const Size(double.infinity, 50),
               ),
-              onPressed: () {
-                // Optional: Add functionality or leave empty
-              },
+              onPressed: () {},
               child: const Text("SET TO DEFAULT TEMPERATURE"),
             ),
             Expanded(
@@ -182,8 +210,36 @@ class _TemperaturePageState extends State<TemperaturePage> {
   }
 
   Widget _temperatureSelector(int value, Function(int) onChanged) {
-    return Row(
+    final controller = TextEditingController(text: value.toString());
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        IconButton(
+          onPressed: () {
+            onChanged(value + 1);
+          },
+          icon: const Icon(Icons.arrow_drop_up),
+        ),
+        SizedBox(
+          width: 60,
+          height: 40,
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            onSubmitted: (text) {
+              final parsed = int.tryParse(text);
+              if (parsed != null) {
+                onChanged(parsed);
+              }
+            },
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(vertical: 5),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
         IconButton(
           onPressed: () {
             if (value > 0) {
@@ -191,13 +247,6 @@ class _TemperaturePageState extends State<TemperaturePage> {
             }
           },
           icon: const Icon(Icons.arrow_drop_down),
-        ),
-        Text(value.toString(), style: const TextStyle(fontSize: 18)),
-        IconButton(
-          onPressed: () {
-            onChanged(value + 1);
-          },
-          icon: const Icon(Icons.arrow_drop_up),
         ),
       ],
     );
