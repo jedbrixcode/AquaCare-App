@@ -13,36 +13,34 @@ class _TemperaturePageState extends State<TemperaturePage> {
   bool isNotificationOn = false;
   int minTemp = 25;
   int maxTemp = 30;
-  int? currentTemp;
-  bool hasNotified = false;
+  double? currentTemp;
 
   final NotificationService _notificationService = NotificationService();
+
+  final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
+    "Sensors",
+  );
 
   @override
   void initState() {
     super.initState();
     _notificationService.initNotification();
     _fetchTemperature();
-    _fetchTemperature();
     _fetchTemperaturePreferences();
   }
-
-  final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
-    "Sensors",
-  );
 
   void _fetchTemperature() {
     _database.child("Temperature").onValue.listen((event) {
       final data = event.snapshot.value;
       if (data != null) {
-        double? newTemp = double.tryParse(data.toString());
+        double? newTemp = double.tryParse(data.toString())?.toDouble();
         if (newTemp != null) {
           if (mounted) {
             setState(() {
-              currentTemp = newTemp.toInt();
+              currentTemp = newTemp;
             });
           }
-          print("Fetched temp: $currentTemp"); //debug logs
+          print("Fetched temp: $currentTemp"); // debug log
         }
       }
     });
@@ -50,9 +48,11 @@ class _TemperaturePageState extends State<TemperaturePage> {
 
   void _fetchTemperaturePreferences() async {
     final tempRef = FirebaseDatabase.instance.ref().child(
-      'Notification/Temperature',
+      'Treshold/Temperature',
     );
-    final isOnRef = FirebaseDatabase.instance.ref().child('Notification/isOn');
+    final isOnRef = FirebaseDatabase.instance.ref().child(
+      'Notifications/Temperature',
+    );
 
     final tempSnapshot = await tempRef.get();
     final isOnSnapshot = await isOnRef.get();
@@ -61,17 +61,15 @@ class _TemperaturePageState extends State<TemperaturePage> {
       setState(() {
         if (tempSnapshot.exists) {
           final data = tempSnapshot.value as Map;
-          minTemp = data['Min'] ?? minTemp;
-          maxTemp = data['Max'] ?? maxTemp;
+          minTemp = data['MIN'] ?? minTemp;
+          maxTemp = data['MAX'] ?? maxTemp;
         }
         if (isOnSnapshot.exists) {
           isNotificationOn = isOnSnapshot.value == true;
         }
       });
     }
-    print(
-      'Fetched user pref range: min:$minTemp and max:$maxTemp',
-    ); // debug logs
+    print('Fetched user pref range: min:$minTemp and max:$maxTemp');
   }
 
   Color getTemperatureColor() {
@@ -115,17 +113,16 @@ class _TemperaturePageState extends State<TemperaturePage> {
                       });
                       FirebaseDatabase.instance
                           .ref()
-                          .child('Notification/isOn')
+                          .child('Notifications/Temperature')
                           .set(value);
                     },
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 5),
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
 
-            // Static Temperature Display
+            // Temperature Display
             Container(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 70),
               decoration: BoxDecoration(
@@ -133,7 +130,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                "CURRENT TEMPERATURE: ${currentTemp ?? 'Loading...'}°C",
+                "CURRENT TEMPERATURE: ${currentTemp != null ? currentTemp!.toStringAsFixed(1) : 'Loading...'}°C",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
@@ -167,13 +164,12 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 ),
                 const SizedBox(width: 20),
 
-                // Set button for min and max temp to firebase
                 ElevatedButton(
                   onPressed: () {
                     final tempPrefRef = FirebaseDatabase.instance.ref().child(
-                      'Notification/Temperature',
+                      'Treshold/Temperature',
                     );
-                    tempPrefRef.update({'Min': minTemp, 'Max': maxTemp});
+                    tempPrefRef.update({'MIN': minTemp, 'MAX': maxTemp});
 
                     FirebaseDatabase.instance.ref().child('Notification/isOn');
 
@@ -183,6 +179,9 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 ),
               ],
             ),
+
+            const SizedBox(height: 5),
+
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
@@ -193,12 +192,12 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 const int defaultMaxTemp = 28;
 
                 final tempPrefRef = FirebaseDatabase.instance.ref().child(
-                  'Notification/Temperature',
+                  'Treshold/Temperature',
                 );
 
                 tempPrefRef.update({
-                  'Min': defaultMinTemp,
-                  'Max': defaultMaxTemp,
+                  'MIN': defaultMinTemp,
+                  'MAX': defaultMaxTemp,
                 });
 
                 print(
@@ -207,14 +206,12 @@ class _TemperaturePageState extends State<TemperaturePage> {
               },
               child: const Text("SET TO DEFAULT TEMPERATURE"),
             ),
-            Expanded(
-              child: Align(
-                alignment: Alignment.bottomCenter,
-                child: const Text(
-                  "Note: Default aquarium temperature for fishes are 26-28°C.",
-                  style: TextStyle(color: Colors.black, fontSize: 14),
-                ),
-              ),
+
+            const Spacer(),
+
+            const Text(
+              "Note: Default aquarium temperature for fishes are 26-28°C.",
+              style: TextStyle(color: Colors.black, fontSize: 14),
             ),
             const SizedBox(height: 30),
           ],
