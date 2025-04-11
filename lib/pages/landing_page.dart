@@ -14,7 +14,7 @@ class _LandingPageState extends State<LandingPage> {
   void initState() {
     super.initState();
     // Wait for 5 seconds and then navigate to HomePage
-    Timer(Duration(seconds: 8), () {
+    Timer(Duration(seconds: 6), () {
       Navigator.pushReplacementNamed(
         context,
         '/homepage',

@@ -1,4 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:io';
 
 class NotificationService {
   final FlutterLocalNotificationsPlugin notificationPlugin =
@@ -34,6 +36,17 @@ class NotificationService {
     );
   }
 
+  void initFCM() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('🔔 Foreground Message Received: ${message.notification?.title}');
+      showNotification(
+        title: message.notification?.title ?? 'FCM Alert',
+        body: message.notification?.body ?? '',
+        payLoad: 'Foreground Payload',
+      );
+    });
+  }
+
   // Method to create NotificationDetails
   NotificationDetails notificationDetails() {
     return const NotificationDetails(
@@ -60,5 +73,28 @@ class NotificationService {
       notificationDetails(),
       payload: payLoad,
     );
+  }
+
+  Future<void> requestNotificationPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    if (Platform.isIOS) {
+      // iOS-specific permission request
+      await messaging.requestPermission(
+        alert: true,
+        announcement: false,
+        badge: true,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+        sound: true,
+      );
+    } else if (Platform.isAndroid) {
+      // Android 13+ needs this
+      NotificationSettings settings = await messaging.requestPermission();
+      print(
+        '🛡️ Android Notification Permission: ${settings.authorizationStatus}',
+      );
+    }
   }
 }

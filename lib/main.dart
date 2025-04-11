@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:aquacare_v5/pages/Services/notif_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 //import 'package:aquacare_v5/pages/Services/websocket_service.dart';
 
 import 'package:aquacare_v5/pages/autofeed_page.dart';
@@ -12,13 +13,38 @@ import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
 import 'package:aquacare_v5/pages/waterturbidity_page.dart';
 
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(); // Ensure Firebase is initialized
+  print(' Background Message: ${message.messageId}');
+  NotificationService().showNotification(
+    title: message.notification?.title ?? 'Alert',
+    body: message.notification?.body ?? '',
+    payLoad: 'Background Payload',
+  );
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  NotificationService().initNotification();
+
+  // ✅ FIRST initialize Firebase
   await Firebase.initializeApp(
     name: 'aquamans-47d16',
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // ✅ THEN call notification methods
+  final notifService = NotificationService();
+  await notifService.initNotification();
+  await notifService.requestNotificationPermission();
+  notifService.initFCM(); // ← Optional, if this is defined
+
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  FirebaseMessaging messaging = FirebaseMessaging.instance;
+  await messaging.subscribeToTopic('sensor_alerts');
+
+  String? token = await messaging.getToken();
+  print("📲 FCM Token: $token");
 
   // WebSocketService().connect(
   //   onNotificationReceived: (type, message) {
