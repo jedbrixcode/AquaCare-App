@@ -10,7 +10,7 @@ import 'package:aquacare_v5/pages/home_page.dart';
 import 'package:aquacare_v5/pages/landing_page.dart';
 import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
-import 'package:aquacare_v5/pages/waterquality_page.dart';
+import 'package:aquacare_v5/pages/waterturbidity_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,7 +52,7 @@ class MyApp extends StatelessWidget {
         '/landing': (context) => LandingPage(),
         '/homepage': (context) => HomePage(),
         '/temperature': (context) => TemperaturePage(),
-        '/waterquality': (context) => WaterQualityPage(),
+        '/waterturbidity': (context) => WaterTurbidityPage(),
         '/food': (context) => AutoFeedingPage(),
         '/light': (context) => AutoLightPage(),
         '/phlevel': (context) => PhlevelPage(),

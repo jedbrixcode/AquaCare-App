@@ -1,49 +1,49 @@
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:aquacare_v5/pages/Services/notif_service.dart';
 
-class PhlevelPage extends StatefulWidget {
-  const PhlevelPage({super.key});
+class WaterTurbidityPage extends StatefulWidget {
+  const WaterTurbidityPage({super.key});
 
   @override
-  State<PhlevelPage> createState() => _PHPageState();
+  State<WaterTurbidityPage> createState() => _WaterTurbidityPageState();
 }
 
-class _PHPageState extends State<PhlevelPage> {
-  bool isNotificationOn = false;
-  double minPH = 6.5;
-  double maxPH = 7.5;
-  double? currentPH;
-
+class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
   final NotificationService _notificationService = NotificationService();
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  bool isTurbidityNotifOn = false;
+  double minTurbidity = 0;
+  double maxTurbidity = 100;
+  double? currentTurbidity;
 
   @override
   void initState() {
     super.initState();
     _notificationService.initNotification();
-    _fetchPH();
-    _fetchPHPreferences();
+    _fetchTurbidity();
+    _fetchTurbidityPreferences();
   }
 
-  void _fetchPH() {
-    _database.child("Sensors/PH").onValue.listen((event) {
+  void _fetchTurbidity() {
+    _database.child("Sensors/Turbidity").onValue.listen((event) {
       final data = event.snapshot.value;
       if (data != null) {
-        double? newPH = double.tryParse(data.toString());
-        if (newPH != null && mounted) {
+        double? newTurbidity = double.tryParse(data.toString());
+        if (newTurbidity != null && mounted) {
           setState(() {
-            currentPH = newPH;
+            currentTurbidity = newTurbidity;
           });
-          print("Fetched PH: $currentPH");
+          print("Fetched Turbidity: $currentTurbidity");
         }
       }
     });
   }
 
-  void _fetchPHPreferences() async {
-    final minMaxRef = _database.child('Treshold/PH');
-    final notifRef = _database.child('Notifications/PH');
+  void _fetchTurbidityPreferences() async {
+    final minMaxRef = _database.child('Treshold/Turbidity');
+    final notifRef = _database.child('Notifications/Turbidity');
 
     final minMaxSnap = await minMaxRef.get();
     final notifSnap = await notifRef.get();
@@ -52,22 +52,24 @@ class _PHPageState extends State<PhlevelPage> {
       setState(() {
         if (minMaxSnap.exists) {
           final data = Map<String, dynamic>.from(minMaxSnap.value as Map);
-          minPH = (data['MIN'] ?? minPH).toDouble();
-          maxPH = (data['MAX'] ?? maxPH).toDouble();
+          minTurbidity = (data['MIN'] ?? minTurbidity).toDouble();
+          maxTurbidity = (data['MAX'] ?? maxTurbidity).toDouble();
         }
         if (notifSnap.exists) {
-          isNotificationOn = notifSnap.value == true;
+          isTurbidityNotifOn = notifSnap.value == true;
         }
       });
     }
 
-    print('PH Range from Firebase: Min: $minPH, Max: $maxPH');
+    print(
+      'Turbidity Range from Firebase: Min: $minTurbidity, Max: $maxTurbidity',
+    );
   }
 
-  Color getPHColor() {
-    if (currentPH == null) return Colors.grey;
-    if (currentPH! > maxPH) return Colors.red;
-    if (currentPH! < minPH) return Colors.blue;
+  Color getTurbidityColor() {
+    if (currentTurbidity == null) return Colors.grey;
+    if (currentTurbidity! > maxTurbidity) return Colors.red;
+    if (currentTurbidity! < minTurbidity) return Colors.blue;
     return Colors.green;
   }
 
@@ -75,7 +77,7 @@ class _PHPageState extends State<PhlevelPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('PH Level'),
+        title: const Text("Water Turbidity"),
         backgroundColor: Colors.blue,
       ),
       body: Padding(
@@ -97,12 +99,12 @@ class _PHPageState extends State<PhlevelPage> {
                     style: TextStyle(color: Colors.white, fontSize: 16),
                   ),
                   Switch(
-                    value: isNotificationOn,
+                    value: isTurbidityNotifOn,
                     onChanged: (value) {
                       setState(() {
-                        isNotificationOn = value;
+                        isTurbidityNotifOn = value;
                       });
-                      _database.child('Notifications/PH').set(value);
+                      _database.child('Notifications/Turbidity').set(value);
                     },
                   ),
                 ],
@@ -111,76 +113,82 @@ class _PHPageState extends State<PhlevelPage> {
 
             const SizedBox(height: 20),
 
-            // PH Display
+            // Current Turbidity Display
             Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 110,
-              ),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 90),
               decoration: BoxDecoration(
-                color: getPHColor(),
+                color: getTurbidityColor(),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                "CURRENT PH: ${currentPH?.toStringAsFixed(2) ?? 'Loading...'}",
+                "CURRENT TURBIDITY: ${currentTurbidity?.toStringAsFixed(2) ?? 'Loading...'}",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
 
-            // Min-Max Set Row
+            // Min-Max Selector Row
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _phSelector(minPH, (val) => setState(() => minPH = val)),
+                _turbiditySelector(
+                  minTurbidity,
+                  (val) => setState(() => minTurbidity = val),
+                ),
                 const SizedBox(width: 10),
                 const Text(" - "),
                 const SizedBox(width: 10),
-                _phSelector(maxPH, (val) => setState(() => maxPH = val)),
+                _turbiditySelector(
+                  maxTurbidity,
+                  (val) => setState(() => maxTurbidity = val),
+                ),
                 const SizedBox(width: 10),
-                const Text("pH"),
+                const Text("NTU"),
                 const SizedBox(width: 20),
                 ElevatedButton(
                   onPressed: () {
-                    _database.child("Treshold/PH").update({
-                      "MIN": double.parse(minPH.toStringAsFixed(1)),
-                      "MAX": double.parse(maxPH.toStringAsFixed(1)),
+                    _database.child("Treshold/Turbidity").update({
+                      "MIN": minTurbidity,
+                      "MAX": maxTurbidity,
                     });
-                    print("Saved PH preferences: Min $minPH, Max $maxPH");
+                    print(
+                      "Saved Turbidity preferences: Min $minTurbidity, Max $maxTurbidity",
+                    );
                   },
                   child: const Text("SET"),
                 ),
               ],
             ),
 
-            const SizedBox(height: 5),
+            const SizedBox(height: 10),
 
+            // Reset button
             ElevatedButton(
               onPressed: () {
-                const defaultMin = 6.5;
-                const defaultMax = 7.5;
-                _database.child("Treshold/PH").update({
-                  "MIN": double.parse(defaultMin.toStringAsFixed(1)),
-                  "MAX": double.parse(defaultMax.toStringAsFixed(1)),
+                const defaultMin = 0.0;
+                const defaultMax = 50.0;
+                _database.child("Treshold/Turbidity").update({
+                  "MIN": defaultMin,
+                  "MAX": defaultMax,
                 });
                 setState(() {
-                  minPH = defaultMin;
-                  maxPH = defaultMax;
+                  minTurbidity = defaultMin;
+                  maxTurbidity = defaultMax;
                 });
-                print("PH reset to default range.");
+                print("Turbidity reset to default range.");
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.grey[300],
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: const Text("SET TO DEFAULT PH"),
+              child: const Text("SET TO DEFAULT TURBIDITY"),
             ),
 
             const Spacer(),
 
             const Text(
-              "Note: Ideal PH range for aquariums is 6.5 to 7.5",
+              "Note: Acceptable turbidity for aquariums is typically under 50 NTU.",
               style: TextStyle(fontSize: 14),
             ),
 
@@ -191,14 +199,14 @@ class _PHPageState extends State<PhlevelPage> {
     );
   }
 
-  Widget _phSelector(double value, Function(double) onChanged) {
-    final controller = TextEditingController(text: value.toStringAsFixed(1));
+  Widget _turbiditySelector(double value, Function(double) onChanged) {
+    final controller = TextEditingController(text: value.toStringAsFixed(2));
 
     return Column(
       children: [
         IconButton(
           icon: const Icon(Icons.arrow_drop_up, size: 30),
-          onPressed: () => onChanged((value + 0.1).clamp(0.0, 14.0)),
+          onPressed: () => onChanged((value + 1).clamp(0.0, 1000.0)),
         ),
         SizedBox(
           width: 70,
@@ -209,7 +217,7 @@ class _PHPageState extends State<PhlevelPage> {
             textAlign: TextAlign.center,
             onSubmitted: (text) {
               final val = double.tryParse(text);
-              if (val != null) onChanged(val.clamp(0.0, 14.0));
+              if (val != null) onChanged(val.clamp(0.0, 1000.0));
             },
             decoration: const InputDecoration(
               border: OutlineInputBorder(),
@@ -219,7 +227,7 @@ class _PHPageState extends State<PhlevelPage> {
         ),
         IconButton(
           icon: const Icon(Icons.arrow_drop_down, size: 30),
-          onPressed: () => onChanged((value - 0.1).clamp(0.0, 14.0)),
+          onPressed: () => onChanged((value - 1).clamp(0.0, 1000.0)),
         ),
       ],
     );

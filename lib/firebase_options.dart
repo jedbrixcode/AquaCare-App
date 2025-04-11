@@ -67,4 +67,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'aquamans-47d16.firebasestorage.app',
     iosBundleId: 'com.example.aquacareV5',
   );
+
 }

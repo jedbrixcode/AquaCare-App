@@ -24,7 +24,7 @@ class HomePage extends StatelessWidget {
             children: [
               _buildButton(context, "TEMPERATURE", '/temperature'),
               _buildButton(context, "pH LEVEL", '/phlevel'),
-              _buildButton(context, "WATER QUALITY", '/waterquality'),
+              _buildButton(context, "WATER TURBIDITY", '/waterturbidity'),
               _buildButton(context, "AUTOMATED FEEDING", '/food'),
               _buildButton(context, "AUTOMATED LIGHTS", '/light'),
             ],

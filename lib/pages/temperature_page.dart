@@ -130,7 +130,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                "CURRENT TEMPERATURE: ${currentTemp != null ? currentTemp!.toStringAsFixed(1) : 'Loading...'}°C",
+                "CURRENT TEMPERATURE: ${currentTemp != null ? currentTemp!.toStringAsFixed(2) : 'Loading...'}°C",
                 style: const TextStyle(fontSize: 18, color: Colors.white),
               ),
             ),
