@@ -1,8 +1,6 @@
-// Root-level build.gradle.kts
-
 buildscript {
     dependencies {
-        classpath("com.android.tools.build:gradle:8.1.3") // Use version compatible with JDK 17+
+        classpath("com.android.tools.build:gradle:8.1.3") 
         classpath("com.google.gms:google-services:4.3.15")
         
     }

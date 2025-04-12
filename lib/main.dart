@@ -12,9 +12,10 @@ import 'package:aquacare_v5/pages/landing_page.dart';
 import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
 import 'package:aquacare_v5/pages/waterturbidity_page.dart';
+import 'dart:async';
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp(); // Ensure Firebase is initialized
+  await Firebase.initializeApp();
   print(' Background Message: ${message.messageId}');
   NotificationService().showNotification(
     title: message.notification?.title ?? 'Alert',
@@ -24,46 +25,55 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  // Wrap with zone to catch all uncaught errors
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
 
-  // ✅ FIRST initialize Firebase
-  await Firebase.initializeApp(
-    name: 'aquamans-47d16',
-    options: DefaultFirebaseOptions.currentPlatform,
+      // Initialize Firebase
+      await Firebase.initializeApp(
+        name: 'aquamans-47d16',
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Call notification method
+      final notifService = NotificationService();
+      await notifService.requestNotificationPermission();
+      await notifService.initNotification();
+      notifService.initFCM();
+
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      await messaging.subscribeToTopic('sensor_alerts');
+
+      String? token = await messaging.getToken();
+      print("FCM Token: $token");
+
+      // WebSocketService().connect(
+      //   onNotificationReceived: (type, message) {
+      //     print("[$type Notification] $message");
+
+      //     // Trigger notification for temperature alerts
+      //     if (type == "Temperature") {
+      //       NotificationService().showNotification(
+      //         title: 'Temperature Alert!',
+      //         body: message,
+      //         payLoad: 'Temperature alert triggered',
+      //       );
+      //     }
+      //   },
+      // );
+
+      runApp(const MyApp());
+    },
+    (error, stackTrace) {
+      print("Uncaught Error: $error");
+      print("Stack Trace: $stackTrace");
+    },
   );
-
-  // ✅ THEN call notification methods
-  final notifService = NotificationService();
-  await notifService.initNotification();
-  await notifService.requestNotificationPermission();
-  notifService.initFCM(); // ← Optional, if this is defined
-
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-
-  FirebaseMessaging messaging = FirebaseMessaging.instance;
-  await messaging.subscribeToTopic('sensor_alerts');
-
-  String? token = await messaging.getToken();
-  print("📲 FCM Token: $token");
-
-  // WebSocketService().connect(
-  //   onNotificationReceived: (type, message) {
-  //     print("[$type Notification] $message");
-
-  //     // Trigger notification for temperature alerts
-  //     if (type == "Temperature") {
-  //       NotificationService().showNotification(
-  //         title: 'Temperature Alert!',
-  //         body: message,
-  //         payLoad: 'Temperature alert triggered',
-  //       );
-  //     }
-
-  //     // Handle other types of alerts similarly
-  //   },
-  // );
-
-  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

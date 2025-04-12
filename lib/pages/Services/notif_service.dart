@@ -9,7 +9,7 @@ class NotificationService {
   Future<void> initNotification() async {
     // Android-specific initialization settings
     AndroidInitializationSettings initializationSettingsAndroid =
-        const AndroidInitializationSettings('@drawable/aquacarelogo');
+        const AndroidInitializationSettings('@drawable/ic_stat_notify');
 
     // iOS-specific initialization settings
     var initializationSettingsIOS = DarwinInitializationSettings(
@@ -38,7 +38,7 @@ class NotificationService {
 
   void initFCM() {
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('🔔 Foreground Message Received: ${message.notification?.title}');
+      print('Foreground Message Received: ${message.notification?.title}');
       showNotification(
         title: message.notification?.title ?? 'FCM Alert',
         body: message.notification?.body ?? '',
@@ -51,9 +51,10 @@ class NotificationService {
   NotificationDetails notificationDetails() {
     return const NotificationDetails(
       android: AndroidNotificationDetails(
-        'channelId', // channel ID
-        'channelName', // channel name
+        'channelId',
+        'channelName',
         importance: Importance.max,
+        icon: '@drawable/ic_stat_notify',
       ),
       iOS: DarwinNotificationDetails(),
     );
@@ -82,19 +83,17 @@ class NotificationService {
       // iOS-specific permission request
       await messaging.requestPermission(
         alert: true,
-        announcement: false,
         badge: true,
+        sound: true,
+        announcement: false,
         carPlay: false,
         criticalAlert: false,
         provisional: false,
-        sound: true,
       );
     } else if (Platform.isAndroid) {
       // Android 13+ needs this
       NotificationSettings settings = await messaging.requestPermission();
-      print(
-        '🛡️ Android Notification Permission: ${settings.authorizationStatus}',
-      );
+      print('Android Notification Permission: ${settings.authorizationStatus}');
     }
   }
 }
