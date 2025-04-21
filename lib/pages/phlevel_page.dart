@@ -77,6 +77,11 @@ class _PHPageState extends State<PhlevelPage> {
       appBar: AppBar(
         title: const Text('PH Level'),
         backgroundColor: Colors.blue,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

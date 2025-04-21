@@ -49,6 +49,8 @@ dependencies:
   font_awesome_flutter: ^10.7.0
   floating_chat_button: ^1.1.0
   http: ^1.3.0
+  shared_preferences: ^2.5.3
+
 
 icons_launcher:
   image_path: "assets/icons/aquacare_logo.png"

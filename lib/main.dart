@@ -12,6 +12,9 @@ import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
 import 'package:aquacare_v5/pages/waterturbidity_page.dart';
 
+import 'package:aquacare_v5/pages/chatwithAI_page.dart';
+import 'package:aquacare_v5/pages/settings_page.dart';
+
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   print(' Background Message: ${message.messageId}');
   NotificationService().showNotification(
@@ -63,6 +66,8 @@ class MyApp extends StatelessWidget {
         '/food': (context) => AutoFeedingPage(),
         '/light': (context) => AutoLightPage(),
         '/phlevel': (context) => PhlevelPage(),
+        '/chat': (context) => const AIChatPage(),
+        '/settings': (context) => const SettingsPage(),
       },
     );
   }

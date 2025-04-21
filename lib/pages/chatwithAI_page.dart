@@ -1,0 +1,226 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class AIChatPage extends StatefulWidget {
+  const AIChatPage({super.key});
+
+  @override
+  _AIChatPageState createState() => _AIChatPageState();
+}
+
+class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
+  final TextEditingController _controller = TextEditingController();
+  List<Map<String, String>> _messages = [];
+  bool isLoading = false; // To show loading indicator
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    loadMessagesFromPrefs(); // load chat on startup
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.detached) {
+      final prefs = await SharedPreferences.getInstance();
+      prefs.remove('chat_messages'); // clears only on full shutdown
+    }
+  }
+
+  Future<void> saveMessagesToPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String> encodedMessages =
+        _messages.map((msg) => json.encode(msg)).toList();
+    await prefs.setStringList('chat_messages', encodedMessages);
+  }
+
+  Future<void> loadMessagesFromPrefs() async {
+    final prefs = await SharedPreferences.getInstance();
+    List<String>? encodedMessages = prefs.getStringList('chat_messages');
+    if (encodedMessages != null) {
+      setState(() {
+        _messages =
+            encodedMessages
+                .map((msg) => Map<String, String>.from(json.decode(msg)))
+                .toList();
+      });
+    }
+  }
+
+  // Function to send a question to the Flask backend and get the AI's response
+  Future<void> sendMessage() async {
+    String userMessage = _controller.text;
+    if (userMessage.isEmpty) return;
+
+    setState(() {
+      _messages.add({"role": "user", "message": userMessage});
+      isLoading = true; // Show loading indicator
+    });
+    await saveMessagesToPrefs();
+
+    _controller.clear();
+
+    // Make a POST request to the Flask backend
+    final response = await http.post(
+      Uri.parse('https://aquacarerest.onrender.com/ask'),
+      headers: {"Content-Type": "application/json"},
+      body: json.encode({"question": userMessage}),
+    );
+
+    if (response.statusCode == 200) {
+      var responseBody = json.decode(response.body);
+      String aiMessage = responseBody['AI_Response'];
+      setState(() {
+        _messages.add({"role": "ai", "message": aiMessage});
+        isLoading = false; // Hide loading indicator
+      });
+    } else {
+      setState(() {
+        _messages.add({"role": "ai", "message": "Oops, something went wrong!"});
+        isLoading = false; // Hide loading indicator
+      });
+    }
+    await saveMessagesToPrefs();
+  }
+
+  // Widget to display messages in the chat
+  Widget buildChatMessage(Map<String, String> message) {
+    bool isUserMessage = message['role'] == 'user';
+    String title = isUserMessage ? 'User' : 'AquaBot';
+    IconData icon = isUserMessage ? Icons.account_circle : Icons.chat_bubble;
+    Color backgroundColor = isUserMessage ? Colors.blue : Colors.green;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Align(
+        alignment: isUserMessage ? Alignment.centerRight : Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment:
+              isUserMessage ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          children: [
+            // Title and Icon (at the top of the message)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 2.0,
+                horizontal: 8.0,
+              ),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(icon, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 20,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Message Box (chat bubble)
+            SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: backgroundColor,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                message['message'] ?? '',
+                style: const TextStyle(color: Colors.white, fontSize: 20),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Widget to show loading indicator for the AI response
+  Widget buildLoadingIndicator() {
+    return isLoading
+        ? Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Align(
+            alignment: Alignment.center,
+            child: CircularProgressIndicator(),
+          ),
+        )
+        : SizedBox.shrink(); // Empty widget when not loading
+  }
+
+  @override
+  void dispose() {
+    // Dispose properly when the app is terminated (detached or paused)
+    WidgetsBinding.instance.removeObserver(this);
+    saveMessagesToPrefs();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Chat with AquaBot"),
+        backgroundColor: const Color.fromARGB(255, 8, 165, 146),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      body: Padding(
+        padding: EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            // Use Expanded for the chat area to allow scrolling
+            Expanded(
+              child: ListView.builder(
+                reverse: true, // Start the conversation from the bottom
+                itemCount:
+                    _messages.length + 1, // +1 to accommodate loading indicator
+                itemBuilder: (context, index) {
+                  if (index == 0) {
+                    return buildLoadingIndicator(); // Show loading indicator at the top
+                  }
+                  return buildChatMessage(_messages[_messages.length - index]);
+                },
+              ),
+            ),
+            // Chat input and send button
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _controller,
+                      decoration: const InputDecoration(
+                        hintText: "Ask me anything about aquatic life...",
+                        border: OutlineInputBorder(),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.send, size: 28),
+                    onPressed: sendMessage,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

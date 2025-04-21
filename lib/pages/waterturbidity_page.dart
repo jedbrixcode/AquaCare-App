@@ -79,6 +79,11 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
       appBar: AppBar(
         title: const Text("Water Turbidity"),
         backgroundColor: Colors.blue,
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

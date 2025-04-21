@@ -84,7 +84,12 @@ class _TemperaturePageState extends State<TemperaturePage> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
-        title: const Text("Temperature", style: TextStyle(fontSize: 20)),
+        title: const Text("Temperature"),
+        titleTextStyle: const TextStyle(
+          color: Colors.white,
+          fontSize: 32,
+          fontWeight: FontWeight.bold,
+        ),
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),

@@ -63,7 +63,46 @@ class _HomePageState extends State<HomePage> {
         toolbarHeight: 80,
         centerTitle: true,
       ),
-      body: Padding(
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Color.fromARGB(255, 8, 165, 146),
+              ),
+              child: Text(
+                'AquaCare',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 38,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ListTile(
+              title: const Text('Home'),
+              onTap: () {
+                Navigator.pushReplacementNamed(context, '/homepage');
+              },
+            ),
+            ListTile(
+              title: const Text('Chat with AI'),
+              onTap: () {
+                Navigator.pushNamed(context, '/chat');
+              },
+            ),
+            ListTile(
+              title: const Text('Settings'),
+              onTap: () {
+                Navigator.pushNamed(context, '/settings');
+              },
+            ),
+          ],
+        ),
+      ),
+
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
