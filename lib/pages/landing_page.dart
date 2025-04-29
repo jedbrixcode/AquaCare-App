@@ -13,12 +13,12 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
-    // Wait for 5 seconds and then navigate to HomePage
+    // Wait for 6 seconds and then navigate to HomePage
     Timer(Duration(seconds: 6), () {
       Navigator.pushReplacementNamed(
         context,
         '/homepage',
-      ); // ✅ Match route name exactly
+      ); // Match route name exactly
     });
   }
 

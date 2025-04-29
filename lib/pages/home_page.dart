@@ -24,43 +24,77 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     _loadSensorData();
+    _loadThresholdData();
   }
+
+  // Thresholds
+  double tempMin = 22;
+  double tempMax = 28;
+  double turbidityMin = 3;
+  double turbidityMax = 52;
+  double phMin = 6.5;
+  double phMax = 7.5;
 
   void _loadSensorData() {
     _sensorRef.onValue.listen((event) {
       final data = event.snapshot.value as Map;
       setState(() {
-        temperature = data['Temperature'] * 1.0;
-        turbidity = data['Turbidity'] * 1.0;
-        ph = data['PH'] * 1.0;
+        temperature = (data['Temperature'] ?? 0) * 1.0;
+        turbidity = (data['Turbidity'] ?? 0) * 1.0;
+        ph = (data['PH'] ?? 0) * 1.0;
+      });
+    });
+  }
+
+  void _loadThresholdData() {
+    FirebaseDatabase.instance.ref('Treshold').once().then((event) {
+      final data = event.snapshot.value as Map;
+      setState(() {
+        tempMin = (data['Temperature']['MIN'] ?? 22).toDouble();
+        tempMax = (data['Temperature']['MAX'] ?? 28).toDouble();
+        turbidityMin = (data['Turbidity']['MIN'] ?? 3).toDouble();
+        turbidityMax = (data['Turbidity']['MAX'] ?? 52).toDouble();
+        phMin = (data['PH']['MIN'] ?? 6.5).toDouble();
+        phMax = (data['PH']['MAX'] ?? 7.5).toDouble();
       });
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final double tempPercent = ((temperature - 20) / 15).clamp(0.0, 1.0);
-    final double turbidityPercent = (turbidity / 100).clamp(0.0, 1.0);
-    final double phPercent = ((ph - 5) / 3).clamp(0.0, 1.0);
+    final double tempHealth = _calculateHealth(
+      value: temperature,
+      min: tempMin,
+      max: tempMax,
+    );
+    final double turbidityHealth = _calculateHealth(
+      value: turbidity,
+      min: turbidityMin,
+      max: turbidityMax,
+    );
+    final double phHealth = _calculateHealth(value: ph, min: phMin, max: phMax);
 
-    // Determine health
-    int score = 0;
-    if (tempPercent >= 0.6 && tempPercent <= 0.8) score++;
-    if (turbidityPercent <= 0.4) score++;
-    if (phPercent >= 0.5 && phPercent <= 0.7) score++;
-    double health = score / 3.0;
+    // Assign Weights: Temperature > pH > Turbidity
+    const double tempWeight = 0.5;
+    const double phWeight = 0.3;
+    const double turbidityWeight = 0.2;
+
+    double health =
+        (tempHealth * tempWeight) +
+        (phHealth * phWeight) +
+        (turbidityHealth * turbidityWeight);
 
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text("AquaCare Dashboard"),
         titleTextStyle: const TextStyle(
-          color: Colors.white,
+          color: Colors.black,
           fontSize: 32,
           fontWeight: FontWeight.bold,
         ),
-        backgroundColor: const Color.fromARGB(255, 8, 165, 146),
-        toolbarHeight: 80,
+        backgroundColor: Color.fromARGB(0, 0, 0, 0),
+        toolbarHeight: 100,
         centerTitle: true,
       ),
       drawer: Drawer(
@@ -116,8 +150,8 @@ class _HomePageState extends State<HomePage> {
                     onTap: () => Navigator.pushNamed(context, '/temperature'),
                     child: _bigCircleCard(
                       label: "Temperature",
-                      value: "${temperature.toStringAsFixed(1)}°C",
-                      percent: tempPercent,
+                      value: "${temperature.toStringAsFixed(0)}°C",
+                      percent: tempHealth,
                       icon: FontAwesomeIcons.temperatureHigh,
                       color: Colors.white,
                       height: 320,
@@ -152,9 +186,10 @@ class _HomePageState extends State<HomePage> {
                         () => Navigator.pushNamed(context, '/waterturbidity'),
                     child: _horizontalBarCard(
                       label: "Turbidity",
-                      percent: turbidityPercent,
+                      percent: turbidityHealth,
                       isOn: true,
                       color: Colors.green,
+                      rawValue: turbidity,
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -163,7 +198,7 @@ class _HomePageState extends State<HomePage> {
                     child: _circleCard(
                       label: "pH level",
                       value: ph.toStringAsFixed(1),
-                      percent: phPercent,
+                      percent: phHealth,
                       icon: FontAwesomeIcons.vialCircleCheck,
                       color: Colors.white,
                     ),
@@ -235,7 +270,7 @@ class _HomePageState extends State<HomePage> {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 46, // 👈 Bigger font size
+              fontSize: 46,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -281,18 +316,16 @@ class _HomePageState extends State<HomePage> {
             radius: 70,
             lineWidth: 16,
             percent: percent.clamp(0.0, 1.0),
-            center: Icon(icon, color: color, size: 48), // Larger icon size
+            center: Icon(icon, color: color, size: 48),
             progressColor: Colors.white,
             backgroundColor: Colors.black,
             circularStrokeCap: CircularStrokeCap.round,
           ),
           const SizedBox(height: 16),
-
-          // Value as a large number
           Text(
             value,
             style: const TextStyle(
-              fontSize: 52, // Bigger number
+              fontSize: 52,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -306,6 +339,7 @@ class _HomePageState extends State<HomePage> {
     required String label,
     required double percent,
     required bool isOn,
+    required double rawValue,
     required Color color,
   }) {
     return Container(
@@ -332,8 +366,6 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
           const SizedBox(height: 16),
-
-          // Using Stack to position the value over the progress bar
           Stack(
             children: [
               ClipRRect(
@@ -349,7 +381,7 @@ class _HomePageState extends State<HomePage> {
                 child: Align(
                   alignment: Alignment.center,
                   child: Text(
-                    "${(percent * 100).toStringAsFixed(0)} NTU",
+                    "${rawValue.toStringAsFixed(0)} NTU",
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -433,10 +465,8 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         const SizedBox(height: 10),
-
-        // 🔽 Adjust width here
         SizedBox(
-          width: 230, // 👈 reduce this value as needed
+          width: 230,
           child: ClipRRect(
             borderRadius: BorderRadius.circular(25),
             child: LinearProgressIndicator(
@@ -455,5 +485,16 @@ class _HomePageState extends State<HomePage> {
         ),
       ],
     );
+  }
+
+  // --- Helper function to calculate health based on thresholds
+  double _calculateHealth({
+    required double value,
+    required double min,
+    required double max,
+  }) {
+    if (value <= min) return 0.0;
+    if (value >= max) return 1.0;
+    return ((value - min) / (max - min)).clamp(0.0, 1.0);
   }
 }

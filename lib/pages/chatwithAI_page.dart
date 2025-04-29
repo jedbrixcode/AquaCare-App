@@ -26,7 +26,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) async {
     if (state == AppLifecycleState.detached) {
       final prefs = await SharedPreferences.getInstance();
-      prefs.remove('chat_messages'); // clears only on full shutdown
+      prefs.remove('chat_messages');
     }
   }
 
@@ -86,7 +86,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
     await saveMessagesToPrefs();
   }
 
-  // Widget to display messages in the chat
+  // Display messages in the chat
   Widget buildChatMessage(Map<String, String> message) {
     bool isUserMessage = message['role'] == 'user';
     String title = isUserMessage ? 'User' : 'AquaBot';
@@ -146,7 +146,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
     );
   }
 
-  // Widget to show loading indicator for the AI response
+  // Loading indicator for the AI response
   Widget buildLoadingIndicator() {
     return isLoading
         ? Padding(
@@ -178,6 +178,48 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
           fontSize: 32,
           fontWeight: FontWeight.bold,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.delete_forever,
+              color: Colors.white,
+              size: 30,
+            ),
+            onPressed: () async {
+              bool? confirmDelete = await showDialog(
+                context: context,
+                builder:
+                    (context) => AlertDialog(
+                      title: const Text("Delete Chat History?"),
+                      content: const Text(
+                        "This will remove all messages permanently.",
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(false),
+                          child: const Text("Cancel"),
+                        ),
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(true),
+                          child: const Text(
+                            "Delete",
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ],
+                    ),
+              );
+
+              if (confirmDelete == true) {
+                final prefs = await SharedPreferences.getInstance();
+                await prefs.remove('chat_messages');
+                setState(() {
+                  _messages.clear();
+                });
+              }
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: EdgeInsets.all(12.0),
@@ -186,12 +228,11 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
             // Use Expanded for the chat area to allow scrolling
             Expanded(
               child: ListView.builder(
-                reverse: true, // Start the conversation from the bottom
-                itemCount:
-                    _messages.length + 1, // +1 to accommodate loading indicator
+                reverse: true,
+                itemCount: _messages.length + 1,
                 itemBuilder: (context, index) {
                   if (index == 0) {
-                    return buildLoadingIndicator(); // Show loading indicator at the top
+                    return buildLoadingIndicator();
                   }
                   return buildChatMessage(_messages[_messages.length - index]);
                 },

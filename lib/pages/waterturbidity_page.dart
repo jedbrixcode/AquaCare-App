@@ -66,11 +66,42 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
     );
   }
 
-  Color getTurbidityColor() {
-    if (currentTurbidity == null) return Colors.grey;
-    if (currentTurbidity! > maxTurbidity) return Colors.red;
-    if (currentTurbidity! < minTurbidity) return Colors.blue;
-    return Colors.green;
+  Color getTurbidityColor(double? turbidityValue) {
+    switch (turbidityValue) {
+      case null:
+        return Colors.grey;
+      case < 5:
+        return Colors.green;
+      case < 20:
+        return Colors.lightGreen;
+      case < 40:
+        return Colors.yellow;
+      case < 70:
+        return Colors.orange;
+      case < 101:
+        return Colors.red;
+      default:
+        return Colors.red;
+    }
+  }
+
+  String getTurbidityDescription(double? turbidityValue) {
+    switch (turbidityValue) {
+      case null:
+        return "Loading...";
+      case < 5:
+        return "Crystal Clear";
+      case < 20:
+        return "Slightly Cloudy";
+      case < 40:
+        return "Cloudy";
+      case < 70:
+        return "Murky";
+      case < 101:
+        return "Very Murky";
+      default:
+        return "Very Murky"; // Or "Extremely Turbid"
+    }
   }
 
   @override
@@ -120,14 +151,29 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
 
             // Current Turbidity Display
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 90),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 70),
               decoration: BoxDecoration(
-                color: getTurbidityColor(),
+                color: getTurbidityColor(currentTurbidity),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Text(
-                "CURRENT TURBIDITY: ${currentTurbidity?.toStringAsFixed(2) ?? 'Loading...'}",
-                style: const TextStyle(fontSize: 18, color: Colors.white),
+              child: Column(
+                children: [
+                  Text(
+                    "CURRENT TURBIDITY: ${currentTurbidity?.toStringAsFixed(0) ?? 'Loading...'} NTU",
+                    style: const TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                  const SizedBox(height: 8), // Add some spacing
+                  Text(
+                    getTurbidityDescription(
+                      currentTurbidity,
+                    ), // Get the description
+                    style: const TextStyle(
+                      fontSize: 32,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ),
 
