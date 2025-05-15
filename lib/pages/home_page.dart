@@ -98,13 +98,16 @@ class _HomePageState extends State<HomePage> {
         centerTitle: true,
       ),
       drawer: Drawer(
+        backgroundColor: const Color.fromARGB(
+          255,
+          107,
+          159,
+          255,
+        ), // Set the background color here
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
             const DrawerHeader(
-              decoration: BoxDecoration(
-                color: Color.fromARGB(255, 8, 165, 146),
-              ),
               child: Text(
                 'AquaCare',
                 style: TextStyle(
@@ -114,22 +117,61 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 40),
             ListTile(
-              title: const Text('Home'),
+              title: const Text(
+                'Home',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onTap: () {
                 Navigator.pushReplacementNamed(context, '/homepage');
               },
             ),
+            const SizedBox(height: 35),
             ListTile(
-              title: const Text('Chat with AI'),
+              title: const Text(
+                'Chat with AI',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onTap: () {
                 Navigator.pushNamed(context, '/chat');
               },
             ),
+            const SizedBox(height: 35),
             ListTile(
-              title: const Text('Settings'),
+              title: const Text(
+                'Settings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
               onTap: () {
                 Navigator.pushNamed(context, '/settings');
+              },
+            ),
+            const SizedBox(height: 35),
+            ListTile(
+              title: const Text(
+                'Monitoring Graphs',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/graphs');
               },
             ),
           ],

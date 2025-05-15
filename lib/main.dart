@@ -12,6 +12,7 @@ import 'package:aquacare_v5/pages/phlevel_page.dart';
 import 'package:aquacare_v5/pages/temperature_page.dart';
 import 'package:aquacare_v5/pages/waterturbidity_page.dart';
 
+import 'package:aquacare_v5/pages/sensorgraphs_page.dart';
 import 'package:aquacare_v5/pages/chatwithAI_page.dart';
 import 'package:aquacare_v5/pages/settings_page.dart';
 
@@ -68,6 +69,7 @@ class MyApp extends StatelessWidget {
         '/phlevel': (context) => PhlevelPage(),
         '/chat': (context) => const AIChatPage(),
         '/settings': (context) => const SettingsPage(),
+        '/graphs': (context) => const SensorGraphsPage(),
       },
     );
   }
