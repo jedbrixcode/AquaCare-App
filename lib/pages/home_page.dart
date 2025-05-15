@@ -118,13 +118,13 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
 
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
             ListTile(
               title: const Text(
                 'Home',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -132,13 +132,13 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushReplacementNamed(context, '/homepage');
               },
             ),
-            const SizedBox(height: 35),
+            const SizedBox(height: 25),
             ListTile(
               title: const Text(
                 'Chat with AI',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -146,13 +146,13 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushNamed(context, '/chat');
               },
             ),
-            const SizedBox(height: 35),
+            const SizedBox(height: 25),
             ListTile(
               title: const Text(
                 'Settings',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -160,13 +160,13 @@ class _HomePageState extends State<HomePage> {
                 Navigator.pushNamed(context, '/settings');
               },
             ),
-            const SizedBox(height: 35),
+            const SizedBox(height: 25),
             ListTile(
               title: const Text(
                 'Monitoring Graphs',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 28,
+                  fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
               ),

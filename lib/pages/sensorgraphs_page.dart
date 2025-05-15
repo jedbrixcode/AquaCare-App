@@ -2,8 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:aquacare_v5/pages/Services/chart_service.dart';
 
-class SensorGraphsPage extends StatelessWidget {
+class SensorGraphsPage extends StatefulWidget {
   const SensorGraphsPage({super.key});
+
+  @override
+  State<SensorGraphsPage> createState() => _SensorGraphsPageState();
+}
+
+class _SensorGraphsPageState extends State<SensorGraphsPage> {
+  bool showDaily = true;
+
+  Future<void> _reload() async {
+    setState(() {});
+  }
 
   Widget _buildChart(
     List<SensorDataPoint> dataPoints,
@@ -68,33 +79,17 @@ class SensorGraphsPage extends StatelessWidget {
                     return Container();
                   }
                   final timeLabel = dataPoints[index].formattedTime;
-                  if (dataPoints.length <= 6) {
-                    return SideTitleWidget(
-                      meta: meta,
-                      space: 1,
-                      child: Text(
-                        timeLabel,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.black54,
-                        ),
+                  return SideTitleWidget(
+                    meta: meta,
+                    space: 1,
+                    child: Text(
+                      timeLabel,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: Colors.black54,
                       ),
-                    );
-                  } else if (index % (dataPoints.length ~/ 3) == 0 ||
-                      index == dataPoints.length - 1) {
-                    return SideTitleWidget(
-                      meta: meta,
-                      space: 1,
-                      child: Text(
-                        timeLabel.substring(0, 5),
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.black54,
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
+                    ),
+                  );
                 },
               ),
             ),
@@ -152,61 +147,129 @@ class SensorGraphsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildDailyCharts() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        FutureBuilder<List<SensorDataPoint>>(
+          future: ChartServices.fetchSensorData('Temperature'),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Text("No temperature log data found.");
+            }
+            return _buildChart(
+              snapshot.data!,
+              'Temperature',
+              Colors.blueAccent,
+            );
+          },
+        ),
+        const SizedBox(height: 32),
+        FutureBuilder<List<SensorDataPoint>>(
+          future: ChartServices.fetchSensorData('Turbidity'),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Text("No turbidity log data found.");
+            }
+            return _buildChart(snapshot.data!, 'Turbidity', Colors.green);
+          },
+        ),
+        const SizedBox(height: 32),
+        FutureBuilder<List<SensorDataPoint>>(
+          future: ChartServices.fetchSensorData('PH'),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const CircularProgressIndicator();
+            }
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
+              return const Text("No pH log data found.");
+            }
+            return _buildChart(
+              snapshot.data!,
+              'pH',
+              const Color.fromARGB(255, 220, 55, 249),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWeeklyCharts() {
+    return FutureBuilder<List<SensorDataPoint>>(
+      future: ChartServices.fetchAverageData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const Center(child: Text("No weekly average data found."));
+        }
+
+        final temperatureData =
+            snapshot.data!.where((e) => e.label == 'Temperature').toList();
+        final turbidityData =
+            snapshot.data!.where((e) => e.label == 'Turbidity').toList();
+        final phData = snapshot.data!.where((e) => e.label == 'PH').toList();
+
+        return Column(
+          children: [
+            _buildChart(
+              temperatureData,
+              'Temperature (Avg)',
+              Colors.blueAccent,
+            ),
+            const SizedBox(height: 32),
+            _buildChart(turbidityData, 'Turbidity (Avg)', Colors.green),
+            const SizedBox(height: 32),
+            _buildChart(phData, 'pH (Avg)', Colors.purple),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Sensor Graphs')),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Column(
+      appBar: AppBar(
+        title: const Text('Sensor Graphs'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _reload),
+        ],
+      ),
+      body: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const SizedBox(height: 16),
-              FutureBuilder<List<SensorDataPoint>>(
-                future: ChartServices.fetchSensorData('Temperature'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Text("No temperature log data found.");
-                  }
-                  return _buildChart(
-                    snapshot.data!,
-                    'Temperature',
-                    Colors.blueAccent,
-                  );
+              const Text('Daily'),
+              Switch(
+                value: !showDaily,
+                onChanged: (value) {
+                  setState(() {
+                    showDaily = !value;
+                  });
                 },
               ),
-              const SizedBox(height: 32),
-              FutureBuilder<List<SensorDataPoint>>(
-                future: ChartServices.fetchSensorData('Turbidity'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Text("No turbidity log data found.");
-                  }
-                  return _buildChart(snapshot.data!, 'Turbidity', Colors.green);
-                },
-              ),
-              const SizedBox(height: 32),
-              FutureBuilder<List<SensorDataPoint>>(
-                future: ChartServices.fetchSensorData('PH'),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const CircularProgressIndicator();
-                  }
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return const Text("No pH log data found.");
-                  }
-                  return _buildChart(snapshot.data!, 'pH', Colors.purple);
-                },
-              ),
+              const Text('Weekly'),
             ],
           ),
-        ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: SingleChildScrollView(
+                child: showDaily ? _buildDailyCharts() : _buildWeeklyCharts(),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
