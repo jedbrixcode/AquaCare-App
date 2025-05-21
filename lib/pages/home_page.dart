@@ -149,20 +149,6 @@ class _HomePageState extends State<HomePage> {
             const SizedBox(height: 25),
             ListTile(
               title: const Text(
-                'Settings',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.pushNamed(context, '/settings');
-              },
-            ),
-            const SizedBox(height: 25),
-            ListTile(
-              title: const Text(
                 'Monitoring Graphs',
                 style: TextStyle(
                   color: Colors.white,
@@ -172,6 +158,20 @@ class _HomePageState extends State<HomePage> {
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/graphs');
+              },
+            ),
+            const SizedBox(height: 25),
+            ListTile(
+              title: const Text(
+                'Settings',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.pushNamed(context, '/settings');
               },
             ),
           ],

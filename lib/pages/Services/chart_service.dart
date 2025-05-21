@@ -19,7 +19,7 @@ class SensorDataPoint {
 }
 
 class ChartServices {
-  // Fetch daily log data from 'Logs' node
+  // Fetch daily log data from 'Logs' node at firebase
   static Future<List<SensorDataPoint>> fetchSensorData(
     String sensorType,
   ) async {
@@ -52,7 +52,7 @@ class ChartServices {
     return dataPoints;
   }
 
-  // Fetch weekly average data from 'Average' node
+  // Fetch weekly average data from 'Average' node from firebase
   static Future<List<SensorDataPoint>> fetchAverageData() async {
     final ref = FirebaseDatabase.instance.ref();
     final snapshot = await ref.child('Average').get();

@@ -26,6 +26,7 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
     _fetchTurbidityPreferences();
   }
 
+  // fetch turbidity from firebase
   void _fetchTurbidity() {
     _database.child("Sensors/Turbidity").onValue.listen((event) {
       final data = event.snapshot.value;
@@ -41,6 +42,7 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
     });
   }
 
+  // fetch threshold from firebase
   void _fetchTurbidityPreferences() async {
     final minMaxRef = _database.child('Treshold/Turbidity');
     final notifRef = _database.child('Notifications/Turbidity');
@@ -66,6 +68,7 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
     );
   }
 
+  // color change according to water condition
   Color getTurbidityColor(double? turbidityValue) {
     switch (turbidityValue) {
       case null:
@@ -85,6 +88,7 @@ class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
     }
   }
 
+  // condition to show water clarity
   String getTurbidityDescription(double? turbidityValue) {
     switch (turbidityValue) {
       case null:

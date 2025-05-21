@@ -161,7 +161,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    // Dispose properly when the app is terminated (detached or paused)
+    // Dispose properly when the app is terminated
     WidgetsBinding.instance.removeObserver(this);
     saveMessagesToPrefs();
     super.dispose();

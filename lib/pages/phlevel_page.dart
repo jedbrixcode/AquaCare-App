@@ -9,6 +9,7 @@ class PhlevelPage extends StatefulWidget {
   State<PhlevelPage> createState() => _PHPageState();
 }
 
+// class to fetch ph level from firebase
 class _PHPageState extends State<PhlevelPage> {
   bool isNotificationOn = false;
   double minPH = 6.5;

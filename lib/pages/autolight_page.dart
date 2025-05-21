@@ -26,7 +26,7 @@ class _AutoLightPageState extends State<AutoLightPage> {
               onPressed: () {
                 NotificationService().showNotification(
                   title: "Manual Test",
-                  body: "Notification triggered manually 🚨",
+                  body: "Notification triggered manually",
                   payLoad: "manual_payload",
                 );
               },

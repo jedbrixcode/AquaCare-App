@@ -25,12 +25,7 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(
-        255,
-        64,
-        125,
-        255,
-      ), // Customize background color
+      backgroundColor: const Color.fromARGB(255, 64, 125, 255),
       body: Column(
         children: [
           Spacer(),
