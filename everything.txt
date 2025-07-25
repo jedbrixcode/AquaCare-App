@@ -1,0 +1,1223 @@
+services folder/notif_service.dart:
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:io';
+
+class NotificationService {
+  final FlutterLocalNotificationsPlugin notificationPlugin =
+      FlutterLocalNotificationsPlugin();
+
+  Future<void> initNotification() async {
+    // Android-specific initialization settings
+    AndroidInitializationSettings initializationSettingsAndroid =
+        const AndroidInitializationSettings('@drawable/ic_stat_notify');
+
+    // iOS-specific initialization settings
+    var initializationSettingsIOS = DarwinInitializationSettings(
+      requestAlertPermission: true,
+      requestBadgePermission: true,
+      requestSoundPermission: true,
+    );
+
+    // General initialization settings for both platforms
+    var initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
+    );
+
+    await notificationPlugin.initialize(
+      initializationSettings,
+      onDidReceiveNotificationResponse: (NotificationResponse response) async {
+        // Handle the notification response here
+        if (response.payload != null) {
+          print('Notification payload: ${response.payload}');
+        }
+        // You can also perform navigation or other actions here
+      },
+    );
+  }
+
+  void initFCM() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Foreground Message Received: ${message.notification?.title}');
+      showNotification(
+        title: message.notification?.title ?? 'FCM Alert',
+        body: message.notification?.body ?? '',
+        payLoad: 'Foreground Payload',
+      );
+    });
+  }
+
+  // Method to create NotificationDetails
+  NotificationDetails notificationDetails() {
+    return const NotificationDetails(
+      android: AndroidNotificationDetails(
+        'channelId',
+        'channelName',
+        importance: Importance.max,
+        icon: '@drawable/ic_stat_notify',
+      ),
+      iOS: DarwinNotificationDetails(),
+    );
+  }
+
+  // Method to show a notification
+  Future showNotification({
+    int id = 0,
+    String? title,
+    String? body,
+    String? payLoad,
+  }) async {
+    return notificationPlugin.show(
+      id,
+      title,
+      body,
+      notificationDetails(),
+      payload: payLoad,
+    );
+  }
+
+  Future<void> requestNotificationPermission() async {
+    FirebaseMessaging messaging = FirebaseMessaging.instance;
+
+    if (Platform.isIOS) {
+      // iOS-specific permission request
+      await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        announcement: false,
+        carPlay: false,
+        criticalAlert: false,
+        provisional: false,
+      );
+    } else if (Platform.isAndroid) {
+      // Android 13+ needs this
+      NotificationSettings settings = await messaging.requestPermission();
+      print('Android Notification Permission: ${settings.authorizationStatus}');
+    }
+  }
+}
+
+
+
+main.dart:
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+//import 'package:aquacare_v5/pages/Services/websocket_service.dart';
+
+import 'package:aquacare_v5/pages/autofeed_page.dart';
+import 'package:aquacare_v5/pages/autolight_page.dart';
+import 'package:aquacare_v5/pages/home_page.dart';
+import 'package:aquacare_v5/pages/landing_page.dart';
+import 'package:aquacare_v5/pages/phlevel_page.dart';
+import 'package:aquacare_v5/pages/temperature_page.dart';
+import 'package:aquacare_v5/pages/waterturbidity_page.dart';
+import 'dart:async';
+
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print(' Background Message: ${message.messageId}');
+  NotificationService().showNotification(
+    title: message.notification?.title ?? 'Alert',
+    body: message.notification?.body ?? '',
+    payLoad: 'Background Payload',
+  );
+}
+
+Future<void> main() async {
+  // Wrap with zone to catch all uncaught errors
+  runZonedGuarded(
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+
+      // Initialize Firebase
+      await Firebase.initializeApp(
+        name: 'aquamans-47d16',
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+
+      // Call notification method
+      final notifService = NotificationService();
+      await notifService.requestNotificationPermission();
+      await notifService.initNotification();
+      notifService.initFCM();
+
+      FirebaseMessaging.onBackgroundMessage(
+        _firebaseMessagingBackgroundHandler,
+      );
+
+      FirebaseMessaging messaging = FirebaseMessaging.instance;
+      await messaging.subscribeToTopic('sensor_alerts');
+
+      String? token = await messaging.getToken();
+      print("FCM Token: $token");
+
+      // WebSocketService().connect(
+      //   onNotificationReceived: (type, message) {
+      //     print("[$type Notification] $message");
+
+      //     // Trigger notification for temperature alerts
+      //     if (type == "Temperature") {
+      //       NotificationService().showNotification(
+      //         title: 'Temperature Alert!',
+      //         body: message,
+      //         payLoad: 'Temperature alert triggered',
+      //       );
+      //     }
+      //   },
+      // );
+
+      runApp(const MyApp());
+    },
+    (error, stackTrace) {
+      print("Uncaught Error: $error");
+      print("Stack Trace: $stackTrace");
+    },
+  );
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      initialRoute: '/landing',
+      debugShowCheckedModeBanner: false,
+      routes: {
+        '/landing': (context) => LandingPage(),
+        '/homepage': (context) => HomePage(),
+        '/temperature': (context) => TemperaturePage(),
+        '/waterturbidity': (context) => WaterTurbidityPage(),
+        '/food': (context) => AutoFeedingPage(),
+        '/light': (context) => AutoLightPage(),
+        '/phlevel': (context) => PhlevelPage(),
+      },
+    );
+  }
+}
+
+
+
+firebase_options.dart:
+// File generated by FlutterFire CLI.
+// ignore_for_file: type=lint
+import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
+
+/// Default [FirebaseOptions] for use with your Firebase apps.
+///
+/// Example:
+/// ```dart
+/// import 'firebase_options.dart';
+/// // ...
+/// await Firebase.initializeApp(
+///   options: DefaultFirebaseOptions.currentPlatform,
+/// );
+/// ```
+class DefaultFirebaseOptions {
+  static FirebaseOptions get currentPlatform {
+    if (kIsWeb) {
+      throw UnsupportedError(
+        'DefaultFirebaseOptions have not been configured for web - '
+        'you can reconfigure this by running the FlutterFire CLI again.',
+      );
+    }
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return android;
+      case TargetPlatform.iOS:
+        return ios;
+      case TargetPlatform.macOS:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.windows:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for windows - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      case TargetPlatform.linux:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for linux - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
+      default:
+        throw UnsupportedError(
+          'DefaultFirebaseOptions are not supported for this platform.',
+        );
+    }
+  }
+
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY',
+    appId: '1:619002836060:android:2d52fb7bcba62500596299',
+    messagingSenderId: '619002836060',
+    projectId: 'aquamans-47d16',
+    databaseURL: 'https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'aquamans-47d16.firebasestorage.app',
+  );
+
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyDYJ571OeKAibV-VpSZ61k2RMFkMNiv-TI',
+    appId: '1:619002836060:ios:042eb68074872a49596299',
+    messagingSenderId: '619002836060',
+    projectId: 'aquamans-47d16',
+    databaseURL: 'https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app',
+    storageBucket: 'aquamans-47d16.firebasestorage.app',
+    iosBundleId: 'com.example.aquacareV5',
+  );
+
+}
+
+
+waterturbidity_page.dart:
+import 'package:flutter/material.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
+
+class WaterTurbidityPage extends StatefulWidget {
+  const WaterTurbidityPage({super.key});
+
+  @override
+  State<WaterTurbidityPage> createState() => _WaterTurbidityPageState();
+}
+
+class _WaterTurbidityPageState extends State<WaterTurbidityPage> {
+  final NotificationService _notificationService = NotificationService();
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  bool isTurbidityNotifOn = false;
+  double minTurbidity = 0;
+  double maxTurbidity = 100;
+  double? currentTurbidity;
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationService.initNotification();
+    _fetchTurbidity();
+    _fetchTurbidityPreferences();
+  }
+
+  void _fetchTurbidity() {
+    _database.child("Sensors/Turbidity").onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null) {
+        double? newTurbidity = double.tryParse(data.toString());
+        if (newTurbidity != null && mounted) {
+          setState(() {
+            currentTurbidity = newTurbidity;
+          });
+          print("Fetched Turbidity: $currentTurbidity");
+        }
+      }
+    });
+  }
+
+  void _fetchTurbidityPreferences() async {
+    final minMaxRef = _database.child('Treshold/Turbidity');
+    final notifRef = _database.child('Notifications/Turbidity');
+
+    final minMaxSnap = await minMaxRef.get();
+    final notifSnap = await notifRef.get();
+
+    if (mounted) {
+      setState(() {
+        if (minMaxSnap.exists) {
+          final data = Map<String, dynamic>.from(minMaxSnap.value as Map);
+          minTurbidity = (data['MIN'] ?? minTurbidity).toDouble();
+          maxTurbidity = (data['MAX'] ?? maxTurbidity).toDouble();
+        }
+        if (notifSnap.exists) {
+          isTurbidityNotifOn = notifSnap.value == true;
+        }
+      });
+    }
+
+    print(
+      'Turbidity Range from Firebase: Min: $minTurbidity, Max: $maxTurbidity',
+    );
+  }
+
+  Color getTurbidityColor() {
+    if (currentTurbidity == null) return Colors.grey;
+    if (currentTurbidity! > maxTurbidity) return Colors.red;
+    if (currentTurbidity! < minTurbidity) return Colors.blue;
+    return Colors.green;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Water Turbidity"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Notification toggle
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "NOTIFICATION",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  Switch(
+                    value: isTurbidityNotifOn,
+                    onChanged: (value) {
+                      setState(() {
+                        isTurbidityNotifOn = value;
+                      });
+                      _database.child('Notifications/Turbidity').set(value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // Current Turbidity Display
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 90),
+              decoration: BoxDecoration(
+                color: getTurbidityColor(),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "CURRENT TURBIDITY: ${currentTurbidity?.toStringAsFixed(2) ?? 'Loading...'}",
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+
+            const SizedBox(height: 10),
+
+            // Min-Max Selector Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _turbiditySelector(
+                  minTurbidity,
+                  (val) => setState(() => minTurbidity = val),
+                ),
+                const SizedBox(width: 10),
+                const Text(" - "),
+                const SizedBox(width: 10),
+                _turbiditySelector(
+                  maxTurbidity,
+                  (val) => setState(() => maxTurbidity = val),
+                ),
+                const SizedBox(width: 10),
+                const Text("NTU"),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    _database.child("Treshold/Turbidity").update({
+                      "MIN": minTurbidity,
+                      "MAX": maxTurbidity,
+                    });
+                    print(
+                      "Saved Turbidity preferences: Min $minTurbidity, Max $maxTurbidity",
+                    );
+                  },
+                  child: const Text("SET"),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 10),
+
+            // Reset button
+            ElevatedButton(
+              onPressed: () {
+                const defaultMin = 0.0;
+                const defaultMax = 50.0;
+                _database.child("Treshold/Turbidity").update({
+                  "MIN": defaultMin,
+                  "MAX": defaultMax,
+                });
+                setState(() {
+                  minTurbidity = defaultMin;
+                  maxTurbidity = defaultMax;
+                });
+                print("Turbidity reset to default range.");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[300],
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text("SET TO DEFAULT TURBIDITY"),
+            ),
+
+            const Spacer(),
+
+            const Text(
+              "Note: Acceptable turbidity for aquariums is typically under 50 NTU.",
+              style: TextStyle(fontSize: 14),
+            ),
+
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _turbiditySelector(double value, Function(double) onChanged) {
+    final controller = TextEditingController(text: value.toStringAsFixed(2));
+
+    return Column(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_drop_up, size: 30),
+          onPressed: () => onChanged((value + 1).clamp(0.0, 1000.0)),
+        ),
+        SizedBox(
+          width: 70,
+          height: 50,
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            onSubmitted: (text) {
+              final val = double.tryParse(text);
+              if (val != null) onChanged(val.clamp(0.0, 1000.0));
+            },
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(vertical: 5),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.arrow_drop_down, size: 30),
+          onPressed: () => onChanged((value - 1).clamp(0.0, 1000.0)),
+        ),
+      ],
+    );
+  }
+}
+
+
+temperature_page.dart:
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
+
+class TemperaturePage extends StatefulWidget {
+  const TemperaturePage({super.key});
+
+  @override
+  _TemperaturePageState createState() => _TemperaturePageState();
+}
+
+class _TemperaturePageState extends State<TemperaturePage> {
+  bool isNotificationOn = false;
+  int minTemp = 25;
+  int maxTemp = 30;
+  double? currentTemp;
+
+  final NotificationService _notificationService = NotificationService();
+
+  final DatabaseReference _database = FirebaseDatabase.instance.ref().child(
+    "Sensors",
+  );
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationService.initNotification();
+    _fetchTemperature();
+    _fetchTemperaturePreferences();
+  }
+
+  void _fetchTemperature() {
+    _database.child("Temperature").onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null) {
+        double? newTemp = double.tryParse(data.toString())?.toDouble();
+        if (newTemp != null) {
+          if (mounted) {
+            setState(() {
+              currentTemp = newTemp;
+            });
+          }
+          print("Fetched temp: $currentTemp"); // debug log
+        }
+      }
+    });
+  }
+
+  void _fetchTemperaturePreferences() async {
+    final tempRef = FirebaseDatabase.instance.ref().child(
+      'Treshold/Temperature',
+    );
+    final isOnRef = FirebaseDatabase.instance.ref().child(
+      'Notifications/Temperature',
+    );
+
+    final tempSnapshot = await tempRef.get();
+    final isOnSnapshot = await isOnRef.get();
+
+    if (mounted) {
+      setState(() {
+        if (tempSnapshot.exists) {
+          final data = tempSnapshot.value as Map;
+          minTemp = data['MIN'] ?? minTemp;
+          maxTemp = data['MAX'] ?? maxTemp;
+        }
+        if (isOnSnapshot.exists) {
+          isNotificationOn = isOnSnapshot.value == true;
+        }
+      });
+    }
+    print('Fetched user pref range: min:$minTemp and max:$maxTemp');
+  }
+
+  Color getTemperatureColor() {
+    if (currentTemp == null) return Colors.grey;
+    if (currentTemp! > maxTemp) return Colors.red[500]!;
+    if (currentTemp! < minTemp) return Colors.blue[500]!;
+    return Colors.green[300]!;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.blue,
+        title: const Text("Temperature", style: TextStyle(fontSize: 20)),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Notification Toggle
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "NOTIFICATION",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  Switch(
+                    value: isNotificationOn,
+                    onChanged: (value) {
+                      setState(() {
+                        isNotificationOn = value;
+                      });
+                      FirebaseDatabase.instance
+                          .ref()
+                          .child('Notifications/Temperature')
+                          .set(value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Temperature Display
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 70),
+              decoration: BoxDecoration(
+                color: getTemperatureColor(),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "CURRENT TEMPERATURE: ${currentTemp != null ? currentTemp!.toStringAsFixed(2) : 'Loading...'}°C",
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 5),
+
+            // Temperature Selector
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _temperatureSelector(minTemp, (value) {
+                  setState(() {
+                    minTemp = value;
+                  });
+                }),
+                const SizedBox(width: 10),
+                const Text(" - "),
+                const SizedBox(width: 10),
+                _temperatureSelector(maxTemp, (value) {
+                  setState(() {
+                    maxTemp = value;
+                  });
+                }),
+                const SizedBox(width: 20),
+                const Text(
+                  "°C",
+                  style: TextStyle(
+                    fontSize: 20,
+                    color: Colors.black,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(width: 20),
+
+                ElevatedButton(
+                  onPressed: () {
+                    final tempPrefRef = FirebaseDatabase.instance.ref().child(
+                      'Treshold/Temperature',
+                    );
+                    tempPrefRef.update({'MIN': minTemp, 'MAX': maxTemp});
+
+                    FirebaseDatabase.instance.ref().child('Notification/isOn');
+
+                    print("Preferences saved: Min $minTemp°C, Max $maxTemp°C");
+                  },
+                  child: const Text("SET"),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 5),
+
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[300],
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              onPressed: () {
+                const int defaultMinTemp = 26;
+                const int defaultMaxTemp = 28;
+
+                final tempPrefRef = FirebaseDatabase.instance.ref().child(
+                  'Treshold/Temperature',
+                );
+
+                tempPrefRef.update({
+                  'MIN': defaultMinTemp,
+                  'MAX': defaultMaxTemp,
+                });
+
+                print(
+                  "Default temperature set: Min $defaultMinTemp°C, Max $defaultMaxTemp°C",
+                );
+              },
+              child: const Text("SET TO DEFAULT TEMPERATURE"),
+            ),
+
+            const Spacer(),
+
+            const Text(
+              "Note: Default aquarium temperature for fishes are 26-28°C.",
+              style: TextStyle(color: Colors.black, fontSize: 14),
+            ),
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _temperatureSelector(int value, Function(int) onChanged) {
+    final controller = TextEditingController(text: value.toString());
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        IconButton(
+          onPressed: () {
+            onChanged(value + 1);
+          },
+          icon: const Icon(Icons.arrow_drop_up, size: 40),
+        ),
+        SizedBox(
+          width: 70,
+          height: 50,
+          child: TextField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            textAlign: TextAlign.center,
+            onSubmitted: (text) {
+              final parsed = int.tryParse(text);
+              if (parsed != null) {
+                onChanged(parsed);
+              }
+            },
+            decoration: const InputDecoration(
+              contentPadding: EdgeInsets.symmetric(vertical: 5),
+              border: OutlineInputBorder(),
+            ),
+          ),
+        ),
+        IconButton(
+          onPressed: () {
+            if (value > 0) {
+              onChanged(value - 1);
+            }
+          },
+          icon: const Icon(Icons.arrow_drop_down, size: 40),
+        ),
+      ],
+    );
+  }
+}
+
+
+phlevel_page.dart:
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:aquacare_v5/pages/Services/notif_service.dart';
+
+class PhlevelPage extends StatefulWidget {
+  const PhlevelPage({super.key});
+
+  @override
+  State<PhlevelPage> createState() => _PHPageState();
+}
+
+class _PHPageState extends State<PhlevelPage> {
+  bool isNotificationOn = false;
+  double minPH = 6.5;
+  double maxPH = 7.5;
+  double? currentPH;
+
+  final NotificationService _notificationService = NotificationService();
+  final DatabaseReference _database = FirebaseDatabase.instance.ref();
+
+  @override
+  void initState() {
+    super.initState();
+    _notificationService.initNotification();
+    _fetchPH();
+    _fetchPHPreferences();
+  }
+
+  void _fetchPH() {
+    _database.child("Sensors/PH").onValue.listen((event) {
+      final data = event.snapshot.value;
+      if (data != null) {
+        double? newPH = double.tryParse(data.toString());
+        if (newPH != null && mounted) {
+          setState(() {
+            currentPH = newPH;
+          });
+          print("Fetched PH: $currentPH");
+        }
+      }
+    });
+  }
+
+  void _fetchPHPreferences() async {
+    final minMaxRef = _database.child('Treshold/PH');
+    final notifRef = _database.child('Notifications/PH');
+
+    final minMaxSnap = await minMaxRef.get();
+    final notifSnap = await notifRef.get();
+
+    if (mounted) {
+      setState(() {
+        if (minMaxSnap.exists) {
+          final data = Map<String, dynamic>.from(minMaxSnap.value as Map);
+          minPH = (data['MIN'] ?? minPH).toDouble();
+          maxPH = (data['MAX'] ?? maxPH).toDouble();
+        }
+        if (notifSnap.exists) {
+          isNotificationOn = notifSnap.value == true;
+        }
+      });
+    }
+
+    print('PH Range from Firebase: Min: $minPH, Max: $maxPH');
+  }
+
+  Color getPHColor() {
+    if (currentPH == null) return Colors.grey;
+    if (currentPH! > maxPH) return Colors.red;
+    if (currentPH! < minPH) return Colors.blue;
+    return Colors.green;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('PH Level'),
+        backgroundColor: Colors.blue,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Notification toggle
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.grey[800],
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    "NOTIFICATION",
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                  Switch(
+                    value: isNotificationOn,
+                    onChanged: (value) {
+                      setState(() {
+                        isNotificationOn = value;
+                      });
+                      _database.child('Notifications/PH').set(value);
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // PH Display
+            Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 10,
+                horizontal: 110,
+              ),
+              decoration: BoxDecoration(
+                color: getPHColor(),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                "CURRENT PH: ${currentPH?.toStringAsFixed(2) ?? 'Loading...'}",
+                style: const TextStyle(fontSize: 18, color: Colors.white),
+              ),
+            ),
+
+            const SizedBox(height: 5),
+
+            // Min-Max Set Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _phSelector(minPH, (val) => setState(() => minPH = val)),
+                const SizedBox(width: 10),
+                const Text(" - "),
+                const SizedBox(width: 10),
+                _phSelector(maxPH, (val) => setState(() => maxPH = val)),
+                const SizedBox(width: 10),
+                const Text("pH"),
+                const SizedBox(width: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    _database.child("Treshold/PH").update({
+                      "MIN": double.parse(minPH.toStringAsFixed(1)),
+                      "MAX": double.parse(maxPH.toStringAsFixed(1)),
+                    });
+                    print("Saved PH preferences: Min $minPH, Max $maxPH");
+                  },
+                  child: const Text("SET"),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 5),
+
+            ElevatedButton(
+              onPressed: () {
+                const defaultMin = 6.5;
+                const defaultMax = 7.5;
+                _database.child("Treshold/PH").update({
+                  "MIN": double.parse(defaultMin.toStringAsFixed(1)),
+                  "MAX": double.parse(defaultMax.toStringAsFixed(1)),
+                });
+                setState(() {
+                  minPH = defaultMin;
+                  maxPH = defaultMax;
+                });
+                print("PH reset to default range.");
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.grey[300],
+                minimumSize: const Size(double.infinity, 50),
+              ),
+              child: const Text("SET TO DEFAULT PH"),
+            ),
+
+            const Spacer(),
+
+            const Text(
+              "Note: Ideal PH range for aquariums is 6.5 to 7.5",
+              style: TextStyle(fontSize: 14),
+            ),
+
+            const SizedBox(height: 30),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _phSelector(double value, Function(double) onChanged) {
+    final controller = TextEditingController(text: value.toStringAsFixed(1));
+
+    return Column(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.arrow_drop_up, size: 30),
+          onPressed: () => onChanged((value + 0.1).clamp(0.0, 14.0)),
+        ),
+        SizedBox(
+          width: 70,
+          height: 50,
+          child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            onSubmitted: (text) {
+              final val = double.tryParse(text);
+              if (val != null) onChanged(val.clamp(0.0, 14.0));
+            },
+            decoration: const InputDecoration(
+              border: OutlineInputBorder(),
+              contentPadding: EdgeInsets.symmetric(vertical: 5),
+            ),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.arrow_drop_down, size: 30),
+          onPressed: () => onChanged((value - 0.1).clamp(0.0, 14.0)),
+        ),
+      ],
+    );
+  }
+}
+
+
+landing_page.dart:
+import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
+
+class LandingPage extends StatefulWidget {
+  const LandingPage({super.key});
+
+  @override
+  State<LandingPage> createState() => _LandingPageState();
+}
+
+class _LandingPageState extends State<LandingPage> {
+  @override
+  void initState() {
+    super.initState();
+    // Wait for 5 seconds and then navigate to HomePage
+    Timer(Duration(seconds: 6), () {
+      Navigator.pushReplacementNamed(
+        context,
+        '/homepage',
+      ); // ✅ Match route name exactly
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(
+        255,
+        64,
+        125,
+        255,
+      ), // Customize background color
+      body: Column(
+        children: [
+          Spacer(),
+          Center(
+            child: Text(
+              "Welcome to AquaCare",
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ),
+          Spacer(),
+          LoadingAnimationWidget.waveDots(color: Colors.white, size: 40),
+          SizedBox(height: 50),
+        ],
+      ),
+    );
+  }
+}
+
+
+home_page.dart:
+import 'package:flutter/material.dart';
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Aquarium"),
+        titleTextStyle: TextStyle(
+          color: Colors.black,
+          fontSize: 38,
+          fontWeight: FontWeight.bold,
+        ),
+        backgroundColor: Colors.blue[200],
+        toolbarHeight: 75,
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildButton(context, "TEMPERATURE", '/temperature'),
+              _buildButton(context, "pH LEVEL", '/phlevel'),
+              _buildButton(context, "WATER TURBIDITY", '/waterturbidity'),
+              _buildButton(context, "AUTOMATED FEEDING", '/food'),
+              _buildButton(context, "AUTOMATED LIGHTS", '/light'),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildButton(BuildContext context, String text, String route) {
+    return SizedBox(
+      width: double.infinity, // Full width
+      height: 70, // Fixed height
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          textStyle: const TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+          ), // Standard text size
+          //backgroundColor: Colors.blue[300], // Consistent button color
+        ),
+        onPressed: () {
+          Navigator.pushNamed(context, route);
+        },
+        child: Text(text),
+      ),
+    );
+  }
+}
+
+
+autolight_page.dart (planning to dev later on):
+import 'package:flutter/material.dart';
+
+class AutoLightPage extends StatefulWidget {
+  const AutoLightPage({super.key});
+
+  @override
+  State<AutoLightPage> createState() => _AutoLightPageState();
+}
+
+class _AutoLightPageState extends State<AutoLightPage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Automatic Light"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Center(child: Text("dito mga auto lights")),
+    );
+  }
+}
+
+
+autofeed_page.dart (planning to dev later on, i will not use websocket.):
+import 'package:flutter/material.dart';
+import 'package:aquacare_v5/pages/Services/websocket_service.dart';
+
+class AutoFeedingPage extends StatefulWidget {
+  const AutoFeedingPage({super.key});
+
+  @override
+  State<AutoFeedingPage> createState() => _AutoFeedingPageState();
+}
+
+class _AutoFeedingPageState extends State<AutoFeedingPage> {
+  final WebSocketService _webSocketService = WebSocketService();
+
+  String status = "Not connected";
+
+  void _connectWebSocket() {
+    _webSocketService.connect(
+      onNotificationReceived: (type, message) {
+        setState(() {
+          status = "[$type] $message";
+        });
+        print("[$type] $message");
+      },
+    );
+    _webSocketService.sendTestMessage();
+    setState(() {
+      status = "WebSocket connected. Test message sent.";
+    });
+  }
+
+  @override
+  void dispose() {
+    _webSocketService.disconnect();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Automatic Feeding"),
+        backgroundColor: Colors.blue,
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: _connectWebSocket,
+              child: const Text(
+                "Test WebSocket Connection",
+                style: TextStyle(fontSize: 20),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              status,
+              style: const TextStyle(fontSize: 16),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
