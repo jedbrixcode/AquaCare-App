@@ -1,22 +1,22 @@
 {
   "project_info": {
-    "project_number": "619002836060",
-    "firebase_url": "https://aquamans-47d16-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "aquamans-47d16",
-    "storage_bucket": "aquamans-47d16.firebasestorage.app"
+    "project_number": "1009954792101",
+    "firebase_url": "https://for-practice-ce750-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "for-practice-ce750",
+    "storage_bucket": "for-practice-ce750.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:619002836060:android:491b91a5fc642e6d596299",
+        "mobilesdk_app_id": "1:1009954792101:android:4db02741e7d50e65f1a34c",
         "android_client_info": {
-          "package_name": "com.aquacare.smartmonitoring"
+          "package_name": "com.example.aquacare_final"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY"
+          "current_key": "AIzaSyCKWNQRZakZk0begIFTLWjuBXbfP2jVHCg"
         }
       ],
       "services": {
@@ -27,45 +27,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:619002836060:android:89b4d413e7f34da0596299",
-        "android_client_info": {
-          "package_name": "com.example.aqua_carev2"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:619002836060:android:e40de271279392ca596299",
-        "android_client_info": {
-          "package_name": "com.example.aqua_carev3"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:619002836060:android:2d52fb7bcba62500596299",
+        "mobilesdk_app_id": "1:1009954792101:android:ba9fd9e3ca153795f1a34c",
         "android_client_info": {
           "package_name": "com.example.aquacare_v5"
         }
@@ -73,26 +35,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": []
-        }
-      }
-    },
-    {
-      "client_info": {
-        "mobilesdk_app_id": "1:619002836060:android:2b3821d72d1f4eae596299",
-        "android_client_info": {
-          "package_name": "com.example.simplenav"
-        }
-      },
-      "oauth_client": [],
-      "api_key": [
-        {
-          "current_key": "AIzaSyBDLEjQaPGBKhhVE6IWq7PiEDDfZ20SjAY"
+          "current_key": "AIzaSyCKWNQRZakZk0begIFTLWjuBXbfP2jVHCg"
         }
       ],
       "services": {

@@ -11,8 +11,8 @@ class TemperaturePage extends StatefulWidget {
 
 class _TemperaturePageState extends State<TemperaturePage> {
   bool isNotificationOn = false;
-  int minTemp = 25;
-  int maxTemp = 30;
+  double minTemp = 25;
+  double maxTemp = 30;
   double? currentTemp;
 
   final NotificationService _notificationService = NotificationService();
@@ -224,7 +224,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
     );
   }
 
-  Widget _temperatureSelector(int value, Function(int) onChanged) {
+  Widget _temperatureSelector(double value, Function(double) onChanged) {
     final controller = TextEditingController(text: value.toString());
 
     return Column(
@@ -244,7 +244,7 @@ class _TemperaturePageState extends State<TemperaturePage> {
             keyboardType: TextInputType.number,
             textAlign: TextAlign.center,
             onSubmitted: (text) {
-              final parsed = int.tryParse(text);
+              final parsed = double.tryParse(text);
               if (parsed != null) {
                 onChanged(parsed);
               }

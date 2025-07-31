@@ -1,0 +1,314 @@
+{
+  "aquariums": {
+    "1": {
+      "average": {
+        "1": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "2": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "index": 2
+      },
+      "hourly_log": {
+        "1": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "2": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "3": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "4": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "5": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "6": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "7": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "8": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "9": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "10": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "11": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "12": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "13": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "14": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "15": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "16": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "17": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "18": {
+          "ph": 2,
+          "temperature": 3,
+          "turbidity": 4
+        },
+        "index": 18
+      },
+      "notification": {
+        "ph": false,
+        "temperature": false,
+        "turbidity": false
+      },
+      "sensors": {
+        "ph": 10,
+        "temperature": 14,
+        "turbidity": 1
+      },
+      "threshold": {
+        "ph": {
+          "max": 0,
+          "min": 0
+        },
+        "temperature": {
+          "max": 0,
+          "min": 0
+        },
+        "turbidity": {
+          "max": 0,
+          "min": 0
+        }
+      }
+    },
+    "2": {
+      "average": {
+        "index": 0
+      },
+      "hourly_log": {
+        "1": {
+          "ph": 3,
+          "temperature": 2,
+          "turbidity": 4
+        },
+        "2": {
+          "ph": 3,
+          "temperature": 2,
+          "turbidity": 4999
+        },
+        "index": 2
+      },
+      "notification": {
+        "ph": true,
+        "temperature": false,
+        "turbidity": false
+      },
+      "sensors": {
+        "ph": 3,
+        "temperature": 2,
+        "turbidity": 4
+      },
+      "threshold": {
+        "ph": {
+          "max": 0,
+          "min": 0
+        },
+        "temperature": {
+          "max": 0,
+          "min": 0
+        },
+        "turbidity": {
+          "max": 0,
+          "min": 0
+        }
+      }
+    },
+    "3": {
+      "average": {
+        "index": 0
+      },
+      "hourly_log": {
+        "index": 0
+      },
+      "notification": {
+        "ph": false,
+        "temperature": false,
+        "turbidity": false
+      },
+      "sensors": {
+        "ph": 3,
+        "temperature": 2,
+        "turbidity": 4
+      },
+      "threshold": {
+        "ph": {
+          "max": 0,
+          "min": 0
+        },
+        "temperature": {
+          "max": 0,
+          "min": 0
+        },
+        "turbidity": {
+          "max": 0,
+          "min": 0
+        }
+      }
+    },
+    "4": {
+      "average": {
+        "index": 0
+      },
+      "hourly_log": {
+        "index": 0
+      },
+      "notification": {
+        "ph": false,
+        "temperature": false,
+        "turbidity": false
+      },
+      "sensors": {
+        "ph": 6,
+        "temperature": 67,
+        "turbidity": 7
+      },
+      "threshold": {
+        "ph": {
+          "max": 0,
+          "min": 0
+        },
+        "temperature": {
+          "max": 0,
+          "min": 0
+        },
+        "turbidity": {
+          "max": 0,
+          "min": 0
+        }
+      }
+    },
+    "123": {
+      "average": {
+        "index": 0
+      },
+      "hourly_log": {
+        "1": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "2": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "3": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "4": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "5": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "6": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "7": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "8": {
+          "ph": 3,
+          "temperature": 3,
+          "turbidity": 3
+        },
+        "index": 8
+      },
+      "notification": {
+        "ph": true,
+        "temperature": false,
+        "turbidity": false
+      },
+      "sensors": {
+        "ph": 4,
+        "temperature": 5,
+        "turbidity": 8
+      },
+      "threshold": {
+        "ph": {
+          "max": 6,
+          "min": 3
+        },
+        "temperature": {
+          "max": 0,
+          "min": 0
+        },
+        "turbidity": {
+          "max": 0,
+          "min": 0
+        }
+      }
+    }
+  }
+}

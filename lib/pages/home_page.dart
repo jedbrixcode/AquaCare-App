@@ -285,7 +285,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Label at the top
           Text(
             label.toUpperCase(),
             style: const TextStyle(
@@ -307,8 +306,6 @@ class _HomePageState extends State<HomePage> {
             circularStrokeCap: CircularStrokeCap.round,
           ),
           const SizedBox(height: 16),
-
-          // Temperature value as big number
           Text(
             value,
             style: const TextStyle(
@@ -427,7 +424,7 @@ class _HomePageState extends State<HomePage> {
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: color, // Make the text blend with the bar
+                      color: Colors.white,
                     ),
                   ),
                 ),
