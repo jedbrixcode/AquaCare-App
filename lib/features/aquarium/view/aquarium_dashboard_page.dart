@@ -19,9 +19,9 @@ class AquariumDashboardPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Temperature: 6C: ${sensor.temperature.toStringAsFixed(1)}',
+                    'Temperature: ${sensor.temperature.toStringAsFixed(0)} C',
                   ),
-                  Text('pH: ${sensor.ph.toStringAsFixed(2)}'),
+                  Text('pH: ${sensor.ph.toStringAsFixed(0)}'),
                   Text('Turbidity: ${sensor.turbidity.toStringAsFixed(1)} NTU'),
                   // TODO: Add more UI and controls as needed
                 ],

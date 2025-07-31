@@ -5,9 +5,19 @@ import 'package:aquacare_v5/core/models/notification_model.dart';
 
 class AquariumRepository {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
-  final String aquariumId = '1'; // For now, hardcoded to Aquarium 1
 
-  Stream<Sensor> sensorStream() {
+  // Get all aquarium IDs from the database
+  Stream<List<String>> getAllAquariumIds() {
+    return _db.child('aquariums').onValue.map((event) {
+      final data = event.snapshot.value as Map?;
+      if (data == null) return <String>[];
+
+      return data.keys.cast<String>().toList();
+    });
+  }
+
+  // Get sensor data for a specific aquarium
+  Stream<Sensor> sensorStream(String aquariumId) {
     return _db.child('aquariums/$aquariumId/sensors').onValue.map((event) {
       final data = event.snapshot.value as Map?;
       return Sensor(
@@ -18,7 +28,32 @@ class AquariumRepository {
     });
   }
 
-  Future<Threshold> fetchThresholds() async {
+  // Get all aquariums with their sensor data
+  Stream<Map<String, Sensor>> getAllAquariumsData() {
+    return _db.child('aquariums').onValue.map((event) {
+      final data = event.snapshot.value as Map?;
+      if (data == null) return <String, Sensor>{};
+
+      final Map<String, Sensor> aquariums = {};
+
+      for (String aquariumId in data.keys) {
+        final aquariumData = data[aquariumId] as Map?;
+        final sensorsData = aquariumData?['sensors'] as Map?;
+
+        if (sensorsData != null) {
+          aquariums[aquariumId] = Sensor(
+            temperature: (sensorsData['temperature'] ?? 0).toDouble(),
+            turbidity: (sensorsData['turbidity'] ?? 0).toDouble(),
+            ph: (sensorsData['ph'] ?? 0).toDouble(),
+          );
+        }
+      }
+
+      return aquariums;
+    });
+  }
+
+  Future<Threshold> fetchThresholds(String aquariumId) async {
     final snap = await _db.child('aquariums/$aquariumId/threshold').get();
     final data = snap.value as Map?;
     return Threshold(
@@ -31,7 +66,7 @@ class AquariumRepository {
     );
   }
 
-  Future<NotificationPref> fetchNotificationPrefs() async {
+  Future<NotificationPref> fetchNotificationPrefs(String aquariumId) async {
     final snap = await _db.child('aquariums/$aquariumId/notification').get();
     final data = snap.value as Map?;
     return NotificationPref(
@@ -41,7 +76,7 @@ class AquariumRepository {
     );
   }
 
-  Future<void> setThresholds(Threshold t) async {
+  Future<void> setThresholds(String aquariumId, Threshold t) async {
     await _db.child('aquariums/$aquariumId/threshold').update({
       'temperature': {'min': t.tempMin, 'max': t.tempMax},
       'turbidity': {'min': t.turbidityMin, 'max': t.turbidityMax},
@@ -49,7 +84,10 @@ class AquariumRepository {
     });
   }
 
-  Future<void> setNotificationPrefs(NotificationPref n) async {
+  Future<void> setNotificationPrefs(
+    String aquariumId,
+    NotificationPref n,
+  ) async {
     await _db.child('aquariums/$aquariumId/notification').update({
       'temperature': n.temperature,
       'turbidity': n.turbidity,

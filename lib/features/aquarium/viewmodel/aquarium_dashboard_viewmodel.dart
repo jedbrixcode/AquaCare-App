@@ -6,27 +6,49 @@ import '../repository/aquarium_repository.dart';
 
 final aquariumRepositoryProvider = Provider((ref) => AquariumRepository());
 
-final sensorProvider = StreamProvider<Sensor>((ref) {
+// Stream of all aquariums with their sensor data
+final allAquariumsProvider = StreamProvider<Map<String, Sensor>>((ref) {
   final repo = ref.watch(aquariumRepositoryProvider);
-  return repo.sensorStream();
+  return repo.getAllAquariumsData();
 });
 
-final thresholdProvider = FutureProvider<Threshold>((ref) async {
+// Stream of all aquarium IDs
+final allAquariumIdsProvider = StreamProvider<List<String>>((ref) {
   final repo = ref.watch(aquariumRepositoryProvider);
-  return await repo.fetchThresholds();
+  return repo.getAllAquariumIds();
 });
 
-final notificationPrefProvider = FutureProvider<NotificationPref>((ref) async {
+// Provider for a specific aquarium's sensor data
+final aquariumSensorProvider = StreamProvider.family<Sensor, String>((
+  ref,
+  aquariumId,
+) {
   final repo = ref.watch(aquariumRepositoryProvider);
-  return await repo.fetchNotificationPrefs();
+  return repo.sensorStream(aquariumId);
 });
+
+// Provider for a specific aquarium's thresholds
+final aquariumThresholdProvider = FutureProvider.family<Threshold, String>((
+  ref,
+  aquariumId,
+) async {
+  final repo = ref.watch(aquariumRepositoryProvider);
+  return await repo.fetchThresholds(aquariumId);
+});
+
+// Provider for a specific aquarium's notification preferences
+final aquariumNotificationProvider =
+    FutureProvider.family<NotificationPref, String>((ref, aquariumId) async {
+      final repo = ref.watch(aquariumRepositoryProvider);
+      return await repo.fetchNotificationPrefs(aquariumId);
+    });
 
 class AquariumDashboardViewModel {
-  // For imperative updates (e.g., from UI actions)
   final AquariumRepository repo;
   AquariumDashboardViewModel(this.repo);
 
-  Future<void> setThresholds(Threshold t) => repo.setThresholds(t);
-  Future<void> setNotificationPrefs(NotificationPref n) =>
-      repo.setNotificationPrefs(n);
+  Future<void> setThresholds(String aquariumId, Threshold t) =>
+      repo.setThresholds(aquariumId, t);
+  Future<void> setNotificationPrefs(String aquariumId, NotificationPref n) =>
+      repo.setNotificationPrefs(aquariumId, n);
 }
