@@ -6,16 +6,10 @@ import '../repository/aquarium_repository.dart';
 
 final aquariumRepositoryProvider = Provider((ref) => AquariumRepository());
 
-// Stream of all aquariums with their sensor data
-final allAquariumsProvider = StreamProvider<Map<String, Sensor>>((ref) {
+// Stream of all aquariums with their name and sensor data
+final aquariumsSummaryProvider = StreamProvider<List<AquariumSummary>>((ref) {
   final repo = ref.watch(aquariumRepositoryProvider);
-  return repo.getAllAquariumsData();
-});
-
-// Stream of all aquarium IDs
-final allAquariumIdsProvider = StreamProvider<List<String>>((ref) {
-  final repo = ref.watch(aquariumRepositoryProvider);
-  return repo.getAllAquariumIds();
+  return repo.getAllAquariumsSummary();
 });
 
 // Provider for a specific aquarium's sensor data

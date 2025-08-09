@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/features/aquarium/repository/aquarium_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
@@ -7,7 +8,7 @@ class AquariumDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final allAquariumsAsync = ref.watch(allAquariumsProvider);
+    final summaryAsync = ref.watch(aquariumsSummaryProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -19,9 +20,9 @@ class AquariumDashboardPage extends ConsumerWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: allAquariumsAsync.when(
-        data: (aquariums) {
-          if (aquariums.isEmpty) {
+      body: summaryAsync.when(
+        data: (summaries) {
+          if (summaries.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -48,50 +49,22 @@ class AquariumDashboardPage extends ConsumerWidget {
 
           return Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Active Aquariums (${aquariums.length})',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: GridView.builder(
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                          childAspectRatio: 0.8,
-                        ),
-                    itemCount: aquariums.length,
-                    itemBuilder: (context, index) {
-                      final aquariumId = aquariums.keys.elementAt(index);
-                      final sensor = aquariums[aquariumId]!;
-
-                      return _buildAquariumCard(aquariumId, sensor);
-                    },
-                  ),
-                ),
-              ],
+            child: GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: summaries.length,
+              itemBuilder: (context, index) {
+                final s = summaries[index];
+                return _buildAquariumCard(s);
+              },
             ),
           );
         },
-        loading:
-            () => const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 16),
-                  Text('Loading aquariums...'),
-                ],
-              ),
-            ),
+        loading: () => const Center(child: CircularProgressIndicator()),
         error:
             (error, stack) => Center(
               child: Column(
@@ -99,12 +72,9 @@ class AquariumDashboardPage extends ConsumerWidget {
                 children: [
                   const Icon(Icons.error_outline, size: 64, color: Colors.red),
                   const SizedBox(height: 16),
-                  Text(
+                  const Text(
                     'Error loading aquariums',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -119,7 +89,7 @@ class AquariumDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildAquariumCard(String aquariumId, sensor) {
+  Widget _buildAquariumCard(AquariumSummary s) {
     return Card(
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -131,11 +101,14 @@ class AquariumDashboardPage extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Aquarium $aquariumId',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                Flexible(
+                  child: Text(
+                    s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 Container(
@@ -147,33 +120,25 @@ class AquariumDashboardPage extends ConsumerWidget {
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Active',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
             _buildSensorRow(
               'Temperature',
-              '${sensor.temperature.toStringAsFixed(1)}°C',
+              '${s.sensor.temperature.toStringAsFixed(1)}°C',
               Icons.thermostat,
             ),
             const SizedBox(height: 8),
             _buildSensorRow(
               'pH',
-              sensor.ph.toStringAsFixed(2),
+              s.sensor.ph.toStringAsFixed(2),
               Icons.water_drop,
             ),
             const SizedBox(height: 8),
             _buildSensorRow(
               'Turbidity',
-              '${sensor.turbidity.toStringAsFixed(1)} NTU',
+              '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
               Icons.visibility,
             ),
             const Spacer(),
@@ -200,11 +165,11 @@ class AquariumDashboardPage extends ConsumerWidget {
     return Row(
       children: [
         Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
+        const SizedBox(width: 6),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
           ),
         ),
         Text(
