@@ -2,6 +2,8 @@ import 'package:aquacare_v5/features/aquarium/repository/aquarium_repository.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
+import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
+import 'package:aquacare_v5/utils/responsive_helper.dart';
 
 class AquariumDashboardPage extends ConsumerWidget {
   const AquariumDashboardPage({super.key});
@@ -48,19 +50,34 @@ class AquariumDashboardPage extends ConsumerWidget {
           }
 
           return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 16,
-                mainAxisSpacing: 16,
-                childAspectRatio: 0.8,
-              ),
-              itemCount: summaries.length,
-              itemBuilder: (context, index) {
-                final s = summaries[index];
-                return _buildAquariumCard(s);
-              },
+            padding: ResponsiveHelper.getScreenPadding(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Active Aquariums (${summaries.length})',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getFontSize(context, 20),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      ref.refresh(aquariumsSummaryProvider);
+                    },
+                    child: ListView.builder(
+                      scrollDirection: Axis.vertical,
+                      itemCount: summaries.length,
+                      itemBuilder: (context, index) {
+                        final s = summaries[index];
+                        return _buildAquariumCard(context, s);
+                      },
+                    ),
+                  ),
+                ),
+              ],
             ),
           );
         },
@@ -82,6 +99,13 @@ class AquariumDashboardPage extends ConsumerWidget {
                     style: const TextStyle(color: Colors.grey),
                     textAlign: TextAlign.center,
                   ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      ref.refresh(aquariumsSummaryProvider);
+                    },
+                    child: const Text('Retry'),
+                  ),
                 ],
               ),
             ),
@@ -89,73 +113,103 @@ class AquariumDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildAquariumCard(AquariumSummary s) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+  Widget _buildAquariumCard(BuildContext context, AquariumSummary s) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: InkWell(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder:
+                    (context) => AquariumDetailPage(
+                      aquariumId: s.aquariumId,
+                      aquariumName:
+                          s.name.isNotEmpty
+                              ? s.name
+                              : 'Aquarium ${s.aquariumId}',
                     ),
-                  ),
+              ),
+            );
+          },
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'Active',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                const SizedBox(height: 16),
+                _buildSensorRow(
+                  'Temperature',
+                  '${s.sensor.temperature.toStringAsFixed(1)}°C',
+                  Icons.thermostat,
+                ),
+                const SizedBox(height: 8),
+                _buildSensorRow(
+                  'pH',
+                  s.sensor.ph.toStringAsFixed(2),
+                  Icons.water_drop,
+                ),
+                const SizedBox(height: 8),
+                _buildSensorRow(
+                  'Turbidity',
+                  '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
+                  Icons.visibility,
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.dashboard, size: 16, color: Colors.blue[600]),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Tap to view dashboard',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.blue[600],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            _buildSensorRow(
-              'Temperature',
-              '${s.sensor.temperature.toStringAsFixed(1)}°C',
-              Icons.thermostat,
-            ),
-            const SizedBox(height: 8),
-            _buildSensorRow(
-              'pH',
-              s.sensor.ph.toStringAsFixed(2),
-              Icons.water_drop,
-            ),
-            const SizedBox(height: 8),
-            _buildSensorRow(
-              'Turbidity',
-              '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
-              Icons.visibility,
-            ),
-            const Spacer(),
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate to aquarium detail page
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('View Details'),
-            ),
-          ],
+          ),
         ),
       ),
     );

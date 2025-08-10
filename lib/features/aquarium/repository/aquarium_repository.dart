@@ -44,71 +44,102 @@ class AquariumRepository {
   // Get sensor data for a specific aquarium by id (index path still works for list-backed RTDB)
   Stream<Sensor> sensorStream(String aquariumId) {
     return _db.child('aquariums/$aquariumId/sensors').onValue.map((event) {
-      final data = event.snapshot.value as Map?;
-      return Sensor(
-        temperature: (data?['temperature'] ?? 0).toDouble(),
-        turbidity: (data?['turbidity'] ?? 0).toDouble(),
-        ph: (data?['ph'] ?? 0).toDouble(),
-      );
+      try {
+        final data = event.snapshot.value as Map?;
+        if (data == null) {
+          return Sensor(temperature: 0, turbidity: 0, ph: 0);
+        }
+        return Sensor(
+          temperature: (data['temperature'] ?? 0).toDouble(),
+          turbidity: (data['turbidity'] ?? 0).toDouble(),
+          ph: (data['ph'] ?? 0).toDouble(),
+        );
+      } catch (e) {
+        print('Error processing sensor data for aquarium $aquariumId: $e');
+        return Sensor(temperature: 0, turbidity: 0, ph: 0);
+      }
+    }).handleError((error) {
+      print('Firebase error in sensorStream for aquarium $aquariumId: $error');
+      return Sensor(temperature: 0, turbidity: 0, ph: 0);
     });
   }
 
   // Stream of all aquariums with name and sensors (supports Map and List)
   Stream<List<AquariumSummary>> getAllAquariumsSummary() {
     return _db.child('aquariums').onValue.map((event) {
-      final dynamic data = event.snapshot.value;
-      final List<AquariumSummary> result = [];
+      try {
+        final dynamic data = event.snapshot.value;
+        final List<AquariumSummary> result = [];
 
-      if (data is Map) {
-        data.forEach((key, value) {
-          if (value is Map) {
-            final sensors = value['sensors'] as Map?;
-            final name = (value['name'] ?? 'New Aquarium').toString();
-            if (sensors != null) {
-              result.add(
-                AquariumSummary(
-                  aquariumId: key.toString(),
-                  name: name,
-                  sensor: Sensor(
-                    temperature: (sensors['temperature'] ?? 0).toDouble(),
-                    turbidity: (sensors['turbidity'] ?? 0).toDouble(),
-                    ph: (sensors['ph'] ?? 0).toDouble(),
-                  ),
-                ),
-              );
-            }
-          }
-        });
-        return result;
-      }
+        if (data == null) return result;
 
-      if (data is List) {
-        for (final item in data) {
-          if (item is Map) {
-            final String id =
-                (item['aquarium_id'] ?? item['id'] ?? '').toString();
-            if (id.isEmpty) continue;
-            final String name = (item['name'] ?? 'New Aquarium').toString();
-            final sensors = item['sensors'] as Map?;
-            if (sensors != null) {
-              result.add(
-                AquariumSummary(
-                  aquariumId: id,
-                  name: name,
-                  sensor: Sensor(
-                    temperature: (sensors['temperature'] ?? 0).toDouble(),
-                    turbidity: (sensors['turbidity'] ?? 0).toDouble(),
-                    ph: (sensors['ph'] ?? 0).toDouble(),
-                  ),
-                ),
-              );
+        if (data is Map) {
+          data.forEach((key, value) {
+            try {
+              if (value is Map && value.isNotEmpty) {
+                final sensors = value['sensors'] as Map?;
+                final name = (value['name'] ?? 'New Aquarium').toString();
+                if (sensors != null && sensors.isNotEmpty) {
+                  result.add(
+                    AquariumSummary(
+                      aquariumId: key.toString(),
+                      name: name,
+                      sensor: Sensor(
+                        temperature: (sensors['temperature'] ?? 0).toDouble(),
+                        turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                        ph: (sensors['ph'] ?? 0).toDouble(),
+                      ),
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              // Skip invalid aquarium data
+              print('Error processing aquarium $key: $e');
             }
-          }
+          });
+          return result;
         }
-        return result;
-      }
 
-      return result;
+        if (data is List) {
+          for (final item in data) {
+            try {
+              if (item is Map && item.isNotEmpty) {
+                final String id =
+                    (item['aquarium_id'] ?? item['id'] ?? '').toString();
+                if (id.isEmpty) continue;
+                final String name = (item['name'] ?? 'New Aquarium').toString();
+                final sensors = item['sensors'] as Map?;
+                if (sensors != null && sensors.isNotEmpty) {
+                  result.add(
+                    AquariumSummary(
+                      aquariumId: id,
+                      name: name,
+                      sensor: Sensor(
+                        temperature: (sensors['temperature'] ?? 0).toDouble(),
+                        turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                        ph: (sensors['ph'] ?? 0).toDouble(),
+                      ),
+                    ),
+                  );
+                }
+              }
+            } catch (e) {
+              // Skip invalid aquarium data
+              print('Error processing aquarium item: $e');
+            }
+          }
+          return result;
+        }
+
+        return result;
+      } catch (e) {
+        print('Error in getAllAquariumsSummary: $e');
+        return <AquariumSummary>[];
+      }
+    }).handleError((error) {
+      print('Firebase error in getAllAquariumsSummary: $error');
+      return <AquariumSummary>[];
     });
   }
 
