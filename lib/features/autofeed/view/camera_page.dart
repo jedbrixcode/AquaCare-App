@@ -25,43 +25,17 @@ class _CameraPageState extends State<CameraPage> {
   @override
   void initState() {
     super.initState();
-    // TODO: Initialize camera feed for specific aquarium
     _initializeCamera();
   }
 
-  void _initializeCamera() {
-    // TODO: Connect to REST API for camera feed
-    // This would typically involve:
-    // 1. Making HTTP request to backend
-    // 2. Setting up video stream
-    // 3. Handling camera controls
-  }
-
+  void _initializeCamera() {}
   void _closeCamera() {
-    setState(() {
-      isCameraActive = false;
-    });
-    // TODO: Send JSON to backend to close camera
-    // Example: {"aquarium_id": widget.aquariumId, "action": "close_camera"}
+    setState(() => isCameraActive = false);
   }
 
-  void _startFeeding() {
-    setState(() {
-      isFeeding = true;
-    });
-    // TODO: Send feeding command to backend
-  }
-
-  void _stopFeeding() {
-    setState(() {
-      isFeeding = false;
-    });
-    // TODO: Send stop feeding command to backend
-  }
-
+  void _startFeeding() => setState(() => isFeeding = true);
+  void _stopFeeding() => setState(() => isFeeding = false);
   void _confirmRotationFeeding() {
-    // TODO: Send rotation feeding command to backend
-    // Example: {"aquarium_id": widget.aquariumId, "rotations": selectedRotations}
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Dispensing $selectedRotations rotations of food'),
@@ -100,7 +74,6 @@ class _CameraPageState extends State<CameraPage> {
         color: Colors.white,
         child: Column(
           children: [
-            // Camera Feed Container
             Container(
               margin: EdgeInsets.all(
                 ResponsiveHelper.getScreenPadding(context).left,
@@ -159,8 +132,6 @@ class _CameraPageState extends State<CameraPage> {
                       ),
             ),
             const SizedBox(height: 32),
-
-            // Mode Switch
             Container(
               margin: EdgeInsets.symmetric(
                 horizontal: ResponsiveHelper.getScreenPadding(context).left,
@@ -184,11 +155,7 @@ class _CameraPageState extends State<CameraPage> {
                   ),
                   CupertinoSwitch(
                     value: isManualMode,
-                    onChanged: (value) {
-                      setState(() {
-                        isManualMode = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => isManualMode = value),
                     activeColor: Colors.blue[600],
                     trackColor: Colors.blue[200],
                   ),
@@ -204,8 +171,6 @@ class _CameraPageState extends State<CameraPage> {
               ),
             ),
             const SizedBox(height: 24),
-
-            // Feeding Controls
             Expanded(
               child: Container(
                 margin: EdgeInsets.all(
@@ -306,8 +271,6 @@ class _CameraPageState extends State<CameraPage> {
           ),
         ),
         const SizedBox(height: 24),
-
-        // Rotation Picker
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -330,13 +293,11 @@ class _CameraPageState extends State<CameraPage> {
                 width: ResponsiveHelper.getCardWidth(context),
                 child: CupertinoPicker(
                   itemExtent: 40,
-                  onSelectedItemChanged: (index) {
-                    setState(() {
-                      selectedRotations = index + 1;
-                    });
-                  },
-                  children: List.generate(10, (index) {
-                    return Center(
+                  onSelectedItemChanged:
+                      (index) => setState(() => selectedRotations = index + 1),
+                  children: List.generate(
+                    10,
+                    (index) => Center(
                       child: Text(
                         '${index + 1}',
                         style: TextStyle(
@@ -345,16 +306,14 @@ class _CameraPageState extends State<CameraPage> {
                           color: Colors.blue[600],
                         ),
                       ),
-                    );
-                  }),
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
         ),
         const SizedBox(height: 24),
-
-        // Confirm Button
         SizedBox(
           width: double.infinity,
           height: 50,

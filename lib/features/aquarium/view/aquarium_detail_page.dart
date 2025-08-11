@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:firebase_database/firebase_database.dart';
-import 'package:aquacare_v5/features/camera/view/camera_page.dart';
+import 'package:aquacare_v5/features/autofeed/view/camera_page.dart';
+import 'package:aquacare_v5/features/sensors/temperature/view/temperature_page.dart'
+    as mvvm_temp;
 
 class AquariumDetailPage extends StatefulWidget {
   final String aquariumId;
@@ -137,7 +139,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
         title: Text("${widget.aquariumName} Dashboard"),
         titleTextStyle: const TextStyle(
           color: Colors.black,
-          fontSize: 32,
+          fontSize: 25,
           fontWeight: FontWeight.bold,
         ),
         backgroundColor: Color.fromARGB(0, 0, 0, 0),
@@ -155,7 +157,18 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
               child: Column(
                 children: [
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/temperature'),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => mvvm_temp.TemperaturePage(
+                                aquariumId: widget.aquariumId,
+                                aquariumName: widget.aquariumName,
+                              ),
+                        ),
+                      );
+                    },
                     child: _bigCircleCard(
                       label: "Temperature",
                       value: "${temperature.toStringAsFixed(0)}°C",
@@ -180,7 +193,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
                       );
                     },
                     child: _autoFeedCard(
-                      label: "Auto Feed",
+                      label: "Auto Feeding",
                       color: Colors.green,
                     ),
                   ),
@@ -261,7 +274,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
             label.toUpperCase(),
             style: const TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 20,
+              fontSize: 18,
               color: Colors.white,
             ),
           ),
@@ -281,7 +294,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
           Text(
             value,
             style: const TextStyle(
-              fontSize: 46,
+              fontSize: 36,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -297,7 +310,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
     required double percent,
     required IconData icon,
     required Color color,
-    double height = 320,
+    double height = 350,
     double width = double.infinity,
   }) {
     return Container(
@@ -332,11 +345,11 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
             backgroundColor: Colors.black,
             circularStrokeCap: CircularStrokeCap.round,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 10),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 52,
+              fontSize: 34,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),
@@ -541,7 +554,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
               ),
               alignment: Alignment.center,
               child: const Text(
-                "Auto Feed",
+                "Configure",
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
