@@ -45,4 +45,26 @@ class AquariumDashboardViewModel {
       repo.setThresholds(aquariumId, t);
   Future<void> setNotificationPrefs(String aquariumId, NotificationPref n) =>
       repo.setNotificationPrefs(aquariumId, n);
+
+  // CRUD Operations
+  Future<String> createAquarium(String name) => repo.createAquarium(name);
+  Future<void> updateAquariumName(String aquariumId, String newName) =>
+      repo.updateAquariumName(aquariumId, newName);
+  Future<void> deleteAquarium(String aquariumId) =>
+      repo.deleteAquarium(aquariumId);
+  Future<void> updateNotificationSettings(
+    String aquariumId,
+    bool temperature,
+    bool turbidity,
+    bool ph,
+  ) => repo.updateNotificationSettings(aquariumId, temperature, turbidity, ph);
+  Future<bool> isAquariumNameExists(String name, {String? excludeId}) =>
+      repo.isAquariumNameExists(name, excludeId: excludeId);
 }
+
+final aquariumDashboardViewModelProvider = Provider<AquariumDashboardViewModel>(
+  (ref) {
+    final repo = ref.watch(aquariumRepositoryProvider);
+    return AquariumDashboardViewModel(repo);
+  },
+);

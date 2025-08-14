@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 class CameraPage extends StatefulWidget {
   final String aquariumId;
@@ -21,6 +22,7 @@ class _CameraPageState extends State<CameraPage> {
   int selectedRotations = 3;
   bool isFeeding = false;
   bool isCameraActive = true;
+  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
 
   @override
   void initState() {
@@ -33,15 +35,61 @@ class _CameraPageState extends State<CameraPage> {
     setState(() => isCameraActive = false);
   }
 
-  void _startFeeding() => setState(() => isFeeding = true);
-  void _stopFeeding() => setState(() => isFeeding = false);
-  void _confirmRotationFeeding() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Dispensing $selectedRotations rotations of food'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  void _startFeeding() {
+    setState(() => isFeeding = true);
+    _triggerManualFeeding();
+  }
+
+  void _stopFeeding() {
+    setState(() => isFeeding = false);
+    _stopManualFeeding();
+  }
+
+  void _triggerManualFeeding() async {
+    try {
+      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').set({
+        'manual': true,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'status': 'active',
+      });
+    } catch (e) {
+      print('Error triggering manual feeding: $e');
+    }
+  }
+
+  void _stopManualFeeding() async {
+    try {
+      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').update(
+        {'manual': false, 'status': 'inactive'},
+      );
+    } catch (e) {
+      print('Error stopping manual feeding: $e');
+    }
+  }
+
+  void _confirmRotationFeeding() async {
+    try {
+      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').set({
+        'rotation': selectedRotations,
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'status': 'completed',
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Dispensing $selectedRotations rotations of food'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      print('Error triggering rotation feeding: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error dispensing food: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -70,14 +118,14 @@ class _CameraPageState extends State<CameraPage> {
           ),
         ],
       ),
-      body: Container(
-        color: Colors.white,
+      body: SingleChildScrollView(
+        padding: EdgeInsets.all(
+          ResponsiveHelper.getScreenPadding(context).left,
+        ),
         child: Column(
           children: [
+            // Camera Feed Container
             Container(
-              margin: EdgeInsets.all(
-                ResponsiveHelper.getScreenPadding(context).left,
-              ),
               height: 250,
               width: double.infinity,
               decoration: BoxDecoration(
@@ -132,10 +180,9 @@ class _CameraPageState extends State<CameraPage> {
                       ),
             ),
             const SizedBox(height: 32),
+
+            // Mode Switch Container
             Container(
-              margin: EdgeInsets.symmetric(
-                horizontal: ResponsiveHelper.getScreenPadding(context).left,
-              ),
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.blue[50],
@@ -171,24 +218,23 @@ class _CameraPageState extends State<CameraPage> {
               ),
             ),
             const SizedBox(height: 24),
-            Expanded(
-              child: Container(
-                margin: EdgeInsets.all(
-                  ResponsiveHelper.getScreenPadding(context).left,
-                ),
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.blue[200]!, width: 1),
-                ),
-                child:
-                    isManualMode
-                        ? _buildManualFeeding()
-                        : _buildRotationFeeding(),
+
+            // Feeding Controls Container
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.blue[200]!, width: 1),
               ),
+              child:
+                  isManualMode
+                      ? _buildManualFeeding()
+                      : _buildRotationFeeding(),
             ),
-            SizedBox(height: ResponsiveHelper.getScreenPadding(context).bottom),
+
+            // Bottom padding for safe area
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -216,7 +262,8 @@ class _CameraPageState extends State<CameraPage> {
           ),
         ),
         const SizedBox(height: 24),
-        Expanded(
+        SizedBox(
+          height: 200, // Fixed height instead of Expanded
           child: Center(
             child: GestureDetector(
               onTapDown: (_) => _startFeeding(),
@@ -278,36 +325,93 @@ class _CameraPageState extends State<CameraPage> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.blue[200]!, width: 1),
           ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          child: Column(
             children: [
-              Text(
-                'Rotations:',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getFontSize(context, 16),
-                  fontWeight: FontWeight.w600,
-                  color: Colors.blue[700],
-                ),
-              ),
-              SizedBox(
-                width: ResponsiveHelper.getCardWidth(context),
-                child: CupertinoPicker(
-                  itemExtent: 40,
-                  onSelectedItemChanged:
-                      (index) => setState(() => selectedRotations = index + 1),
-                  children: List.generate(
-                    10,
-                    (index) => Center(
-                      child: Text(
-                        '${index + 1}',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getFontSize(context, 18),
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue[600],
-                        ),
-                      ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Rotations:',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 16),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue[700],
                     ),
                   ),
+                  Row(
+                    children: [
+                      // Down arrow
+                      IconButton(
+                        onPressed: () {
+                          if (selectedRotations > 1) {
+                            setState(() => selectedRotations--);
+                          }
+                        },
+                        icon: Icon(
+                          Icons.keyboard_arrow_down,
+                          color: Colors.blue[600],
+                          size: 30,
+                        ),
+                      ),
+                      // Picker
+                      Container(
+                        width: _getPickerWidth(context),
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.blue[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: CupertinoPicker(
+                          itemExtent: 40,
+                          onSelectedItemChanged:
+                              (index) =>
+                                  setState(() => selectedRotations = index + 1),
+                          children: List.generate(
+                            10,
+                            (index) => Center(
+                              child: Text(
+                                '${index + 1}',
+                                style: TextStyle(
+                                  fontSize: ResponsiveHelper.getFontSize(
+                                    context,
+                                    18,
+                                  ),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue[600],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Up arrow
+                      IconButton(
+                        onPressed: () {
+                          if (selectedRotations < 10) {
+                            setState(() => selectedRotations++);
+                          }
+                        },
+                        icon: Icon(
+                          Icons.keyboard_arrow_up,
+                          color: Colors.blue[600],
+                          size: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Selected: $selectedRotations rotation${selectedRotations > 1 ? 's' : ''}',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getFontSize(context, 14),
+                  color: Colors.blue[600],
+                  fontStyle: FontStyle.italic,
                 ),
               ),
             ],
@@ -338,6 +442,17 @@ class _CameraPageState extends State<CameraPage> {
         ),
       ],
     );
+  }
+
+  // Helper method to get responsive picker width
+  double _getPickerWidth(BuildContext context) {
+    if (ResponsiveHelper.isMobile(context)) {
+      return 100; // Smaller for mobile
+    } else if (ResponsiveHelper.isTablet(context)) {
+      return 120; // Medium for tablet
+    } else {
+      return 140; // Larger for desktop
+    }
   }
 
   void _showRotationConfirmation() {

@@ -42,6 +42,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
     super.initState();
     _loadSensorData();
     _loadThresholdData();
+    _loadAutoFeedStatus();
   }
 
   void _loadSensorData() {
@@ -67,32 +68,32 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
         .child('aquariums')
         .child(widget.aquariumId)
         .child('threshold')
-        .once()
-        .then((event) {
+        .onValue
+        .listen((event) {
           if (event.snapshot.value != null) {
             final data = event.snapshot.value as Map;
             setState(() {
-              tempMin = (data['temperature']?['min'] ?? 22).toDouble();
-              tempMax = (data['temperature']?['max'] ?? 28).toDouble();
-              turbidityMin = (data['turbidity']?['min'] ?? 3).toDouble();
-              turbidityMax = (data['turbidity']?['max'] ?? 52).toDouble();
-              phMin = (data['ph']?['min'] ?? 6.5).toDouble();
-              phMax = (data['ph']?['max'] ?? 7.5).toDouble();
+              tempMin = (data['temperature']?['min'] ?? 22) * 1.0;
+              tempMax = (data['temperature']?['max'] ?? 28) * 1.0;
+              turbidityMin = (data['turbidity']?['min'] ?? 3) * 1.0;
+              turbidityMax = (data['turbidity']?['max'] ?? 52) * 1.0;
+              phMin = (data['ph']?['min'] ?? 6.5) * 1.0;
+              phMax = (data['ph']?['max'] ?? 7.5) * 1.0;
             });
           }
         });
   }
 
-  void _loadAutoLightStatus() {
+  void _loadAutoFeedStatus() {
     _databaseRef
         .child('aquariums')
         .child(widget.aquariumId)
-        .child('auto_light')
-        .once()
-        .then((event) {
-          if (event.snapshot.value != null) {
+        .child('auto_feed')
+        .onValue
+        .listen((event) {
+          if (mounted) {
             setState(() {
-              autoLight = event.snapshot.value as bool;
+              autoLight = event.snapshot.value == true;
             });
           }
         });

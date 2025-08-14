@@ -263,17 +263,55 @@ class AquariumDashboardPage extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.trim().isNotEmpty) {
-                  // TODO: Implement aquarium creation
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Aquarium "${nameController.text}" created!',
+                  final vm = ProviderScope.containerOf(
+                    context,
+                  ).read(aquariumDashboardViewModelProvider);
+
+                  try {
+                    // Check if name already exists
+                    final nameExists = await vm.isAquariumNameExists(
+                      nameController.text.trim(),
+                    );
+                    if (nameExists) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'An aquarium with this name already exists!',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Create aquarium
+                    await vm.createAquarium(nameController.text.trim());
+                    Navigator.of(context).pop();
+
+                    // Refresh the provider to show new aquarium
+                    ProviderScope.containerOf(
+                      context,
+                    ).refresh(aquariumsSummaryProvider);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Aquarium "${nameController.text}" created successfully!',
+                        ),
+                        backgroundColor: Colors.green,
                       ),
-                    ),
-                  );
+                    );
+                  } catch (e) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error creating aquarium: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: const Text('Create'),
@@ -352,17 +390,59 @@ class AquariumDashboardPage extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
+              onPressed: () async {
                 if (nameController.text.trim().isNotEmpty) {
-                  // TODO: Implement aquarium name update
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Aquarium renamed to "${nameController.text}"!',
+                  final vm = ProviderScope.containerOf(
+                    context,
+                  ).read(aquariumDashboardViewModelProvider);
+
+                  try {
+                    // Check if name already exists (excluding current aquarium)
+                    final nameExists = await vm.isAquariumNameExists(
+                      nameController.text.trim(),
+                      excludeId: s.aquariumId,
+                    );
+                    if (nameExists) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'An aquarium with this name already exists!',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
+                    // Update aquarium name
+                    await vm.updateAquariumName(
+                      s.aquariumId,
+                      nameController.text.trim(),
+                    );
+                    Navigator.of(context).pop();
+
+                    // Refresh the provider to show updated name
+                    ProviderScope.containerOf(
+                      context,
+                    ).refresh(aquariumsSummaryProvider);
+
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Aquarium renamed to "${nameController.text}" successfully!',
+                        ),
+                        backgroundColor: Colors.green,
                       ),
-                    ),
-                  );
+                    );
+                  } catch (e) {
+                    Navigator.of(context).pop();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Error updating aquarium: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
                 }
               },
               child: const Text('Save'),
@@ -392,31 +472,20 @@ class AquariumDashboardPage extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   SwitchListTile(
-                    title: const Text('Temperature'),
+                    title: const Text('Temperature Alerts'),
                     value: tempNotif,
-                    onChanged: (value) {
-                      setState(() {
-                        tempNotif = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => tempNotif = value),
                   ),
                   SwitchListTile(
-                    title: const Text('pH Level'),
+                    title: const Text('pH Level Alerts'),
                     value: phNotif,
-                    onChanged: (value) {
-                      setState(() {
-                        phNotif = value;
-                      });
-                    },
+                    onChanged: (value) => setState(() => phNotif = value),
                   ),
                   SwitchListTile(
-                    title: const Text('Turbidity'),
+                    title: const Text('Turbidity Alerts'),
                     value: turbidityNotif,
-                    onChanged: (value) {
-                      setState(() {
-                        turbidityNotif = value;
-                      });
-                    },
+                    onChanged:
+                        (value) => setState(() => turbidityNotif = value),
                   ),
                 ],
               ),
@@ -426,14 +495,44 @@ class AquariumDashboardPage extends ConsumerWidget {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement notification settings update
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notification settings updated!'),
-                      ),
-                    );
+                  onPressed: () async {
+                    final vm = ProviderScope.containerOf(
+                      context,
+                    ).read(aquariumDashboardViewModelProvider);
+
+                    try {
+                      await vm.updateNotificationSettings(
+                        s.aquariumId,
+                        tempNotif,
+                        turbidityNotif,
+                        phNotif,
+                      );
+                      Navigator.of(context).pop();
+
+                      // Refresh the provider
+                      ProviderScope.containerOf(
+                        context,
+                      ).refresh(aquariumsSummaryProvider);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Notification settings updated successfully!',
+                          ),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    } catch (e) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Error updating notification settings: $e',
+                          ),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
                   child: const Text('Save'),
                 ),
@@ -460,16 +559,37 @@ class AquariumDashboardPage extends ConsumerWidget {
               child: const Text('Cancel'),
             ),
             ElevatedButton(
-              onPressed: () {
-                // TODO: Implement aquarium deletion
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Aquarium "${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'}" deleted!',
+              onPressed: () async {
+                final vm = ProviderScope.containerOf(
+                  context,
+                ).read(aquariumDashboardViewModelProvider);
+
+                try {
+                  await vm.deleteAquarium(s.aquariumId);
+                  Navigator.of(context).pop();
+
+                  // Refresh the provider to remove deleted aquarium
+                  ProviderScope.containerOf(
+                    context,
+                  ).refresh(aquariumsSummaryProvider);
+
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Aquarium "${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'}" deleted successfully!',
+                      ),
+                      backgroundColor: Colors.green,
                     ),
-                  ),
-                );
+                  );
+                } catch (e) {
+                  Navigator.of(context).pop();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error deleting aquarium: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               child: const Text(
