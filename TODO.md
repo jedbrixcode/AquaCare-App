@@ -8,32 +8,23 @@
 - [x] CRUD operations for aquariums (Create, Read, Update, Delete)
 - [x] Aquarium detail page (SAD)
 - [x] Temperature sensor page with MVVM
+- [x] pH sensor page migration to MVVM
+- [x] Turbidity sensor page migration to MVVM
 - [x] Auto-feed/camera page with feeding functionality
 - [x] Notification settings per aquarium
 - [x] Responsive design with ResponsiveHelper
 - [x] Wheel picker width fix
+- [x] Landing page as first screen
+- [x] Up/down arrows for picker
+- [x] Improved feeding safety with timestamps
 
 ## 🔄 In Progress
-- [ ] pH sensor page migration to MVVM
-- [ ] Turbidity sensor page migration to MVVM
 - [ ] Auto-light functionality implementation
 - [ ] Chat with AI page migration
 
 ## 📋 Pending Tasks
 
 ### High Priority
-- [ ] **Migrate pH sensor page to MVVM**
-  - [ ] Create `lib/features/sensors/ph/viewmodel/ph_viewmodel.dart`
-  - [ ] Create `lib/features/sensors/ph/repository/ph_repository.dart`
-  - [ ] Refactor `lib/pages/phlevel_page.dart` to use MVVM
-  - [ ] Make it responsive and parameterized by aquariumId
-
-- [ ] **Migrate Turbidity sensor page to MVVM**
-  - [ ] Create `lib/features/sensors/turbidity/viewmodel/turbidity_viewmodel.dart`
-  - [ ] Create `lib/features/sensors/turbidity/repository/turbidity_repository.dart`
-  - [ ] Refactor `lib/pages/waterturbidity_page.dart` to use MVVM
-  - [ ] Make it responsive and parameterized by aquariumId
-
 - [ ] **Implement Auto-light functionality**
   - [ ] Add auto-light toggle in aquarium detail page
   - [ ] Create auto-light repository methods
@@ -70,7 +61,6 @@
   - [ ] Show first 3 aquariums in sidebar
   - [ ] Add navigation to specific aquariums
 
-
 - [ ] **Implement camera feed streaming**
   - [ ] Replace camera placeholder with actual feed
   - [ ] Add REST API integration for camera feed
@@ -103,7 +93,9 @@
 - [ ] Need better error handling for network issues
 
 ## 📝 Notes
-- All sensor pages should follow the same MVVM pattern as temperature page
+- All sensor pages now follow the same MVVM pattern with Riverpod
+- Landing page shows for 6 seconds before redirecting to main dashboard
+- Feeding functionality includes safety features with timestamps and status tracking
 - Ensure all Firebase operations have proper error handling
 - Test CRUD operations thoroughly with different Firebase data structures
 - Verify responsive design works on all screen sizes

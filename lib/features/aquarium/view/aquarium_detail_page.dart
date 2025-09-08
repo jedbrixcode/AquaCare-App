@@ -5,6 +5,9 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:aquacare_v5/features/autofeed/view/camera_page.dart';
 import 'package:aquacare_v5/features/sensors/temperature/view/temperature_page.dart'
     as mvvm_temp;
+import 'package:aquacare_v5/features/sensors/ph/view/ph_page.dart' as mvvm_ph;
+import 'package:aquacare_v5/features/sensors/turbidity/view/turbidity_page.dart'
+    as mvvm_turbidity;
 
 class AquariumDetailPage extends StatefulWidget {
   final String aquariumId;
@@ -159,8 +162,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
                 children: [
                   GestureDetector(
                     onTap: () {
-                      Navigator.push(
-                        context,
+                      Navigator.of(context).push(
                         MaterialPageRoute(
                           builder:
                               (context) => mvvm_temp.TemperaturePage(
@@ -212,7 +214,15 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
                 children: [
                   GestureDetector(
                     onTap:
-                        () => Navigator.pushNamed(context, '/waterturbidity'),
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder:
+                                (context) => mvvm_turbidity.TurbidityPage(
+                                  aquariumId: widget.aquariumId,
+                                  aquariumName: widget.aquariumName,
+                                ),
+                          ),
+                        ),
                     child: _horizontalBarCard(
                       label: "Turbidity",
                       percent: turbidityHealth,
@@ -223,7 +233,16 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
                   ),
                   const SizedBox(height: 20),
                   GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/phlevel'),
+                    onTap:
+                        () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder:
+                                (context) => mvvm_ph.PhPage(
+                                  aquariumId: widget.aquariumId,
+                                  aquariumName: widget.aquariumName,
+                                ),
+                          ),
+                        ),
                     child: _circleCard(
                       label: "pH level",
                       value: ph.toStringAsFixed(1),

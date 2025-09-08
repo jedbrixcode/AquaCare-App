@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:aquacare_v5/core/services/websocket_service.dart';
+import 'package:webview_flutter/webview_flutter.dart' as webview;
+import 'package:http/http.dart' as http;
 
 class CameraPage extends StatefulWidget {
   final String aquariumId;
@@ -22,17 +24,93 @@ class _CameraPageState extends State<CameraPage> {
   int selectedRotations = 3;
   bool isFeeding = false;
   bool isCameraActive = true;
-  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
+  final WebSocketService _webSocketService = WebSocketService.instance;
+  final String _backendUrl =
+      '192.168.1.100:8000'; // Default backend URL - should be configurable
+
+  late final webview.WebViewController _webViewController;
+  bool _isWebViewLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _initializeWebView();
     _initializeCamera();
+    _toggleCamera(true); // Turn camera ON when page opens
   }
 
-  void _initializeCamera() {}
+  @override
+  void dispose() {
+    _toggleCamera(false);
+    _webSocketService.disconnect();
+    super.dispose();
+  }
+
+  Future<void> _toggleCamera(bool switchOn) async {
+    try {
+      final url = Uri.parse(
+        "$_backendUrl/aquarium/${widget.aquariumId}/camera_switch/$switchOn",
+      );
+      await http.post(url);
+    } catch (e) {
+      debugPrint("Error toggling camera: $e");
+    }
+  }
+
+  void _initializeWebView() {
+    _webViewController =
+        webview.WebViewController()
+          ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
+          ..setNavigationDelegate(
+            webview.NavigationDelegate(
+              onPageStarted: (String url) {
+                setState(() {
+                  _isWebViewLoading = true;
+                });
+              },
+              onPageFinished: (String url) {
+                setState(() {
+                  _isWebViewLoading = false;
+                });
+              },
+              onWebResourceError: (webview.WebResourceError error) {
+                print('WebView error: ${error.description}');
+                setState(() {
+                  _isWebViewLoading = false;
+                });
+              },
+            ),
+          )
+          ..loadRequest(
+            Uri.parse(
+              'https://aquacare.alfreds.dev/aquarium/${widget.aquariumId}/video_feed',
+            ),
+          );
+  }
+
+  void _initializeCamera() async {
+    // Connect to TankPi WebSocket
+    final connected = await _webSocketService.connectToFeeder(
+      widget.aquariumId,
+      _backendUrl,
+    );
+
+    if (!connected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Failed to connect to TankPi feeder. Please check your network connection.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   void _closeCamera() {
     setState(() => isCameraActive = false);
+    _toggleCamera(false); // Turn camera OFF
+    _webSocketService.disconnect();
   }
 
   void _startFeeding() {
@@ -46,46 +124,52 @@ class _CameraPageState extends State<CameraPage> {
   }
 
   void _triggerManualFeeding() async {
-    try {
-      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').set({
-        'manual': true,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'status': 'active',
-      });
-    } catch (e) {
-      print('Error triggering manual feeding: $e');
+    final success = await _webSocketService.startManualFeeding();
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Failed to start manual feeding. Check TankPi connection.',
+          ),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
   void _stopManualFeeding() async {
-    try {
-      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').update(
-        {'manual': false, 'status': 'inactive'},
+    final success = await _webSocketService.stopManualFeeding();
+    if (!success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Failed to stop manual feeding. Check TankPi connection.',
+          ),
+          backgroundColor: Colors.red,
+        ),
       );
-    } catch (e) {
-      print('Error stopping manual feeding: $e');
     }
   }
 
   void _confirmRotationFeeding() async {
-    try {
-      await _databaseRef.child('aquariums/${widget.aquariumId}/feeding').set({
-        'rotation': selectedRotations,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-        'status': 'completed',
-      });
-
+    final success = await _webSocketService.sendRotationFeeding(
+      selectedRotations,
+    );
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Dispensing $selectedRotations rotations of food'),
+          content: Text(
+            'Dispensing $selectedRotations rotations of food to TankPi',
+          ),
           backgroundColor: Colors.green,
         ),
       );
-    } catch (e) {
-      print('Error triggering rotation feeding: $e');
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error dispensing food: $e'),
+        const SnackBar(
+          content: Text(
+            'Failed to send rotation feeding command. Check TankPi connection.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -98,7 +182,7 @@ class _CameraPageState extends State<CameraPage> {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: Text(
-          '${widget.aquariumName} - Automatic Feeder',
+          '${widget.aquariumName} - Auto Feed',
           style: const TextStyle(
             color: Colors.white,
             fontSize: 20,
@@ -135,38 +219,100 @@ class _CameraPageState extends State<CameraPage> {
               ),
               child:
                   isCameraActive
-                      ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.camera_alt,
-                            size: ResponsiveHelper.getFontSize(context, 48),
-                            color: Colors.blue[400],
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            'Camera Feed',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getFontSize(
-                                context,
-                                18,
-                              ),
-                              fontWeight: FontWeight.bold,
-                              color: Colors.blue[600],
+                      ? ClipRRect(
+                        borderRadius: BorderRadius.circular(14),
+                        child: Stack(
+                          children: [
+                            // WebView for camera feed
+                            webview.WebViewWidget(
+                              controller: _webViewController,
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Aquarium ${widget.aquariumId}',
-                            style: TextStyle(
-                              fontSize: ResponsiveHelper.getFontSize(
-                                context,
-                                14,
+
+                            // Loading indicator overlay
+                            if (_isWebViewLoading)
+                              Positioned.fill(
+                                child: Container(
+                                  color: Colors.blue[50],
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      CircularProgressIndicator(
+                                        color: Colors.blue[600],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Loading Camera Feed...',
+                                        style: TextStyle(
+                                          fontSize:
+                                              ResponsiveHelper.getFontSize(
+                                                context,
+                                                16,
+                                              ),
+                                          color: Colors.blue[600],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              color: Colors.blue[500],
+
+                            // Connection status overlay
+                            Positioned(
+                              top: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:
+                                      _webSocketService.isConnected
+                                          ? Colors.green[100]
+                                          : Colors.orange[100],
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color:
+                                        _webSocketService.isConnected
+                                            ? Colors.green[300]!
+                                            : Colors.orange[300]!,
+                                    width: 1,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      _webSocketService.isConnected
+                                          ? Icons.wifi
+                                          : Icons.wifi_off,
+                                      size: 12,
+                                      color:
+                                          _webSocketService.isConnected
+                                              ? Colors.green[700]
+                                              : Colors.orange[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      _webSocketService.isConnected
+                                          ? 'Aquacare Feeder: ON'
+                                          : 'Aquacare Feeder: OFF',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color:
+                                            _webSocketService.isConnected
+                                                ? Colors.green[700]
+                                                : Colors.orange[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       )
                       : const Center(
                         child: Text(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
 import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
+import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 
 class AquariumDashboardPage extends ConsumerWidget {
@@ -77,6 +78,25 @@ class AquariumDashboardPage extends ConsumerWidget {
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/graphs');
+              },
+            ),
+            const SizedBox(height: 25),
+            ListTile(
+              title: const Text(
+                'TankPi Setup',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BluetoothSetupPage(),
+                  ),
+                );
               },
             ),
             const SizedBox(height: 25),

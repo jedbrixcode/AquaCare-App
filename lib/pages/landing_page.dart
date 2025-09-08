@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:loading_animation_widget/loading_animation_widget.dart';
+import 'package:aquacare_v5/features/aquarium/view/aquarium_dashboard_page.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -13,12 +14,12 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void initState() {
     super.initState();
-    // Wait for 6 seconds and then navigate to HomePage
+    // Wait for 6 seconds and then navigate to AquariumDashboardPage
     Timer(Duration(seconds: 6), () {
-      Navigator.pushReplacementNamed(
+      Navigator.pushReplacement(
         context,
-        '/homepage',
-      ); // Match route name exactly
+        MaterialPageRoute(builder: (context) => const AquariumDashboardPage()),
+      );
     });
   }
 
