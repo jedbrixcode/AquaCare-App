@@ -26,7 +26,7 @@ class _CameraPageState extends State<CameraPage> {
   bool isCameraActive = true;
   final WebSocketService _webSocketService = WebSocketService.instance;
   final String _backendUrl =
-      '192.168.1.100:8000'; // Default backend URL - should be configurable
+      'http://192.168.1.100:8000'; // Default backend URL - should be configurable
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
@@ -68,10 +68,19 @@ class _CameraPageState extends State<CameraPage> {
                   _isWebViewLoading = true;
                 });
               },
+              onProgress: (int progress) {
+                if (progress > 10 && _isWebViewLoading) {
+                  setState(() {
+                    _isWebViewLoading = false;
+                  });
+                }
+              },
               onPageFinished: (String url) {
-                setState(() {
-                  _isWebViewLoading = false;
-                });
+                if (_isWebViewLoading) {
+                  setState(() {
+                    _isWebViewLoading = false;
+                  });
+                }
               },
               onWebResourceError: (webview.WebResourceError error) {
                 print('WebView error: ${error.description}');
@@ -191,16 +200,7 @@ class _CameraPageState extends State<CameraPage> {
         ),
         backgroundColor: Colors.blue[600],
         elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.close, color: Colors.white),
-            onPressed: () {
-              _closeCamera();
-              Navigator.of(context).pop();
-            },
-            tooltip: 'Close Camera',
-          ),
-        ],
+        // Removed close action; rely on navigation back behavior to close camera
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(
