@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:aquacare_v5/core/navigation/route_observer.dart';
 import 'package:aquacare_v5/core/services/websocket_service.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
 import 'package:http/http.dart' as http;
@@ -19,14 +20,14 @@ class CameraPage extends StatefulWidget {
   State<CameraPage> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> {
+class _CameraPageState extends State<CameraPage> with RouteAware {
   bool isManualMode = false;
   int selectedRotations = 3;
   bool isFeeding = false;
   bool isCameraActive = true;
   final WebSocketService _webSocketService = WebSocketService.instance;
   final String _backendUrl =
-      'http://192.168.1.100:8000'; // Default backend URL - should be configurable
+      'https://aquacare.alfreds.dev'; // Production backend base URL
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
@@ -37,13 +38,54 @@ class _CameraPageState extends State<CameraPage> {
     _initializeWebView();
     _initializeCamera();
     _toggleCamera(true); // Turn camera ON when page opens
+    debugPrint(
+      '[CameraPage] initState: entering page for aquariumId=${widget.aquariumId}',
+    );
   }
 
   @override
   void dispose() {
+    debugPrint(
+      '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
+    );
     _toggleCamera(false);
     _webSocketService.disconnect();
+    appRouteObserver.unsubscribe(this);
     super.dispose();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // subscribe to route observer
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPush() {
+    debugPrint('[CameraPage] didPush: became visible');
+    _toggleCamera(true);
+  }
+
+  @override
+  void didPop() {
+    debugPrint('[CameraPage] didPop: popped and now hidden');
+    _toggleCamera(false);
+  }
+
+  @override
+  void didPushNext() {
+    debugPrint('[CameraPage] didPushNext: another page covered this one');
+    _toggleCamera(false);
+  }
+
+  @override
+  void didPopNext() {
+    debugPrint('[CameraPage] didPopNext: returned to this page');
+    _toggleCamera(true);
   }
 
   Future<void> _toggleCamera(bool switchOn) async {
@@ -63,24 +105,21 @@ class _CameraPageState extends State<CameraPage> {
           ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
           ..setNavigationDelegate(
             webview.NavigationDelegate(
-              onPageStarted: (String url) {
-                setState(() {
-                  _isWebViewLoading = true;
-                });
-              },
-              onProgress: (int progress) {
-                if (progress > 10 && _isWebViewLoading) {
-                  setState(() {
-                    _isWebViewLoading = false;
-                  });
-                }
-              },
               onPageFinished: (String url) {
-                if (_isWebViewLoading) {
-                  setState(() {
-                    _isWebViewLoading = false;
-                  });
-                }
+                _webViewController.runJavaScript('''
+            var video = document.querySelector("img, video");
+            if (video) {
+              video.style.width = "50%";
+              video.style.height = "50%";
+              video.style.objectFit = "cover"; // fills container
+            }
+            document.body.style.margin = "0";
+            document.body.style.padding = "0";
+            document.documentElement.style.overflow = "hidden";
+          ''');
+                setState(() {
+                  _isWebViewLoading = false;
+                });
               },
               onWebResourceError: (webview.WebResourceError error) {
                 print('WebView error: ${error.description}');

@@ -3,8 +3,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'pages/landing_page.dart';
+import 'package:flutter/widgets.dart';
+import 'core/navigation/route_observer.dart';
 import 'firebase_options.dart';
 import 'pages/Services/notif_service.dart';
+import 'features/settings/viewmodel/theme_viewmodel.dart';
+
+// Route observer is provided from core/navigation/route_observer.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,15 +43,22 @@ void main() async {
   runApp(const ProviderScope(child: MyApp()));
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends ConsumerWidget {
   const MyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AquaCare',
-      theme: ThemeData(primarySwatch: Colors.blue),
+      theme: ThemeData.light(useMaterial3: false).copyWith(
+        primaryColor: Colors.blue,
+        colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.blue),
+      ),
+      darkTheme: ThemeData.dark(useMaterial3: false),
+      themeMode: themeMode,
+      navigatorObservers: [appRouteObserver],
       home: const LandingPage(),
     );
   }

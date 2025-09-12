@@ -5,6 +5,8 @@ import '../viewmodel/aquarium_dashboard_viewmodel.dart';
 import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
 import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
+import 'package:aquacare_v5/features/settings/viewmodel/theme_viewmodel.dart';
 
 class AquariumDashboardPage extends ConsumerWidget {
   const AquariumDashboardPage({super.key});
@@ -22,6 +24,25 @@ class AquariumDashboardPage extends ConsumerWidget {
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
+        actions: [
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.color_lens, color: Colors.white),
+            onSelected: (value) {
+              final controller = ProviderScope.containerOf(
+                context,
+              ).read(themeModeProvider.notifier);
+              if (value == 'light') controller.setThemeMode(ThemeMode.light);
+              if (value == 'dark') controller.setThemeMode(ThemeMode.dark);
+              if (value == 'system') controller.setThemeMode(ThemeMode.system);
+            },
+            itemBuilder:
+                (context) => const [
+                  PopupMenuItem(value: 'light', child: Text('Light')),
+                  PopupMenuItem(value: 'dark', child: Text('Dark')),
+                  PopupMenuItem(value: 'system', child: Text('System')),
+                ],
+          ),
+        ],
       ),
       drawer: Drawer(
         backgroundColor: const Color.fromARGB(255, 107, 159, 255),
@@ -121,9 +142,7 @@ class AquariumDashboardPage extends ConsumerWidget {
           // Offline Banner
           Consumer(
             builder: (context, ref, child) {
-              // TODO: Implement actual connectivity check
-              bool isOffline = false; // Placeholder
-
+              final isOffline = ref.watch(isOfflineProvider);
               if (isOffline) {
                 return Container(
                   width: double.infinity,
@@ -253,9 +272,7 @@ class AquariumDashboardPage extends ConsumerWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showCreateAquariumDialog(context);
-        },
+        onPressed: () => _showFabActions(context),
         backgroundColor: Colors.blue,
         child: const Icon(Icons.add, color: Colors.white),
       ),
@@ -337,6 +354,45 @@ class AquariumDashboardPage extends ConsumerWidget {
               child: const Text('Create'),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  void _showFabActions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.add_circle_outline),
+                title: const Text('Create Aquarium'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showCreateAquariumDialog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.bluetooth),
+                title: const Text('TankPi Setup (Bluetooth)'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BluetoothSetupPage(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
         );
       },
     );
