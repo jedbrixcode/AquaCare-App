@@ -49,9 +49,20 @@ class BluetoothService {
         _statusController.add('Bluetooth adapter state: $state');
       });
 
+      // Prompt to enable BT if off (shows system dialog on Android)
+      try {
+        await blue.FlutterBluePlus.turnOn();
+      } catch (_) {}
+
+      // Wait for a definite adapter state (avoid unknown)
+      _adapterState = await blue.FlutterBluePlus.adapterState.firstWhere(
+        (s) => s != blue.BluetoothAdapterState.unknown,
+        orElse: () => blue.BluetoothAdapterState.off,
+      );
+
       // Check if Bluetooth is available
       if (_adapterState != blue.BluetoothAdapterState.on) {
-        _statusController.add('Bluetooth is not available');
+        _statusController.add('Bluetooth is off. Please enable it.');
         return false;
       }
 

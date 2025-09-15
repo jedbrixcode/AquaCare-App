@@ -280,6 +280,26 @@ class AquariumRepository {
     }
   }
 
+  Future<void> setAllAquariumNotifications({required bool enabled}) async {
+    try {
+      final snapshot = await _db.child('aquariums').get();
+      final data = snapshot.value;
+      if (data is Map) {
+        for (final entry in data.entries) {
+          final id = entry.key.toString();
+          await _db.child('aquariums/$id/notification').update({
+            'temperature': enabled,
+            'turbidity': enabled,
+            'ph': enabled,
+          });
+        }
+      }
+    } catch (e) {
+      print('Error toggling all notifications: $e');
+      rethrow;
+    }
+  }
+
   // Check if aquarium name already exists
   Future<bool> isAquariumNameExists(String name, {String? excludeId}) async {
     try {

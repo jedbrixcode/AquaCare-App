@@ -62,13 +62,15 @@ class NotificationService {
 
   // Method to show a notification
   Future showNotification({
-    int id = 0,
+    int? id,
     String? title,
     String? body,
     String? payLoad,
   }) async {
+    // Use a unique ID per notification so they don't overwrite each other
+    final int uniqueId = id ?? DateTime.now().millisecondsSinceEpoch % 10000000;
     return notificationPlugin.show(
-      id,
+      uniqueId,
       title,
       body,
       notificationDetails(),

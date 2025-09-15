@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/core/services/bluetooth_service.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
@@ -20,6 +21,10 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   List<blue.BluetoothDevice> _devices = [];
   String _status = 'Initializing Bluetooth...';
   bool _isConnected = false;
+
+  StreamSubscription<List<blue.BluetoothDevice>>? _devicesSub;
+  StreamSubscription<blue.BluetoothConnectionState>? _connSub;
+  StreamSubscription<String>? _statusSub;
 
   @override
   void initState() {
@@ -43,19 +48,22 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   }
 
   void _setupListeners() {
-    _bluetoothService.devicesStream.listen((devices) {
+    _devicesSub = _bluetoothService.devicesStream.listen((devices) {
+      if (!mounted) return;
       setState(() {
         _devices = devices;
       });
     });
 
-    _bluetoothService.connectionStream.listen((state) {
+    _connSub = _bluetoothService.connectionStream.listen((state) {
+      if (!mounted) return;
       setState(() {
         _isConnected = state == blue.BluetoothConnectionState.connected;
       });
     });
 
-    _bluetoothService.statusStream.listen((status) {
+    _statusSub = _bluetoothService.statusStream.listen((status) {
+      if (!mounted) return;
       setState(() {
         _status = status;
       });
@@ -288,7 +296,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to connect to TankPi device'),
+          content: Text('Failed to connect to the Aquacare device'),
           backgroundColor: Colors.red,
         ),
       );
@@ -308,11 +316,30 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
       return;
     }
 
-    final success = await _bluetoothService.sendWifiCredentials(
-      ssid: _ssidController.text,
-      password: _passwordController.text,
-      aquariumId: _aquariumIdController.text,
-    );
+    // Prefer HTTP POST provisioning when available; fallback to BLE characteristic
+    bool success = false;
+    try {
+      // TankPi FastAPI endpoint
+      // final uri = Uri.parse('http://<tankpi-host>/provision');
+      // final resp = await http.post(
+      //   uri,
+      //   headers: {'Content-Type': 'application/json'},
+      //   body: jsonEncode({
+      //     'ssid': _ssidController.text,
+      //     'password': _passwordController.text,
+      //     'aquarium_id': _aquariumIdController.text,
+      //   }),
+      // );
+      // success = resp.statusCode >= 200 && resp.statusCode < 300;
+    } catch (_) {}
+
+    if (!success) {
+      success = await _bluetoothService.sendWifiCredentials(
+        ssid: _ssidController.text,
+        password: _passwordController.text,
+        aquariumId: _aquariumIdController.text,
+      );
+    }
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -344,6 +371,9 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
     _ssidController.dispose();
     _passwordController.dispose();
     _aquariumIdController.dispose();
+    _devicesSub?.cancel();
+    _connSub?.cancel();
+    _statusSub?.cancel();
     super.dispose();
   }
 }

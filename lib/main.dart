@@ -8,6 +8,9 @@ import 'core/navigation/route_observer.dart';
 import 'firebase_options.dart';
 import 'pages/Services/notif_service.dart';
 import 'features/settings/viewmodel/theme_viewmodel.dart';
+import 'pages/chatwithAI_page.dart';
+import 'pages/sensorgraphs_page.dart';
+import 'features/settings/view/settings_page.dart';
 
 // Route observer is provided from core/navigation/route_observer.dart
 
@@ -26,12 +29,22 @@ void main() async {
     // Wait a bit for FCM to initialize
     await Future.delayed(const Duration(seconds: 2));
 
+    // Subscribe with simple backoff & only when token exists
     String? token = await FirebaseMessaging.instance.getToken();
     print("FCM Token: $token");
-
     if (token != null) {
-      await FirebaseMessaging.instance.subscribeToTopic('aquacare_alerts');
-      print("Successfully subscribed to aquacare_alerts topic");
+      const topic = 'aquacare_alerts';
+      int attempt = 0;
+      while (attempt < 5) {
+        try {
+          await FirebaseMessaging.instance.subscribeToTopic(topic);
+          print("Subscribed to $topic");
+          break;
+        } catch (e) {
+          attempt++;
+          await Future.delayed(Duration(milliseconds: 500 * (1 << attempt)));
+        }
+      }
     } else {
       print("No FCM token available yet, will retry later");
     }
@@ -60,6 +73,11 @@ class MyApp extends ConsumerWidget {
       themeMode: themeMode,
       navigatorObservers: [appRouteObserver],
       home: const LandingPage(),
+      routes: {
+        '/chat': (context) => const AIChatPage(),
+        '/graphs': (context) => const SensorGraphsPage(),
+        '/settings': (context) => const SettingsPage(),
+      },
     );
   }
 }
