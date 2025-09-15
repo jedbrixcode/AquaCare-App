@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/core/services/bluetooth_service.dart';
+import '../viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
 
@@ -13,65 +14,33 @@ class BluetoothSetupPage extends ConsumerStatefulWidget {
 }
 
 class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
-  final BluetoothService _bluetoothService = BluetoothService.instance;
+  final BluetoothService _bluetoothService =
+      BluetoothService.instance; // kept if needed for future, not used directly
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _aquariumIdController = TextEditingController();
 
-  List<blue.BluetoothDevice> _devices = [];
-  String _status = 'Initializing Bluetooth...';
-  bool _isConnected = false;
-
-  StreamSubscription<List<blue.BluetoothDevice>>? _devicesSub;
-  StreamSubscription<blue.BluetoothConnectionState>? _connSub;
-  StreamSubscription<String>? _statusSub;
+  StreamSubscription<List<blue.BluetoothDevice>>?
+  _devicesSub; // deprecated usage, kept to avoid sudden removal
+  StreamSubscription<blue.BluetoothConnectionState>?
+  _connSub; // deprecated usage
+  StreamSubscription<String>? _statusSub; // deprecated usage
 
   @override
   void initState() {
     super.initState();
     _initializeBluetooth();
-    _setupListeners();
   }
 
   void _initializeBluetooth() async {
-    final success = await _bluetoothService.initialize();
-    if (success) {
-      setState(() {
-        _status =
-            'Bluetooth initialized. Tap "Scan for TankPi" to find devices.';
-      });
-    } else {
-      setState(() {
-        _status = 'Failed to initialize Bluetooth. Please check permissions.';
-      });
-    }
+    await ref.read(bluetoothSetupViewModelProvider.notifier).initialize();
   }
 
-  void _setupListeners() {
-    _devicesSub = _bluetoothService.devicesStream.listen((devices) {
-      if (!mounted) return;
-      setState(() {
-        _devices = devices;
-      });
-    });
-
-    _connSub = _bluetoothService.connectionStream.listen((state) {
-      if (!mounted) return;
-      setState(() {
-        _isConnected = state == blue.BluetoothConnectionState.connected;
-      });
-    });
-
-    _statusSub = _bluetoothService.statusStream.listen((status) {
-      if (!mounted) return;
-      setState(() {
-        _status = status;
-      });
-    });
-  }
+  void _setupListeners() {}
 
   @override
   Widget build(BuildContext context) {
+    final vm = ref.watch(bluetoothSetupViewModelProvider);
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -119,7 +88,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _status,
+                    vm.statusMessage,
                     style: TextStyle(fontSize: 14, color: Colors.blue[600]),
                   ),
                 ],
@@ -132,9 +101,9 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton.icon(
-                onPressed: _bluetoothService.isScanning ? null : _startScan,
+                onPressed: vm.isScanning ? null : _startScan,
                 icon:
-                    _bluetoothService.isScanning
+                    vm.isScanning
                         ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -142,9 +111,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                         )
                         : const Icon(Icons.search),
                 label: Text(
-                  _bluetoothService.isScanning
-                      ? 'Scanning...'
-                      : 'Scan for TankPi',
+                  vm.isScanning ? 'Scanning...' : 'Scan for TankPi',
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -162,7 +129,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
             const SizedBox(height: 20),
 
             // Discovered Devices
-            if (_devices.isNotEmpty) ...[
+            if (vm.devices.isNotEmpty) ...[
               Text(
                 'Found TankPi Devices:',
                 style: TextStyle(
@@ -174,9 +141,9 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               const SizedBox(height: 12),
               Expanded(
                 child: ListView.builder(
-                  itemCount: _devices.length,
+                  itemCount: vm.devices.length,
                   itemBuilder: (context, index) {
-                    final device = _devices[index];
+                    final device = vm.devices[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 8),
                       child: ListTile(
@@ -193,10 +160,10 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                         subtitle: Text('ID: ${device.remoteId}'),
                         trailing: ElevatedButton(
                           onPressed:
-                              _isConnected
+                              vm.isConnected
                                   ? null
                                   : () => _connectToDevice(device),
-                          child: Text(_isConnected ? 'Connected' : 'Connect'),
+                          child: Text(vm.isConnected ? 'Connected' : 'Connect'),
                         ),
                       ),
                     );
@@ -206,7 +173,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
             ],
 
             // WiFi Configuration (shown when connected)
-            if (_isConnected) ...[
+            if (vm.isConnected) ...[
               const SizedBox(height: 20),
               Text(
                 'WiFi Configuration:',
@@ -218,17 +185,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               ),
               const SizedBox(height: 12),
 
-              // Aquarium ID
-              TextField(
-                controller: _aquariumIdController,
-                decoration: const InputDecoration(
-                  labelText: 'Aquarium ID',
-                  hintText: 'e.g., 1, 2, 3...',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
+              // Aquarium ID removed (Pi stores it)
 
               // WiFi SSID
               TextField(
@@ -258,7 +215,10 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                 width: double.infinity,
                 height: 50,
                 child: ElevatedButton.icon(
-                  onPressed: _sendWifiConfiguration,
+                  onPressed:
+                      vm.sendingState is AsyncLoading
+                          ? null
+                          : _sendWifiConfiguration,
                   icon: const Icon(Icons.send),
                   label: const Text(
                     'Send Configuration to TankPi',
@@ -281,11 +241,13 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   }
 
   void _startScan() {
-    _bluetoothService.startScan();
+    ref.read(bluetoothSetupViewModelProvider.notifier).startScan();
   }
 
   void _connectToDevice(blue.BluetoothDevice device) async {
-    final success = await _bluetoothService.connectToDevice(device);
+    final success = await ref
+        .read(bluetoothSetupViewModelProvider.notifier)
+        .connect(device);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -304,44 +266,26 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   }
 
   void _sendWifiConfiguration() async {
-    if (_aquariumIdController.text.isEmpty ||
-        _ssidController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
+    if (_ssidController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Please fill in all fields'),
+          content: Text('Please fill in SSID and Password'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
 
-    // Prefer HTTP POST provisioning when available; fallback to BLE characteristic
-    bool success = false;
-    try {
-      // TankPi FastAPI endpoint
-      // final uri = Uri.parse('http://<tankpi-host>/provision');
-      // final resp = await http.post(
-      //   uri,
-      //   headers: {'Content-Type': 'application/json'},
-      //   body: jsonEncode({
-      //     'ssid': _ssidController.text,
-      //     'password': _passwordController.text,
-      //     'aquarium_id': _aquariumIdController.text,
-      //   }),
-      // );
-      // success = resp.statusCode >= 200 && resp.statusCode < 300;
-    } catch (_) {}
+    await ref
+        .read(bluetoothSetupViewModelProvider.notifier)
+        .sendWifiCredentials(
+          ssid: _ssidController.text,
+          password: _passwordController.text,
+          aquariumId: null,
+        );
 
-    if (!success) {
-      success = await _bluetoothService.sendWifiCredentials(
-        ssid: _ssidController.text,
-        password: _passwordController.text,
-        aquariumId: _aquariumIdController.text,
-      );
-    }
-
-    if (success) {
+    final sending = ref.read(bluetoothSetupViewModelProvider).sendingState;
+    if (sending is AsyncData) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -353,7 +297,6 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
       );
 
       // Clear form
-      _aquariumIdController.clear();
       _ssidController.clear();
       _passwordController.clear();
     } else {

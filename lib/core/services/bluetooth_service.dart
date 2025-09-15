@@ -191,7 +191,7 @@ class BluetoothService {
   Future<bool> sendWifiCredentials({
     required String ssid,
     required String password,
-    required String aquariumId,
+    String? aquariumId,
   }) async {
     if (!_isConnected || _wifiCharacteristic == null) {
       _statusController.add('Not connected to TankPi device');
@@ -199,12 +199,14 @@ class BluetoothService {
     }
 
     try {
-      final wifiConfig = {
+      final Map<String, dynamic> wifiConfig = {
         'ssid': ssid,
         'password': password,
-        'aquarium_id': aquariumId,
         'timestamp': DateTime.now().millisecondsSinceEpoch,
       };
+      if (aquariumId != null && aquariumId.isNotEmpty) {
+        wifiConfig['aquarium_id'] = aquariumId;
+      }
 
       final data = utf8.encode(jsonEncode(wifiConfig));
       await _wifiCharacteristic!.write(data);

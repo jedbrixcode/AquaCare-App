@@ -3,6 +3,7 @@ import 'package:aquacare_v5/core/models/sensor_model.dart';
 import 'package:aquacare_v5/core/models/threshold_model.dart';
 import 'package:aquacare_v5/core/models/notification_model.dart';
 import '../repository/aquarium_repository.dart';
+import 'dart:async';
 
 final aquariumRepositoryProvider = Provider((ref) => AquariumRepository());
 
@@ -68,3 +69,95 @@ final aquariumDashboardViewModelProvider = Provider<AquariumDashboardViewModel>(
     return AquariumDashboardViewModel(repo);
   },
 );
+
+// Controller ViewModel to handle dashboard actions and expose transient messages
+class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
+  AquariumDashboardController(this._repo) : super(const AsyncData(null));
+
+  final AquariumRepository _repo;
+  final StreamController<String> _messageController =
+      StreamController.broadcast();
+  Stream<String> get messages => _messageController.stream;
+
+  Future<bool> createAquarium(String name) async {
+    state = const AsyncLoading();
+    try {
+      await _repo.createAquarium(name);
+      _messageController.add('Aquarium "$name" created successfully!');
+      state = const AsyncData(null);
+      return true;
+    } catch (e) {
+      _messageController.add('Error creating aquarium: $e');
+      state = AsyncError(e, StackTrace.current);
+      return false;
+    }
+  }
+
+  Future<bool> updateAquariumName(String aquariumId, String newName) async {
+    state = const AsyncLoading();
+    try {
+      await _repo.updateAquariumName(aquariumId, newName);
+      _messageController.add('Aquarium renamed to "$newName" successfully!');
+      state = const AsyncData(null);
+      return true;
+    } catch (e) {
+      _messageController.add('Error updating aquarium: $e');
+      state = AsyncError(e, StackTrace.current);
+      return false;
+    }
+  }
+
+  Future<bool> deleteAquarium(String aquariumId) async {
+    state = const AsyncLoading();
+    try {
+      await _repo.deleteAquarium(aquariumId);
+      _messageController.add('Aquarium deleted successfully!');
+      state = const AsyncData(null);
+      return true;
+    } catch (e) {
+      _messageController.add('Error deleting aquarium: $e');
+      state = AsyncError(e, StackTrace.current);
+      return false;
+    }
+  }
+
+  Future<bool> updateNotificationSettings(
+    String aquariumId,
+    bool temperature,
+    bool turbidity,
+    bool ph,
+  ) async {
+    state = const AsyncLoading();
+    try {
+      await _repo.updateNotificationSettings(
+        aquariumId,
+        temperature,
+        turbidity,
+        ph,
+      );
+      _messageController.add('Notification settings updated successfully!');
+      state = const AsyncData(null);
+      return true;
+    } catch (e) {
+      _messageController.add('Error updating notification settings: $e');
+      state = AsyncError(e, StackTrace.current);
+      return false;
+    }
+  }
+
+  Future<bool> isAquariumNameExists(String name, {String? excludeId}) {
+    return _repo.isAquariumNameExists(name, excludeId: excludeId);
+  }
+
+  @override
+  void dispose() {
+    _messageController.close();
+    super.dispose();
+  }
+}
+
+final aquariumDashboardControllerProvider =
+    StateNotifierProvider<AquariumDashboardController, AsyncValue<void>>((ref) {
+      final repo = ref.watch(aquariumRepositoryProvider);
+      return AquariumDashboardController(repo);
+    });

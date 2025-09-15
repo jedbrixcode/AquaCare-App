@@ -301,55 +301,28 @@ class AquariumDashboardPage extends ConsumerWidget {
             ),
             ElevatedButton(
               onPressed: () async {
-                if (nameController.text.trim().isNotEmpty) {
-                  final vm = ProviderScope.containerOf(
-                    context,
-                  ).read(aquariumDashboardViewModelProvider);
-
-                  try {
-                    // Check if name already exists
-                    final nameExists = await vm.isAquariumNameExists(
-                      nameController.text.trim(),
-                    );
-                    if (nameExists) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'An aquarium with this name already exists!',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Create aquarium
-                    await vm.createAquarium(nameController.text.trim());
-                    Navigator.of(context).pop();
-
-                    // Refresh the provider to show new aquarium
-                    ProviderScope.containerOf(
-                      context,
-                    ).refresh(aquariumsSummaryProvider);
-
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Aquarium "${nameController.text}" created successfully!',
-                        ),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  } catch (e) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Error creating aquarium: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
+                if (nameController.text.trim().isEmpty) return;
+                final controller = ProviderScope.containerOf(
+                  context,
+                ).read(aquariumDashboardControllerProvider.notifier);
+                final ok = await controller.createAquarium(
+                  nameController.text.trim(),
+                );
+                if (!context.mounted) return;
+                Navigator.of(context).pop();
+                ProviderScope.containerOf(
+                  context,
+                ).refresh(aquariumsSummaryProvider);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      ok
+                          ? 'Aquarium "${nameController.text}" created successfully!'
+                          : 'Failed to create aquarium',
+                    ),
+                    backgroundColor: ok ? Colors.green : Colors.red,
+                  ),
+                );
               },
               child: const Text('Create'),
             ),
@@ -409,6 +382,14 @@ class AquariumDashboardPage extends ConsumerWidget {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              ListTile(
+                leading: const Icon(Icons.wifi),
+                title: const Text('Change WiFi (Provision)'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _showChangeWifiDialog(context);
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.edit),
                 title: const Text('Edit Name'),
@@ -533,35 +514,138 @@ class AquariumDashboardPage extends ConsumerWidget {
     BuildContext context,
     AquariumSummary s,
   ) {
-    bool tempNotif = true;
-    bool phNotif = true;
-    bool turbidityNotif = true;
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final notifAsync = ref.watch(
+              aquariumNotificationProvider(s.aquariumId),
+            );
+            return notifAsync.when(
+              data: (notif) {
+                bool tempNotif = notif.temperature;
+                bool phNotif = notif.ph;
+                bool turbidityNotif = notif.turbidity;
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    return AlertDialog(
+                      title: const Text('Notification Settings'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SwitchListTile(
+                            title: const Text('Temperature Alerts'),
+                            value: tempNotif,
+                            onChanged: (v) => setState(() => tempNotif = v),
+                          ),
+                          SwitchListTile(
+                            title: const Text('pH Level Alerts'),
+                            value: phNotif,
+                            onChanged: (v) => setState(() => phNotif = v),
+                          ),
+                          SwitchListTile(
+                            title: const Text('Turbidity Alerts'),
+                            value: turbidityNotif,
+                            onChanged:
+                                (v) => setState(() => turbidityNotif = v),
+                          ),
+                        ],
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancel'),
+                        ),
+                        ElevatedButton(
+                          onPressed: () async {
+                            final ctrl = ProviderScope.containerOf(
+                              context,
+                            ).read(
+                              aquariumDashboardControllerProvider.notifier,
+                            );
+                            final ok = await ctrl.updateNotificationSettings(
+                              s.aquariumId,
+                              tempNotif,
+                              turbidityNotif,
+                              phNotif,
+                            );
+                            if (!context.mounted) return;
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  ok
+                                      ? 'Notification settings updated successfully!'
+                                      : 'Failed to update notification settings',
+                                ),
+                                backgroundColor: ok ? Colors.green : Colors.red,
+                              ),
+                            );
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+              loading:
+                  () => const AlertDialog(
+                    content: SizedBox(
+                      height: 80,
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  ),
+              error:
+                  (e, _) => AlertDialog(
+                    title: const Text('Notification Settings'),
+                    content: Text('Error loading settings: $e'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: const Text('Close'),
+                      ),
+                    ],
+                  ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showChangeWifiDialog(BuildContext context) {
+    final TextEditingController ssid = TextEditingController();
+    final TextEditingController pass = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Consumer(
+          builder: (context, ref, _) {
+            final sending =
+                ref.watch(bluetoothSetupViewModelProvider).sendingState;
+            final isLoading = sending is AsyncLoading;
             return AlertDialog(
-              title: const Text('Notification Settings'),
+              title: const Text('Change WiFi on TankPi'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  SwitchListTile(
-                    title: const Text('Temperature Alerts'),
-                    value: tempNotif,
-                    onChanged: (value) => setState(() => tempNotif = value),
+                  TextField(
+                    controller: ssid,
+                    decoration: const InputDecoration(
+                      labelText: 'WiFi Network Name (SSID)',
+                      border: OutlineInputBorder(),
+                    ),
                   ),
-                  SwitchListTile(
-                    title: const Text('pH Level Alerts'),
-                    value: phNotif,
-                    onChanged: (value) => setState(() => phNotif = value),
-                  ),
-                  SwitchListTile(
-                    title: const Text('Turbidity Alerts'),
-                    value: turbidityNotif,
-                    onChanged:
-                        (value) => setState(() => turbidityNotif = value),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: pass,
+                    decoration: const InputDecoration(
+                      labelText: 'WiFi Password',
+                      border: OutlineInputBorder(),
+                    ),
+                    obscureText: true,
                   ),
                 ],
               ),
@@ -571,46 +655,47 @@ class AquariumDashboardPage extends ConsumerWidget {
                   child: const Text('Cancel'),
                 ),
                 ElevatedButton(
-                  onPressed: () async {
-                    final vm = ProviderScope.containerOf(
-                      context,
-                    ).read(aquariumDashboardViewModelProvider);
-
-                    try {
-                      await vm.updateNotificationSettings(
-                        s.aquariumId,
-                        tempNotif,
-                        turbidityNotif,
-                        phNotif,
-                      );
-                      Navigator.of(context).pop();
-
-                      // Refresh the provider
-                      ProviderScope.containerOf(
-                        context,
-                      ).refresh(aquariumsSummaryProvider);
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Notification settings updated successfully!',
-                          ),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    } catch (e) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Error updating notification settings: $e',
-                          ),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  },
-                  child: const Text('Save'),
+                  onPressed:
+                      isLoading
+                          ? null
+                          : () async {
+                            if (ssid.text.isEmpty || pass.text.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Please fill in SSID and Password',
+                                  ),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            await ProviderScope.containerOf(context)
+                                .read(bluetoothSetupViewModelProvider.notifier)
+                                .sendWifiCredentials(
+                                  ssid: ssid.text,
+                                  password: pass.text,
+                                  aquariumId: null,
+                                );
+                            if (!context.mounted) return;
+                            final s =
+                                ProviderScope.containerOf(context)
+                                    .read(bluetoothSetupViewModelProvider)
+                                    .sendingState;
+                            Navigator.of(context).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  s is AsyncData
+                                      ? 'WiFi configuration sent to TankPi'
+                                      : 'Failed to send WiFi configuration',
+                                ),
+                                backgroundColor:
+                                    s is AsyncData ? Colors.green : Colors.red,
+                              ),
+                            );
+                          },
+                  child: const Text('Send'),
                 ),
               ],
             );
