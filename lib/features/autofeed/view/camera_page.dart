@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/navigation/route_observer.dart';
-import 'package:aquacare_v5/core/services/websocket_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../viewmodel/autofeed_viewmodel.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
-import 'package:http/http.dart' as http;
 
-class CameraPage extends StatefulWidget {
+class CameraPage extends ConsumerStatefulWidget {
   final String aquariumId;
   final String aquariumName;
 
@@ -17,17 +17,12 @@ class CameraPage extends StatefulWidget {
   });
 
   @override
-  State<CameraPage> createState() => _CameraPageState();
+  ConsumerState<CameraPage> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends State<CameraPage> with RouteAware {
-  bool isManualMode = false;
-  int selectedRotations = 3;
-  bool isFeeding = false;
+class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   bool isCameraActive = true;
-  final WebSocketService _webSocketService = WebSocketService.instance;
-  final String _backendUrl =
-      'https://aquacare.alfreds.dev'; // Production backend base URL
+  final String _backendUrl = 'https://aquacare.alfreds.dev';
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
@@ -36,8 +31,12 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
   void initState() {
     super.initState();
     _initializeWebView();
-    _initializeCamera();
-    _toggleCamera(true); // Turn camera ON when page opens
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .connect(widget.aquariumId);
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, true);
     debugPrint(
       '[CameraPage] initState: entering page for aquariumId=${widget.aquariumId}',
     );
@@ -48,8 +47,10 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
     debugPrint(
       '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
     );
-    _toggleCamera(false);
-    _webSocketService.disconnect();
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, false);
+    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).disconnect();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -67,36 +68,33 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
   @override
   void didPush() {
     debugPrint('[CameraPage] didPush: became visible');
-    _toggleCamera(true);
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, true);
   }
 
   @override
   void didPop() {
     debugPrint('[CameraPage] didPop: popped and now hidden');
-    _toggleCamera(false);
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, false);
   }
 
   @override
   void didPushNext() {
     debugPrint('[CameraPage] didPushNext: another page covered this one');
-    _toggleCamera(false);
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, false);
   }
 
   @override
   void didPopNext() {
     debugPrint('[CameraPage] didPopNext: returned to this page');
-    _toggleCamera(true);
-  }
-
-  Future<void> _toggleCamera(bool switchOn) async {
-    try {
-      final url = Uri.parse(
-        "$_backendUrl/aquarium/${widget.aquariumId}/camera_switch/$switchOn",
-      );
-      await http.post(url);
-    } catch (e) {
-      debugPrint("Error toggling camera: $e");
-    }
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, true);
   }
 
   void _initializeWebView() {
@@ -117,15 +115,19 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
             document.body.style.padding = "0";
             document.documentElement.style.overflow = "hidden";
           ''');
-                setState(() {
-                  _isWebViewLoading = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _isWebViewLoading = false;
+                  });
+                }
               },
               onWebResourceError: (webview.WebResourceError error) {
                 print('WebView error: ${error.description}');
-                setState(() {
-                  _isWebViewLoading = false;
-                });
+                if (mounted) {
+                  setState(() {
+                    _isWebViewLoading = false;
+                  });
+                }
               },
             ),
           )
@@ -136,44 +138,29 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
           );
   }
 
-  void _initializeCamera() async {
-    // Connect to TankPi WebSocket
-    final connected = await _webSocketService.connectToFeeder(
-      widget.aquariumId,
-      _backendUrl,
-    );
-
-    if (!connected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to connect to TankPi feeder. Please check your network connection.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
   void _closeCamera() {
     setState(() => isCameraActive = false);
-    _toggleCamera(false); // Turn camera OFF
-    _webSocketService.disconnect();
+    ref
+        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .toggleCamera(widget.aquariumId, false);
+    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).disconnect();
   }
 
   void _startFeeding() {
-    setState(() => isFeeding = true);
-    _triggerManualFeeding();
+    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).startManual();
   }
 
   void _stopFeeding() {
-    setState(() => isFeeding = false);
-    _stopManualFeeding();
+    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).stopManual();
   }
 
   void _triggerManualFeeding() async {
-    final success = await _webSocketService.startManualFeeding();
-    if (!success) {
+    // kept for gesture wiring; now uses VM
+    final success =
+        await ref
+            .read(autoFeedViewModelProvider(_backendUrl).notifier)
+            .startManual();
+    if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -186,8 +173,11 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
   }
 
   void _stopManualFeeding() async {
-    final success = await _webSocketService.stopManualFeeding();
-    if (!success) {
+    final success =
+        await ref
+            .read(autoFeedViewModelProvider(_backendUrl).notifier)
+            .stopManual();
+    if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -200,14 +190,13 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
   }
 
   void _confirmRotationFeeding() async {
-    final success = await _webSocketService.sendRotationFeeding(
-      selectedRotations,
-    );
+    final vm = ref.read(autoFeedViewModelProvider(_backendUrl).notifier);
+    final success = await vm.sendRotation();
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Dispensing $selectedRotations rotations of food to TankPi',
+            'Dispensing ${ref.read(autoFeedViewModelProvider(_backendUrl)).rotations} rotations of food to TankPi',
           ),
           backgroundColor: Colors.green,
         ),
@@ -226,6 +215,7 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    final vm = ref.watch(autoFeedViewModelProvider(_backendUrl));
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -307,13 +297,13 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                                 ),
                                 decoration: BoxDecoration(
                                   color:
-                                      _webSocketService.isConnected
+                                      vm.isConnected
                                           ? Colors.green[100]
                                           : Colors.orange[100],
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
                                     color:
-                                        _webSocketService.isConnected
+                                        vm.isConnected
                                             ? Colors.green[300]!
                                             : Colors.orange[300]!,
                                     width: 1,
@@ -323,24 +313,24 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Icon(
-                                      _webSocketService.isConnected
+                                      vm.isConnected
                                           ? Icons.wifi
                                           : Icons.wifi_off,
                                       size: 12,
                                       color:
-                                          _webSocketService.isConnected
+                                          vm.isConnected
                                               ? Colors.green[700]
                                               : Colors.orange[700],
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
-                                      _webSocketService.isConnected
+                                      vm.isConnected
                                           ? 'Aquacare Feeder: ON'
                                           : 'Aquacare Feeder: OFF',
                                       style: TextStyle(
                                         fontSize: 10,
                                         color:
-                                            _webSocketService.isConnected
+                                            vm.isConnected
                                                 ? Colors.green[700]
                                                 : Colors.orange[700],
                                         fontWeight: FontWeight.bold,
@@ -386,8 +376,13 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                     ),
                   ),
                   CupertinoSwitch(
-                    value: isManualMode,
-                    onChanged: (value) => setState(() => isManualMode = value),
+                    value: vm.isManualMode,
+                    onChanged:
+                        (value) => ref
+                            .read(
+                              autoFeedViewModelProvider(_backendUrl).notifier,
+                            )
+                            .setManualMode(value),
                     activeColor: Colors.blue[600],
                     trackColor: Colors.blue[200],
                   ),
@@ -413,9 +408,9 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                 border: Border.all(color: Colors.blue[200]!, width: 1),
               ),
               child:
-                  isManualMode
-                      ? _buildManualFeeding()
-                      : _buildRotationFeeding(),
+                  vm.isManualMode
+                      ? _buildManualFeeding(vm)
+                      : _buildRotationFeeding(vm),
             ),
 
             // Bottom padding for safe area
@@ -426,7 +421,7 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
     );
   }
 
-  Widget _buildManualFeeding() {
+  Widget _buildManualFeeding(AutoFeedState vm) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -459,18 +454,18 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                 width: ResponsiveHelper.getCardWidth(context),
                 height: ResponsiveHelper.getCardHeight(context),
                 decoration: BoxDecoration(
-                  color: isFeeding ? Colors.blue[400] : Colors.blue[600],
+                  color: vm.isFeeding ? Colors.blue[400] : Colors.blue[600],
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
                       color: Colors.blue.withOpacity(0.3),
                       blurRadius: 20,
-                      spreadRadius: isFeeding ? 10 : 5,
+                      spreadRadius: vm.isFeeding ? 10 : 5,
                     ),
                   ],
                 ),
                 child: Icon(
-                  isFeeding ? Icons.pause : Icons.play_arrow,
+                  vm.isFeeding ? Icons.pause : Icons.play_arrow,
                   size: ResponsiveHelper.getFontSize(context, 48),
                   color: Colors.white,
                 ),
@@ -482,7 +477,7 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
     );
   }
 
-  Widget _buildRotationFeeding() {
+  Widget _buildRotationFeeding(AutoFeedState vm) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -528,8 +523,14 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                       // Down arrow
                       IconButton(
                         onPressed: () {
-                          if (selectedRotations > 1) {
-                            setState(() => selectedRotations--);
+                          if (vm.rotations > 1) {
+                            ref
+                                .read(
+                                  autoFeedViewModelProvider(
+                                    _backendUrl,
+                                  ).notifier,
+                                )
+                                .setRotations(vm.rotations - 1);
                           }
                         },
                         icon: Icon(
@@ -553,8 +554,13 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                         child: CupertinoPicker(
                           itemExtent: 40,
                           onSelectedItemChanged:
-                              (index) =>
-                                  setState(() => selectedRotations = index + 1),
+                              (index) => ref
+                                  .read(
+                                    autoFeedViewModelProvider(
+                                      _backendUrl,
+                                    ).notifier,
+                                  )
+                                  .setRotations(index + 1),
                           children: List.generate(
                             10,
                             (index) => Center(
@@ -576,8 +582,14 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
                       // Up arrow
                       IconButton(
                         onPressed: () {
-                          if (selectedRotations < 10) {
-                            setState(() => selectedRotations++);
+                          if (vm.rotations < 10) {
+                            ref
+                                .read(
+                                  autoFeedViewModelProvider(
+                                    _backendUrl,
+                                  ).notifier,
+                                )
+                                .setRotations(vm.rotations + 1);
                           }
                         },
                         icon: Icon(
@@ -592,7 +604,7 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
               ),
               const SizedBox(height: 8),
               Text(
-                'Selected: $selectedRotations rotation${selectedRotations > 1 ? 's' : ''}',
+                'Selected: ${vm.rotations} rotation${vm.rotations > 1 ? 's' : ''}',
                 style: TextStyle(
                   fontSize: ResponsiveHelper.getFontSize(context, 14),
                   color: Colors.blue[600],
@@ -663,7 +675,7 @@ class _CameraPageState extends State<CameraPage> with RouteAware {
             ],
           ),
           content: Text(
-            'Are you sure you want to dispense $selectedRotations rotations of food to ${widget.aquariumName}?',
+            'Are you sure you want to dispense ${ref.read(autoFeedViewModelProvider(_backendUrl)).rotations} rotations of food to ${widget.aquariumName}?',
             style: const TextStyle(fontSize: 16),
           ),
           actions: [

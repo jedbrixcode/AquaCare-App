@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
 import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
 import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
+import 'package:aquacare_v5/features/bluetooth/viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
 import 'package:aquacare_v5/features/settings/viewmodel/theme_viewmodel.dart';
@@ -70,7 +71,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                 ),
               ),
               onTap: () {
-                Navigator.pushReplacementNamed(context, '/homepage');
+                Navigator.of(context).pop();
               },
             ),
             const SizedBox(height: 25),
@@ -216,7 +217,10 @@ class AquariumDashboardPage extends ConsumerWidget {
                       Expanded(
                         child: RefreshIndicator(
                           onRefresh: () async {
-                            ref.refresh(aquariumsSummaryProvider);
+                            ref.invalidate(aquariumsSummaryProvider);
+                            try {
+                              await ref.read(aquariumsSummaryProvider.future);
+                            } catch (_) {}
                           },
                           child: ListView.builder(
                             scrollDirection: Axis.vertical,
@@ -260,7 +264,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                         const SizedBox(height: 16),
                         ElevatedButton(
                           onPressed: () {
-                            ref.refresh(aquariumsSummaryProvider);
+                            ref.invalidate(aquariumsSummaryProvider);
                           },
                           child: const Text('Retry'),
                         ),
@@ -312,7 +316,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                 Navigator.of(context).pop();
                 ProviderScope.containerOf(
                   context,
-                ).refresh(aquariumsSummaryProvider);
+                ).invalidate(aquariumsSummaryProvider);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

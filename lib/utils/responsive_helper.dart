@@ -41,6 +41,16 @@ class ResponsiveHelper {
     }
   }
 
+  static double horizontalPadding(BuildContext context) {
+    if (isMobile(context)) {
+      return 16.0;
+    } else if (isTablet(context)) {
+      return 24.0;
+    } else {
+      return 32.0;
+    }
+  }
+
   static double getFontSize(BuildContext context, double baseSize) {
     if (isMobile(context)) {
       return baseSize;

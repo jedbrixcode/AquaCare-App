@@ -395,6 +395,30 @@ class AquariumRepository {
         });
   }
 
+  // Auto-light functionality
+  Stream<bool> getAutoLightStatus(String aquariumId) {
+    return _db
+        .child('aquariums/$aquariumId/auto_light')
+        .onValue
+        .map((event) {
+          final data = event.snapshot.value;
+          return data == true;
+        })
+        .handleError((error) {
+          print('Error getting auto-light status: $error');
+          return false;
+        });
+  }
+
+  Future<void> setAutoLightStatus(String aquariumId, bool isActive) async {
+    try {
+      await _db.child('aquariums/$aquariumId/auto_light').set(isActive);
+    } catch (e) {
+      print('Error updating auto-light status: $e');
+      rethrow;
+    }
+  }
+
   // Get current feeding status for safety monitoring
   Stream<Map<String, dynamic>> getFeedingStatus(String aquariumId) {
     return _db

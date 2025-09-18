@@ -1,15 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/autofeed/view/camera_page.dart';
 import 'package:aquacare_v5/features/sensors/temperature/view/temperature_page.dart'
     as mvvm_temp;
 import 'package:aquacare_v5/features/sensors/ph/view/ph_page.dart' as mvvm_ph;
 import 'package:aquacare_v5/features/sensors/turbidity/view/turbidity_page.dart'
     as mvvm_turbidity;
+import '../viewmodel/aquarium_dashboard_viewmodel.dart';
+import 'package:aquacare_v5/core/models/sensor_model.dart' as core;
+import 'package:aquacare_v5/core/models/threshold_model.dart' as aq;
+import 'package:aquacare_v5/utils/responsive_helper.dart';
 
-class AquariumDetailPage extends StatefulWidget {
+class AquariumDetailPage extends ConsumerStatefulWidget {
   final String aquariumId;
   final String aquariumName;
 
@@ -20,112 +24,50 @@ class AquariumDetailPage extends StatefulWidget {
   });
 
   @override
-  State<AquariumDetailPage> createState() => _AquariumDetailPageState();
+  ConsumerState<AquariumDetailPage> createState() => _AquariumDetailPageState();
 }
 
-class _AquariumDetailPageState extends State<AquariumDetailPage> {
-  final DatabaseReference _databaseRef = FirebaseDatabase.instance.ref();
-
-  double temperature = 0;
-  double turbidity = 0;
-  double ph = 0;
-
-  bool autoLight = true;
-
-  // Thresholds
-  double tempMin = 22;
-  double tempMax = 28;
-  double turbidityMin = 3;
-  double turbidityMax = 52;
-  double phMin = 6.5;
-  double phMax = 7.5;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadSensorData();
-    _loadThresholdData();
-    _loadAutoFeedStatus();
-  }
-
-  void _loadSensorData() {
-    _databaseRef
-        .child('aquariums')
-        .child(widget.aquariumId)
-        .child('sensors')
-        .onValue
-        .listen((event) {
-          if (event.snapshot.value != null) {
-            final data = event.snapshot.value as Map;
-            setState(() {
-              temperature = (data['temperature'] ?? 0) * 1.0;
-              turbidity = (data['turbidity'] ?? 0) * 1.0;
-              ph = (data['ph'] ?? 0) * 1.0;
-            });
-          }
-        });
-  }
-
-  void _loadThresholdData() {
-    _databaseRef
-        .child('aquariums')
-        .child(widget.aquariumId)
-        .child('threshold')
-        .onValue
-        .listen((event) {
-          if (event.snapshot.value != null) {
-            final data = event.snapshot.value as Map;
-            setState(() {
-              tempMin = (data['temperature']?['min'] ?? 22) * 1.0;
-              tempMax = (data['temperature']?['max'] ?? 28) * 1.0;
-              turbidityMin = (data['turbidity']?['min'] ?? 3) * 1.0;
-              turbidityMax = (data['turbidity']?['max'] ?? 52) * 1.0;
-              phMin = (data['ph']?['min'] ?? 6.5) * 1.0;
-              phMax = (data['ph']?['max'] ?? 7.5) * 1.0;
-            });
-          }
-        });
-  }
-
-  void _loadAutoFeedStatus() {
-    _databaseRef
-        .child('aquariums')
-        .child(widget.aquariumId)
-        .child('auto_feed')
-        .onValue
-        .listen((event) {
-          if (mounted) {
-            setState(() {
-              autoLight = event.snapshot.value == true;
-            });
-          }
-        });
-  }
-
-  void _updateAutoLight(bool value) {
-    setState(() {
-      autoLight = value;
-    });
-    _databaseRef
-        .child('aquariums')
-        .child(widget.aquariumId)
-        .child('auto_light')
-        .set(value);
-  }
-
+class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
   @override
   Widget build(BuildContext context) {
+    final sensorAsync = ref.watch(aquariumSensorProvider(widget.aquariumId));
+    final thresholdAsync = ref.watch(
+      aquariumThresholdProvider(widget.aquariumId),
+    );
+    final autoLightAsync = ref.watch(
+      aquariumAutoLightProvider(widget.aquariumId),
+    );
+
+    final sensor =
+        sensorAsync.asData?.value ??
+        const core.Sensor(temperature: 0, turbidity: 0, ph: 0);
+    final threshold =
+        thresholdAsync.asData?.value ??
+        const aq.Threshold(
+          tempMin: 22,
+          tempMax: 28,
+          turbidityMin: 3,
+          turbidityMax: 52,
+          phMin: 6.5,
+          phMax: 7.5,
+        );
+    final autoLight = autoLightAsync.asData?.value ?? true;
+
     final double tempHealth = _calculateHealth(
-      value: temperature,
-      min: tempMin,
-      max: tempMax,
+      value: sensor.temperature,
+      min: threshold.tempMin,
+      max: threshold.tempMax,
     );
     final double turbidityHealth = _calculateHealth(
-      value: turbidity,
-      min: turbidityMin,
-      max: turbidityMax,
+      value: sensor.turbidity,
+      min: threshold.turbidityMin,
+      max: threshold.turbidityMax,
     );
-    final double phHealth = _calculateHealth(value: ph, min: phMin, max: phMax);
+    final double phHealth = _calculateHealth(
+      value: sensor.ph,
+      min: threshold.phMin,
+      max: threshold.phMax,
+    );
 
     // Assign Weights: Temperature > pH > Turbidity
     const double tempWeight = 0.5;
@@ -136,6 +78,8 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
         (tempHealth * tempWeight) +
         (phHealth * phWeight) +
         (turbidityHealth * turbidityWeight);
+
+    // Intentionally not storing all-in-range flag; health is derived per-sensor and weighted
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -151,123 +95,190 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // LEFT SIDE
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder:
-                              (context) => mvvm_temp.TemperaturePage(
-                                aquariumId: widget.aquariumId,
-                                aquariumName: widget.aquariumName,
-                              ),
-                        ),
-                      );
-                    },
-                    child: _bigCircleCard(
-                      label: "Temperature",
-                      value: "${temperature.toStringAsFixed(0)}°C",
-                      percent: tempHealth,
-                      icon: FontAwesomeIcons.temperatureHigh,
-                      color: Colors.white,
-                      height: 300,
+        padding: ResponsiveHelper.getScreenPadding(context),
+        child:
+            ResponsiveHelper.isMobile(context)
+                ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildLeftColumn(sensor, threshold, tempHealth, health),
+                    const SizedBox(height: 20),
+                    _buildRightColumn(
+                      sensor,
+                      threshold,
+                      turbidityHealth,
+                      phHealth,
+                      autoLight,
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (context) => CameraPage(
-                                aquariumId: widget.aquariumId,
-                                aquariumName: widget.aquariumName,
-                              ),
-                        ),
-                      );
-                    },
-                    child: _autoFeedCard(
-                      label: "Auto Feeding",
-                      color: Colors.green,
+                  ],
+                )
+                : Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // LEFT SIDE
+                    Expanded(
+                      flex: 1,
+                      child: _buildLeftColumn(
+                        sensor,
+                        threshold,
+                        tempHealth,
+                        health,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  _healthBar(percent: health),
-                ],
-              ),
-            ),
-            const SizedBox(width: 20),
-
-            // RIGHT SIDE
-            Expanded(
-              flex: 1,
-              child: Column(
-                children: [
-                  GestureDetector(
-                    onTap:
-                        () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder:
-                                (context) => mvvm_turbidity.TurbidityPage(
-                                  aquariumId: widget.aquariumId,
-                                  aquariumName: widget.aquariumName,
-                                ),
-                          ),
-                        ),
-                    child: _horizontalBarCard(
-                      label: "Turbidity",
-                      percent: turbidityHealth,
-                      isOn: true,
-                      color: Colors.green,
-                      rawValue: turbidity,
+                    const SizedBox(width: 20),
+                    // RIGHT SIDE
+                    Expanded(
+                      flex: 1,
+                      child: _buildRightColumn(
+                        sensor,
+                        threshold,
+                        turbidityHealth,
+                        phHealth,
+                        autoLight,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap:
-                        () => Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder:
-                                (context) => mvvm_ph.PhPage(
-                                  aquariumId: widget.aquariumId,
-                                  aquariumName: widget.aquariumName,
-                                ),
-                          ),
-                        ),
-                    child: _circleCard(
-                      label: "pH level",
-                      value: ph.toStringAsFixed(1),
-                      percent: phHealth,
-                      icon: FontAwesomeIcons.vialCircleCheck,
-                      color: Colors.white,
-                      height: 300,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  GestureDetector(
-                    onTap: () => Navigator.pushNamed(context, '/light'),
-                    child: _switchCard(
-                      label: "Auto light",
-                      isOn: autoLight,
-                      color: Colors.green,
-                      onChanged: _updateAutoLight,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+                  ],
+                ),
       ),
+    );
+  }
+
+  Widget _buildLeftColumn(
+    core.Sensor sensor,
+    aq.Threshold threshold,
+    double tempHealth,
+    double health,
+  ) {
+    final bool tempInRange =
+        sensor.temperature >= threshold.tempMin &&
+        sensor.temperature <= threshold.tempMax;
+    final Color tempColor = tempInRange ? Colors.green : Colors.red;
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder:
+                    (context) => mvvm_temp.TemperaturePage(
+                      aquariumId: widget.aquariumId,
+                      aquariumName: widget.aquariumName,
+                    ),
+              ),
+            );
+          },
+          child: _bigCircleCard(
+            label: "Temperature",
+            value: "${sensor.temperature.toStringAsFixed(1)}°C",
+            percent: tempHealth,
+            icon: FontAwesomeIcons.temperatureHigh,
+            ringColor: tempColor,
+            color: Colors.white,
+            height: 300,
+          ),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder:
+                    (context) => CameraPage(
+                      aquariumId: widget.aquariumId,
+                      aquariumName: widget.aquariumName,
+                    ),
+              ),
+            );
+          },
+          child: _autoFeedCard(
+            context: context,
+            label: "Auto Feeding",
+            color: Colors.green,
+            aquariumId: widget.aquariumId,
+            aquariumName: widget.aquariumName,
+          ),
+        ),
+        const SizedBox(height: 20),
+        _healthBar(percent: health),
+      ],
+    );
+  }
+
+  Widget _buildRightColumn(
+    core.Sensor sensor,
+    aq.Threshold threshold,
+    double turbidityHealth,
+    double phHealth,
+    bool autoLight,
+  ) {
+    final bool turbidityInRange =
+        sensor.turbidity >= threshold.turbidityMin &&
+        sensor.turbidity <= threshold.turbidityMax;
+    final bool phInRange =
+        sensor.ph >= threshold.phMin && sensor.ph <= threshold.phMax;
+    final Color turbidityColor = turbidityInRange ? Colors.green : Colors.red;
+    final Color phColor = phInRange ? Colors.green : Colors.red;
+
+    return Column(
+      children: [
+        GestureDetector(
+          onTap:
+              () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (context) => mvvm_turbidity.TurbidityPage(
+                        aquariumId: widget.aquariumId,
+                        aquariumName: widget.aquariumName,
+                      ),
+                ),
+              ),
+          child: _horizontalBarCard(
+            label: "Turbidity",
+            percent: turbidityHealth,
+            isOn: true,
+            color: turbidityColor,
+            rawValue: sensor.turbidity,
+          ),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap:
+              () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder:
+                      (context) => mvvm_ph.PhPage(
+                        aquariumId: widget.aquariumId,
+                        aquariumName: widget.aquariumName,
+                      ),
+                ),
+              ),
+          child: _circleCard(
+            label: "pH level",
+            value: sensor.ph.toStringAsFixed(2),
+            percent: phHealth,
+            icon: FontAwesomeIcons.vialCircleCheck,
+            ringColor: phColor,
+            color: Colors.white,
+            height: 300,
+            width: double.infinity,
+          ),
+        ),
+        const SizedBox(height: 20),
+        GestureDetector(
+          onTap: () => Navigator.pushNamed(context, '/light'),
+          child: _switchCard(
+            label: "Auto light",
+            isOn: autoLight,
+            color: Colors.green,
+            onChanged: (v) {
+              ref
+                  .read(aquariumRepositoryProvider)
+                  .setAutoLightStatus(widget.aquariumId, v);
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -276,6 +287,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
     required String value,
     required double percent,
     required IconData icon,
+    Color? ringColor,
     required Color color,
     required double height,
   }) {
@@ -306,7 +318,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
             lineWidth: 16,
             percent: percent.clamp(0.0, 1.0),
             center: Icon(icon, color: color, size: 48),
-            progressColor: Colors.white,
+            progressColor: ringColor ?? Colors.white,
             backgroundColor: Colors.black,
             circularStrokeCap: CircularStrokeCap.round,
           ),
@@ -329,9 +341,10 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
     required String value,
     required double percent,
     required IconData icon,
+    Color? ringColor,
     required Color color,
-    double height = 350,
-    double width = double.infinity,
+    required double height,
+    required double width,
   }) {
     return Container(
       height: height,
@@ -361,7 +374,7 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
             lineWidth: 16,
             percent: percent.clamp(0.0, 1.0),
             center: Icon(icon, color: color, size: 48),
-            progressColor: Colors.white,
+            progressColor: ringColor ?? Colors.white,
             backgroundColor: Colors.black,
             circularStrokeCap: CircularStrokeCap.round,
           ),
@@ -497,6 +510,8 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
   }
 
   Widget _healthBar({required double percent}) {
+    final bool isGood = percent >= 1.0 - 1e-9; // all within thresholds => 1.0
+    final Color barColor = isGood ? Colors.green : Colors.red;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -517,21 +532,43 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
               value: percent,
               minHeight: 18,
               backgroundColor: Colors.grey[300],
-              color: Colors.blue,
+              color: barColor,
             ),
           ),
         ),
 
         const SizedBox(height: 8),
-        Text(
-          "${(percent * 100).toStringAsFixed(0)}%",
-          style: const TextStyle(color: Colors.black, fontSize: 16),
+        Row(
+          children: [
+            Text(
+              "${(percent * 100).toStringAsFixed(0)}%",
+              style: const TextStyle(color: Colors.black, fontSize: 16),
+            ),
+            const SizedBox(width: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: barColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                percent >= 1.0 ? 'Good' : 'Bad',
+                style: TextStyle(color: barColor, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 
-  Widget _autoFeedCard({required String label, required Color color}) {
+  Widget _autoFeedCard({
+    required BuildContext context,
+    required String label,
+    required Color color,
+    required String aquariumId,
+    required String aquariumName,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       width: double.infinity,
@@ -558,8 +595,8 @@ class _AquariumDetailPageState extends State<AquariumDetailPage> {
                 MaterialPageRoute(
                   builder:
                       (context) => CameraPage(
-                        aquariumId: widget.aquariumId,
-                        aquariumName: widget.aquariumName,
+                        aquariumId: aquariumId,
+                        aquariumName: aquariumName,
                       ),
                 ),
               );

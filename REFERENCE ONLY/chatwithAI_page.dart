@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:aquacare_v5/core/config/backend_config.dart';
 
 class AIChatPage extends StatefulWidget {
   const AIChatPage({super.key});
@@ -14,6 +17,8 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
   final TextEditingController _controller = TextEditingController();
   List<Map<String, String>> _messages = [];
   bool isLoading = false; // To show loading indicator
+  File? _selectedImage;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -53,7 +58,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
   // Function to send a question to the Flask backend and get the AI's response
   Future<void> sendMessage() async {
     String userMessage = _controller.text;
-    if (userMessage.isEmpty) return;
+    if (userMessage.isEmpty && _selectedImage == null) return;
 
     setState(() {
       _messages.add({"role": "user", "message": userMessage});
@@ -63,12 +68,27 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
 
     _controller.clear();
 
-    // Make a POST request to the Flask backend
-    final response = await http.post(
-      Uri.parse('https://aquacarerest.onrender.com/ask'),
-      headers: {"Content-Type": "application/json"},
-      body: json.encode({"question": userMessage}),
-    );
+    http.Response response;
+    if (_selectedImage != null) {
+      final request = http.MultipartRequest(
+        'POST',
+        BackendConfig.url('ask_image'),
+      );
+      if (userMessage.isNotEmpty) {
+        request.fields['question'] = userMessage;
+      }
+      request.files.add(
+        await http.MultipartFile.fromPath('image', _selectedImage!.path),
+      );
+      final streamed = await request.send();
+      response = await http.Response.fromStream(streamed);
+    } else {
+      response = await http.post(
+        BackendConfig.url('ask'),
+        headers: {"Content-Type": "application/json"},
+        body: json.encode({"question": userMessage}),
+      );
+    }
 
     if (response.statusCode == 200) {
       var responseBody = json.decode(response.body);
@@ -76,6 +96,7 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
       setState(() {
         _messages.add({"role": "ai", "message": aiMessage});
         isLoading = false; // Hide loading indicator
+        _selectedImage = null;
       });
     } else {
       setState(() {
@@ -84,6 +105,24 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
       });
     }
     await saveMessagesToPrefs();
+  }
+
+  Future<void> _pickFromGallery() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.gallery);
+    if (picked != null) {
+      setState(() {
+        _selectedImage = File(picked.path);
+      });
+    }
+  }
+
+  Future<void> _captureWithCamera() async {
+    final XFile? picked = await _picker.pickImage(source: ImageSource.camera);
+    if (picked != null) {
+      setState(() {
+        _selectedImage = File(picked.path);
+      });
+    }
   }
 
   // Display messages in the chat
@@ -243,6 +282,22 @@ class _AIChatPageState extends State<AIChatPage> with WidgetsBindingObserver {
               padding: EdgeInsets.symmetric(horizontal: 2.0, vertical: 8.0),
               child: Row(
                 children: [
+                  // Left image buttons
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.photo_camera),
+                        onPressed: _captureWithCamera,
+                        tooltip: 'Capture fish photo',
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.photo_library),
+                        onPressed: _pickFromGallery,
+                        tooltip: 'Upload fish photo',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 6),
                   Expanded(
                     child: TextField(
                       controller: _controller,

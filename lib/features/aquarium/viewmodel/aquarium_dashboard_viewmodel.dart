@@ -38,6 +38,15 @@ final aquariumNotificationProvider =
       return await repo.fetchNotificationPrefs(aquariumId);
     });
 
+// Provider for a specific aquarium's auto-light status (live)
+final aquariumAutoLightProvider = StreamProvider.family<bool, String>((
+  ref,
+  aquariumId,
+) {
+  final repo = ref.watch(aquariumRepositoryProvider);
+  return repo.getAutoLightStatus(aquariumId);
+});
+
 class AquariumDashboardViewModel {
   final AquariumRepository repo;
   AquariumDashboardViewModel(this.repo);

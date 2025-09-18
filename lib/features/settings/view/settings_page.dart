@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../settings/viewmodel/theme_viewmodel.dart';
-import 'package:aquacare_v5/features/aquarium/viewmodel/aquarium_dashboard_viewmodel.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:aquacare_v5/features/settings/viewmodel/settings_viewmodel.dart';
 
 class SettingsPage extends ConsumerWidget {
   const SettingsPage({super.key});
@@ -60,47 +59,20 @@ class _GlobalNotificationsTile extends ConsumerStatefulWidget {
 
 class _GlobalNotificationsTileState
     extends ConsumerState<_GlobalNotificationsTile> {
-  bool _enabled = true;
-
-  @override
-  void initState() {
-    super.initState();
-    // Optionally load persisted preference here if needed
-  }
-
   @override
   Widget build(BuildContext context) {
+    final settings = ref.watch(settingsViewModelProvider);
+    final controller = ref.read(settingsViewModelProvider.notifier);
     return SwitchListTile(
       title: const Text('Global Notifications (master switch)'),
       subtitle: const Text('Also toggles each aquarium sensor notifications'),
-      value: _enabled,
+      value: settings.globalNotificationsEnabled,
       onChanged: (enabled) async {
-        setState(() => _enabled = enabled);
-        try {
-          // Topic-level subscription
-          if (enabled) {
-            await FirebaseMessaging.instance.subscribeToTopic(
-              'aquacare_alerts',
-            );
-          } else {
-            await FirebaseMessaging.instance.unsubscribeFromTopic(
-              'aquacare_alerts',
-            );
-          }
-          // Flip all aquarium notification flags
-          final vm = ref.read(aquariumDashboardViewModelProvider);
-          await vm.repo.setAllAquariumNotifications(enabled: enabled);
-
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Notification preference updated')),
-          );
-        } catch (e) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Error updating notifications: $e')),
-          );
-        }
+        await controller.toggleGlobalNotifications(enabled);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification preference updated')),
+        );
       },
     );
   }

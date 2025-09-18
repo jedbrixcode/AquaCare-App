@@ -108,7 +108,7 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
   Future<void> sendWifiCredentials({
     required String ssid,
     required String password,
-    required String aquariumId,
+    String? aquariumId,
   }) async {
     state = state.copyWith(sendingState: const AsyncLoading());
     try {

@@ -19,6 +19,8 @@ class TemperaturePage extends ConsumerStatefulWidget {
 class _TemperaturePageState extends ConsumerState<TemperaturePage> {
   double? _minTempEditing;
   double? _maxTempEditing;
+  final TextEditingController _minController = TextEditingController();
+  final TextEditingController _maxController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -192,16 +194,28 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               data: (range) {
                 final min = _minTempEditing ?? range.min;
                 final max = _maxTempEditing ?? range.max;
+                _minController.value = TextEditingValue(
+                  text: min.toStringAsFixed(1),
+                  selection: TextSelection.collapsed(
+                    offset: min.toStringAsFixed(1).length,
+                  ),
+                );
+                _maxController.value = TextEditingValue(
+                  text: max.toStringAsFixed(1),
+                  selection: TextSelection.collapsed(
+                    offset: max.toStringAsFixed(1).length,
+                  ),
+                );
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _temperatureSelector(min, (value) {
+                    _temperatureSelector(min, _minController, (value) {
                       setState(() => _minTempEditing = value);
                     }),
                     const SizedBox(width: 10),
                     const Text(' - '),
                     const SizedBox(width: 10),
-                    _temperatureSelector(max, (value) {
+                    _temperatureSelector(max, _maxController, (value) {
                       setState(() => _maxTempEditing = value);
                     }),
                     const SizedBox(width: 20),
@@ -216,8 +230,13 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     const SizedBox(width: 20),
                     ElevatedButton(
                       onPressed: () async {
-                        final newMin = _minTempEditing ?? range.min;
-                        final newMax = _maxTempEditing ?? range.max;
+                        // Always parse latest on-screen text to save even without keyboard confirm
+                        final parsedMin = double.tryParse(_minController.text);
+                        final parsedMax = double.tryParse(_maxController.text);
+                        final newMin =
+                            parsedMin ?? _minTempEditing ?? range.min;
+                        final newMax =
+                            parsedMax ?? _maxTempEditing ?? range.max;
                         await vm.setTemperatureRange(
                           aquariumId: widget.aquariumId,
                           min: newMin,
@@ -274,8 +293,11 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
     );
   }
 
-  Widget _temperatureSelector(double value, Function(double) onChanged) {
-    final controller = TextEditingController(text: value.toString());
+  Widget _temperatureSelector(
+    double value,
+    TextEditingController controller,
+    Function(double) onChanged,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -288,9 +310,12 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
           height: 50,
           child: TextField(
             controller: controller,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: false,
+            ),
             textAlign: TextAlign.center,
-            onSubmitted: (text) {
+            onChanged: (text) {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
             },
