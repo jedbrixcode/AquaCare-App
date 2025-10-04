@@ -176,7 +176,14 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             value: isEnabled,
             onChanged: (value) => viewModel.toggleAutoFeeder(value),
             activeColor: Colors.blue[600],
-            trackColor: Colors.blue[200],
+            trackColor: MaterialStateProperty.resolveWith<Color?>((
+              Set<MaterialState> states,
+            ) {
+              if (states.contains(MaterialState.selected)) {
+                return Colors.blue[200]; // when ON
+              }
+              return Colors.grey[300]; // when OFF
+            }),
           ),
         ],
       ),

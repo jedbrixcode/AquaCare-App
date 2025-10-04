@@ -6,12 +6,11 @@ import 'core/navigation/route_observer.dart';
 import 'firebase_options.dart';
 import 'features/aquarium/view/aquarium_dashboard_page.dart';
 import 'features/settings/viewmodel/theme_viewmodel.dart';
+import 'features/landing/view/landing_page.dart';
 import 'features/chat/view/chat_with_ai_page.dart';
 import 'features/graphs/view/sensor_graphs_page.dart';
 import 'features/settings/view/settings_page.dart';
 import 'core/services/notifications_service.dart';
-
-// Route observer is provided from core/navigation/route_observer.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -67,7 +66,7 @@ class MyApp extends ConsumerWidget {
       darkTheme: ThemeData.dark(useMaterial3: false),
       themeMode: themeMode,
       navigatorObservers: [appRouteObserver],
-      home: const AquariumDashboardPage(),
+      home: const LandingPage(),
       routes: {
         '/chat': (context) => const AIChatPage(),
         '/graphs': (context) => const SensorGraphsPage(),
