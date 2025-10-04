@@ -25,25 +25,6 @@ class AquariumDashboardPage extends ConsumerWidget {
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
-        actions: [
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.color_lens, color: Colors.white),
-            onSelected: (value) {
-              final controller = ProviderScope.containerOf(
-                context,
-              ).read(themeModeProvider.notifier);
-              if (value == 'light') controller.setThemeMode(ThemeMode.light);
-              if (value == 'dark') controller.setThemeMode(ThemeMode.dark);
-              if (value == 'system') controller.setThemeMode(ThemeMode.system);
-            },
-            itemBuilder:
-                (context) => const [
-                  PopupMenuItem(value: 'light', child: Text('Light')),
-                  PopupMenuItem(value: 'dark', child: Text('Dark')),
-                  PopupMenuItem(value: 'system', child: Text('System')),
-                ],
-          ),
-        ],
       ),
       drawer: Drawer(
         backgroundColor: const Color.fromARGB(255, 107, 159, 255),

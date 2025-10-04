@@ -1,4 +1,7 @@
-# Miscellaneous
+# ---------------------------
+# gitignore ng malalakas
+# ---------------------------
+
 *.class
 *.log
 *.pyc
@@ -12,16 +15,14 @@
 .swiftpm/
 migrate_working_dir/
 
-# IntelliJ related
 *.iml
 *.ipr
 *.iws
 .idea/
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# VS Code related
+# (Uncomment if you don't want to share workspace settings)
+.vscode/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -39,7 +40,32 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
-# Android Studio will place build artifacts here
+# Android Studio build artifacts
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ---------------------------
+# Project-specific additions
+# ---------------------------
+
+# Firebase related (auto-generated)
+firebase.json
+database.rules.json
+*.export.json
+
+# Temporary or reference-only directories
+REFERENCE ONLY/
+
+# Log and crash dump files
+hs_err_pid*.log
+replay_pid*.log
+
+# Optional: lock file (ignore if this is an app, not a package)
+pubspec.lock
+
+# OS-generated junk
+Thumbs.db
+TODO.md
+notes.md
+drafts/

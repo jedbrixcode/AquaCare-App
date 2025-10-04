@@ -54,6 +54,10 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
     state = state.copyWith(isConnected: ok);
   }
 
+  void updateConnectionStatus() {
+    state = state.copyWith(isConnected: _repo.isWsConnected);
+  }
+
   Future<void> toggleCamera(String aquariumId, bool on) async {
     await _repo.toggleCamera(
       backendUrl: backendUrl,

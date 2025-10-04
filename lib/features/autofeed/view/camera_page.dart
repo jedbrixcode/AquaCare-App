@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
@@ -26,6 +27,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
+  Timer? _connectionStatusTimer;
 
   @override
   void initState() {
@@ -37,9 +39,34 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     ref
         .read(autoFeedViewModelProvider(_backendUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
+
+    // Update connection status periodically
+    _updateConnectionStatus();
+
     debugPrint(
       '[CameraPage] initState: entering page for aquariumId=${widget.aquariumId}',
     );
+  }
+
+  void _updateConnectionStatus() {
+    _connectionStatusTimer?.cancel();
+    _connectionStatusTimer = Timer.periodic(const Duration(seconds: 2), (
+      timer,
+    ) {
+      if (mounted) {
+        try {
+          ref
+              .read(autoFeedViewModelProvider(_backendUrl).notifier)
+              .updateConnectionStatus();
+        } catch (e) {
+          // Widget was disposed, stop checking
+          debugPrint('Connection status update stopped: $e');
+          timer.cancel();
+        }
+      } else {
+        timer.cancel();
+      }
+    });
   }
 
   @override
@@ -47,6 +74,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     debugPrint(
       '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
     );
+    _connectionStatusTimer?.cancel();
     ref
         .read(autoFeedViewModelProvider(_backendUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
@@ -138,65 +166,46 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
           );
   }
 
-  void _closeCamera() {
-    setState(() => isCameraActive = false);
-    ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
-        .toggleCamera(widget.aquariumId, false);
-    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).disconnect();
-  }
-
-  void _startFeeding() {
-    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).startManual();
-  }
-
-  void _stopFeeding() {
-    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).stopManual();
-  }
-
-  void _triggerManualFeeding() async {
-    // kept for gesture wiring; now uses VM
-    final success =
-        await ref
-            .read(autoFeedViewModelProvider(_backendUrl).notifier)
-            .startManual();
-    if (!success && mounted) {
+  void _handleManualFeeding(bool isStarting) async {
+    final vm = ref.read(autoFeedViewModelProvider(_backendUrl));
+    if (!vm.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Failed to start manual feeding. Check TankPi connection.',
-          ),
+          content: Text('Autofeed is offline. Please check TankPi connection.'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
     }
-  }
 
-  void _stopManualFeeding() async {
-    final success =
-        await ref
-            .read(autoFeedViewModelProvider(_backendUrl).notifier)
-            .stopManual();
-    if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to stop manual feeding. Check TankPi connection.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
+    if (isStarting) {
+      ref.read(autoFeedViewModelProvider(_backendUrl).notifier).startManual();
+    } else {
+      ref.read(autoFeedViewModelProvider(_backendUrl).notifier).stopManual();
     }
   }
 
   void _confirmRotationFeeding() async {
-    final vm = ref.read(autoFeedViewModelProvider(_backendUrl).notifier);
-    final success = await vm.sendRotation();
+    final vm = ref.read(autoFeedViewModelProvider(_backendUrl));
+    if (!vm.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Autofeed is offline. Please check TankPi connection.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final success =
+        await ref
+            .read(autoFeedViewModelProvider(_backendUrl).notifier)
+            .sendRotation();
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Dispensing ${ref.read(autoFeedViewModelProvider(_backendUrl)).rotations} rotations of food to TankPi',
+            'Dispensing ${vm.rotations} rotations of food to TankPi',
           ),
           backgroundColor: Colors.green,
         ),
@@ -340,6 +349,40 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                 ),
                               ),
                             ),
+
+                            // Camera toggle button
+                            Positioned(
+                              top: 8,
+                              left: 8,
+                              child: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    isCameraActive = !isCameraActive;
+                                  });
+                                  ref
+                                      .read(
+                                        autoFeedViewModelProvider(
+                                          _backendUrl,
+                                        ).notifier,
+                                      )
+                                      .toggleCamera(
+                                        widget.aquariumId,
+                                        isCameraActive,
+                                      );
+                                },
+                                icon: Icon(
+                                  isCameraActive
+                                      ? Icons.videocam
+                                      : Icons.videocam_off,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: Colors.black54,
+                                  shape: const CircleBorder(),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       )
@@ -446,9 +489,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
           height: 200, // Fixed height instead of Expanded
           child: Center(
             child: GestureDetector(
-              onTapDown: (_) => _startFeeding(),
-              onTapUp: (_) => _stopFeeding(),
-              onTapCancel: () => _stopFeeding(),
+              onTapDown: (_) => _handleManualFeeding(true),
+              onTapUp: (_) => _handleManualFeeding(false),
+              onTapCancel: () => _handleManualFeeding(false),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 width: ResponsiveHelper.getCardWidth(context),

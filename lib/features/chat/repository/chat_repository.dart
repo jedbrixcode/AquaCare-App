@@ -12,7 +12,7 @@ class ChatRepository {
     final response = await http.post(
       uri,
       headers: const {'Content-Type': 'application/json'},
-      body: jsonEncode({'text': text}),
+      body: jsonEncode({'question': text}),
     );
     if (response.statusCode >= 200 && response.statusCode < 300) {
       final Map<String, dynamic> body =
@@ -24,9 +24,9 @@ class ChatRepository {
   }
 
   Future<String> askImage({String? text, required String imageBase64}) async {
-    final uri = BackendConfig.url('ask_image');
+    final uri = BackendConfig.url('ask');
     final payload = <String, dynamic>{
-      if (text != null && text.trim().isNotEmpty) 'text': text,
+      if (text != null && text.trim().isNotEmpty) 'question': text,
       'image': imageBase64,
     };
     final response = await http.post(

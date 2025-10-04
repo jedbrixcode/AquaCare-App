@@ -81,6 +81,10 @@ class ChatViewModel extends StateNotifier<ChatState> {
     state = state.copyWith(clearAttachment: true);
   }
 
+  void clearChatHistory() {
+    state = state.copyWith(messages: []);
+  }
+
   Future<void> send() async {
     if (state.isSending) return;
     final text = state.inputText.trim();
