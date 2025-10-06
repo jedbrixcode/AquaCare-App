@@ -23,6 +23,7 @@ class CameraPage extends ConsumerStatefulWidget {
 
 class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   bool isCameraActive = true;
+  final String _cameraUrl = 'https://pi-cam.alfreds.dev';
   final String _backendUrl = 'https://aquacare.alfreds.dev';
 
   late final webview.WebViewController _webViewController;
@@ -34,10 +35,10 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     super.initState();
     _initializeWebView();
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .connect(widget.aquariumId);
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
 
     // Update connection status periodically
@@ -50,13 +51,13 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   void _updateConnectionStatus() {
     _connectionStatusTimer?.cancel();
-    _connectionStatusTimer = Timer.periodic(const Duration(seconds: 2), (
+    _connectionStatusTimer = Timer.periodic(const Duration(seconds: 4), (
       timer,
     ) {
       if (mounted) {
         try {
           ref
-              .read(autoFeedViewModelProvider(_backendUrl).notifier)
+              .read(autoFeedViewModelProvider(_cameraUrl).notifier)
               .updateConnectionStatus();
         } catch (e) {
           // Widget was disposed, stop checking
@@ -76,9 +77,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     );
     _connectionStatusTimer?.cancel();
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
-    ref.read(autoFeedViewModelProvider(_backendUrl).notifier).disconnect();
+    ref.read(autoFeedViewModelProvider(_cameraUrl).notifier).disconnect();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -97,7 +98,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   void didPush() {
     debugPrint('[CameraPage] didPush: became visible');
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
   }
 
@@ -105,7 +106,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   void didPop() {
     debugPrint('[CameraPage] didPop: popped and now hidden');
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
   }
 
@@ -113,7 +114,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   void didPushNext() {
     debugPrint('[CameraPage] didPushNext: another page covered this one');
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
   }
 
@@ -121,7 +122,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   void didPopNext() {
     debugPrint('[CameraPage] didPopNext: returned to this page');
     ref
-        .read(autoFeedViewModelProvider(_backendUrl).notifier)
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
   }
 
@@ -135,8 +136,8 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                 _webViewController.runJavaScript('''
             var video = document.querySelector("img, video");
             if (video) {
-              video.style.width = "50%";
-              video.style.height = "50%";
+              video.style.width = "100%";
+              video.style.height = "100%";
               video.style.objectFit = "cover"; // fills container
             }
             document.body.style.margin = "0";
@@ -160,9 +161,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             ),
           )
           ..loadRequest(
-            Uri.parse(
-              'https://aquacare.alfreds.dev/aquarium/${widget.aquariumId}/video_feed',
-            ),
+            Uri.parse('$_cameraUrl/aquarium/${widget.aquariumId}/video_feed'),
           );
   }
 
@@ -362,7 +361,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                   ref
                                       .read(
                                         autoFeedViewModelProvider(
-                                          _backendUrl,
+                                          _cameraUrl,
                                         ).notifier,
                                       )
                                       .toggleCamera(

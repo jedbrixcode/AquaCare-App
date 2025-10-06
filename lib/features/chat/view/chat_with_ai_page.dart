@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:aquacare_v5/features/chat/viewmodel/chat_with_ai_viewmodel.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'dart:typed_data';
 
 class AIChatPage extends ConsumerStatefulWidget {
   const AIChatPage({super.key});
@@ -23,15 +25,21 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
   }
 
   Future<void> _pickFromCamera() async {
-    final XFile? file = await _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 85,
-    );
+    final XFile? file = await _picker.pickImage(source: ImageSource.camera);
     if (file == null) return;
-    final bytes = await file.readAsBytes();
+
+    final compressed = await FlutterImageCompress.compressWithFile(
+      file.path,
+      minWidth: 800,
+      minHeight: 800,
+      quality: 60,
+    );
+
+    if (compressed == null) return;
+
     ref
         .read(chatViewModelProvider.notifier)
-        .attachImage(bytes, mime: 'image/jpeg');
+        .attachImage(Uint8List.fromList(compressed), mime: 'image/jpeg');
   }
 
   Future<void> _pickFromGallery() async {
@@ -48,14 +56,15 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
 
   Future<void> _send() async {
     await ref.read(chatViewModelProvider.notifier).send();
+    ref.read(chatViewModelProvider.notifier).setInput('');
     if (mounted) {
       _controller.clear();
       await Future.delayed(const Duration(milliseconds: 100));
-      _scroll.animateTo(
-        _scroll.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 250),
-        curve: Curves.easeOut,
-      );
+      Future.delayed(const Duration(milliseconds: 200), () {
+        if (_scroll.hasClients) {
+          _scroll.jumpTo(_scroll.position.maxScrollExtent);
+        }
+      });
     }
   }
 
@@ -140,9 +149,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
     }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {
-        _scroll.jumpTo(_scroll.position.maxScrollExtent);
-      }
+      if (_scroll.hasClients) {}
       if (chat.errorMessage != null && chat.errorMessage!.isNotEmpty) {
         ScaffoldMessenger.of(
           context,
@@ -202,25 +209,29 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
         child: Column(
           children: [
             Expanded(
-              child: ListView.builder(
-                controller: _scroll,
-                reverse: true,
-                itemCount: chat.messages.length + (chat.isSending ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index == 0 && chat.isSending) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8.0),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  final messageIndex = chat.isSending ? index - 1 : index;
-                  return _buildChatMessage(
-                    chat.messages[chat.messages.length - 1 - messageIndex],
-                  );
+              child: NotificationListener<OverscrollIndicatorNotification>(
+                onNotification: (overScroll) {
+                  overScroll.disallowIndicator();
+                  return true;
                 },
+                child: ListView.builder(
+                  controller: _scroll,
+                  reverse: false,
+                  itemCount: chat.messages.length + (chat.isSending ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == 0 && chat.isSending) {
+                      return const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8.0),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: CircularProgressIndicator(),
+                        ),
+                      );
+                    }
+                    final messageIndex = chat.isSending ? index - 1 : index;
+                    return _buildChatMessage(chat.messages[messageIndex]);
+                  },
+                ),
               ),
             ),
             if (chat.attachedImage != null)

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:aquacare_v5/features/autofeed/view/camera_page.dart';
+import 'package:aquacare_v5/features/autofeed/view/autofeed_camera_page.dart';
 import 'package:aquacare_v5/features/scheduled_autofeed/view/scheduled_autofeed_page.dart';
 import 'package:aquacare_v5/features/sensors/temperature/view/temperature_page.dart'
     as mvvm_temp;

@@ -101,15 +101,11 @@ class BluetoothService {
       // Listen to scan results
       blue.FlutterBluePlus.scanResults.listen((results) {
         for (blue.ScanResult result in results) {
-          // Filter for TankPi devices (you can customize this filter)
-          if (result.device.platformName.isNotEmpty &&
-              result.device.platformName.toLowerCase().contains('tankpi')) {
-            if (!_discoveredDevices.any(
-              (device) => device.remoteId == result.device.remoteId,
-            )) {
-              _discoveredDevices.add(result.device);
-              _devicesController.add(_discoveredDevices);
-            }
+          if (!_discoveredDevices.any(
+            (device) => device.remoteId == result.device.remoteId,
+          )) {
+            _discoveredDevices.add(result.device);
+            _devicesController.add(_discoveredDevices);
           }
         }
       });
