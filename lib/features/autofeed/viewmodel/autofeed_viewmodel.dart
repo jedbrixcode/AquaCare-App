@@ -74,20 +74,30 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
     state = state.copyWith(rotations: r);
   }
 
-  Future<bool> startManual() async {
-    final ok = await _repo.startManualFeeding();
+  Future<bool> startManual(String aquariumId) async {
+    final ok = await _repo.startManualFeeding(
+      backendUrl: backendUrl,
+      aquariumId: aquariumId,
+    );
     state = state.copyWith(isFeeding: ok);
     return ok;
   }
 
-  Future<bool> stopManual() async {
-    final ok = await _repo.stopManualFeeding();
+  Future<bool> stopManual(String aquariumId) async {
+    final ok = await _repo.stopManualFeeding(
+      backendUrl: backendUrl,
+      aquariumId: aquariumId,
+    );
     state = state.copyWith(isFeeding: !ok ? state.isFeeding : false);
     return ok;
   }
 
-  Future<bool> sendRotation() async {
-    return _repo.sendRotationFeeding(state.rotations);
+  Future<bool> sendRotation(String aquariumId) async {
+    return _repo.sendRotationFeeding(
+      backendUrl: backendUrl,
+      aquariumId: aquariumId,
+      rotations: state.rotations,
+    );
   }
 
   void disconnect() => _repo.disconnect();

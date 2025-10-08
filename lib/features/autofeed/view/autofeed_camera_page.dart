@@ -24,7 +24,7 @@ class CameraPage extends ConsumerStatefulWidget {
 class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   bool isCameraActive = true;
   final String _cameraUrl = 'https://pi-cam.alfreds.dev';
-  final String _backendUrl = 'https://aquacare.alfreds.dev';
+  // _backendUrl is unused; using _cameraUrl for both camera and feeding endpoints per spec
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
@@ -76,10 +76,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
       '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
     );
     _connectionStatusTimer?.cancel();
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, false);
-    ref.read(autoFeedViewModelProvider(_cameraUrl).notifier).disconnect();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -108,6 +104,8 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
+    // Also disconnect when leaving the page
+    ref.read(autoFeedViewModelProvider(_cameraUrl).notifier).disconnect();
   }
 
   @override
@@ -166,7 +164,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   }
 
   void _handleManualFeeding(bool isStarting) async {
-    final vm = ref.read(autoFeedViewModelProvider(_backendUrl));
+    final vm = ref.read(autoFeedViewModelProvider(_cameraUrl));
     if (!vm.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -178,14 +176,18 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     }
 
     if (isStarting) {
-      ref.read(autoFeedViewModelProvider(_backendUrl).notifier).startManual();
+      ref
+          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+          .startManual(widget.aquariumId);
     } else {
-      ref.read(autoFeedViewModelProvider(_backendUrl).notifier).stopManual();
+      ref
+          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+          .stopManual(widget.aquariumId);
     }
   }
 
   void _confirmRotationFeeding() async {
-    final vm = ref.read(autoFeedViewModelProvider(_backendUrl));
+    final vm = ref.read(autoFeedViewModelProvider(_cameraUrl));
     if (!vm.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -196,10 +198,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
       return;
     }
 
-    final success =
-        await ref
-            .read(autoFeedViewModelProvider(_backendUrl).notifier)
-            .sendRotation();
+    final success = await ref
+        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+        .sendRotation(widget.aquariumId);
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -223,7 +224,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
-    final vm = ref.watch(autoFeedViewModelProvider(_backendUrl));
+    final vm = ref.watch(autoFeedViewModelProvider(_cameraUrl));
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -422,7 +423,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                     onChanged:
                         (value) => ref
                             .read(
-                              autoFeedViewModelProvider(_backendUrl).notifier,
+                              autoFeedViewModelProvider(_cameraUrl).notifier,
                             )
                             .setManualMode(value),
                     activeColor: Colors.blue[600],
@@ -569,7 +570,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                             ref
                                 .read(
                                   autoFeedViewModelProvider(
-                                    _backendUrl,
+                                    _cameraUrl,
                                   ).notifier,
                                 )
                                 .setRotations(vm.rotations - 1);
@@ -599,7 +600,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                               (index) => ref
                                   .read(
                                     autoFeedViewModelProvider(
-                                      _backendUrl,
+                                      _cameraUrl,
                                     ).notifier,
                                   )
                                   .setRotations(index + 1),
@@ -628,7 +629,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                             ref
                                 .read(
                                   autoFeedViewModelProvider(
-                                    _backendUrl,
+                                    _cameraUrl,
                                   ).notifier,
                                 )
                                 .setRotations(vm.rotations + 1);
@@ -717,7 +718,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             ],
           ),
           content: Text(
-            'Are you sure you want to dispense ${ref.read(autoFeedViewModelProvider(_backendUrl)).rotations} rotations of food to ${widget.aquariumName}?',
+            'Are you sure you want to dispense ${ref.read(autoFeedViewModelProvider(_cameraUrl)).rotations} rotations of food to ${widget.aquariumName}?',
             style: const TextStyle(fontSize: 16),
           ),
           actions: [
