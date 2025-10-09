@@ -1,21 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:aquacare_v5/core/services/websocket_service.dart';
 
 class AutoFeedRepository {
-  AutoFeedRepository({http.Client? client, WebSocketService? ws})
-    : _client = client ?? http.Client(),
-      _ws = ws ?? WebSocketService.instance;
+  AutoFeedRepository({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
-  final WebSocketService _ws;
 
   Future<void> toggleCamera({
     required String backendUrl,
     required String aquariumId,
     required bool on,
   }) async {
-    final url = Uri.parse('$backendUrl/aquarium/$aquariumId/camera_switch/$on');
+    final onParam = on ? 'True' : 'False';
+    final url = Uri.parse(
+      '$backendUrl/aquarium/$aquariumId/camera_switch/$onParam',
+    );
     await _client.post(url);
   }
 
@@ -23,20 +22,23 @@ class AutoFeedRepository {
     required String backendUrl,
     required String aquariumId,
   }) async {
-    return _ws.connectToFeeder(aquariumId, backendUrl);
+    // WebSocket removed; treat connectivity as HTTP-only for now
+    // Optionally, perform a lightweight HTTP check here if available
+    return true;
   }
 
-  bool get isWsConnected => _ws.isConnected;
+  bool get isWsConnected => true;
 
   Future<bool> startManualFeeding({
     required String backendUrl,
     required String aquariumId,
+    required String food,
   }) async {
     final url = Uri.parse('$backendUrl/aquarium/$aquariumId/manual/hold_feed');
     final response = await _client.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'food': 'pellet'}),
+      body: jsonEncode({'food': food}),
     );
     return response.statusCode >= 200 && response.statusCode < 300;
   }
@@ -53,17 +55,26 @@ class AutoFeedRepository {
     required String backendUrl,
     required String aquariumId,
     required int rotations,
+    required String food,
   }) async {
-    final url = Uri.parse(
-      '$backendUrl/aquarium/$aquariumId/manual/rotation_feed',
-    );
+    final url = Uri.parse('$backendUrl/aquarium/$aquariumId/manual/cycle_feed');
     final response = await _client.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'food': 'pellet', 'rotations': rotations.toString()}),
+      body: jsonEncode({'food': food, 'cycles': rotations.toString()}),
     );
     return response.statusCode >= 200 && response.statusCode < 300;
   }
 
-  void disconnect() => _ws.disconnect();
+  void disconnect() {}
+}
+
+class CameraState {
+  final bool isCameraOn;
+
+  CameraState({this.isCameraOn = false});
+
+  CameraState copyWith({bool? isCameraOn}) {
+    return CameraState(isCameraOn: isCameraOn ?? this.isCameraOn);
+  }
 }

@@ -7,6 +7,7 @@ class AutoFeedState {
   final bool isFeeding;
   final bool isCameraLoading;
   final bool isConnected;
+  final String food; // 'pellet' or 'flakes'
 
   const AutoFeedState({
     required this.isManualMode,
@@ -14,6 +15,7 @@ class AutoFeedState {
     required this.isFeeding,
     required this.isCameraLoading,
     required this.isConnected,
+    required this.food,
   });
 
   AutoFeedState copyWith({
@@ -22,12 +24,14 @@ class AutoFeedState {
     bool? isFeeding,
     bool? isCameraLoading,
     bool? isConnected,
+    String? food,
   }) => AutoFeedState(
     isManualMode: isManualMode ?? this.isManualMode,
     rotations: rotations ?? this.rotations,
     isFeeding: isFeeding ?? this.isFeeding,
     isCameraLoading: isCameraLoading ?? this.isCameraLoading,
     isConnected: isConnected ?? this.isConnected,
+    food: food ?? this.food,
   );
 
   factory AutoFeedState.initial() => const AutoFeedState(
@@ -36,6 +40,7 @@ class AutoFeedState {
     isFeeding: false,
     isCameraLoading: true,
     isConnected: false,
+    food: 'pellet',
   );
 }
 
@@ -74,10 +79,15 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
     state = state.copyWith(rotations: r);
   }
 
+  void setFood(String f) {
+    state = state.copyWith(food: f);
+  }
+
   Future<bool> startManual(String aquariumId) async {
     final ok = await _repo.startManualFeeding(
       backendUrl: backendUrl,
       aquariumId: aquariumId,
+      food: state.food,
     );
     state = state.copyWith(isFeeding: ok);
     return ok;
@@ -97,6 +107,7 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
       backendUrl: backendUrl,
       aquariumId: aquariumId,
       rotations: state.rotations,
+      food: state.food,
     );
   }
 

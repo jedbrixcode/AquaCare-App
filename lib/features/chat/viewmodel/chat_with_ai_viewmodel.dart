@@ -1,8 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import 'package:aquacare_v5/features/chat/repository/chat_repository.dart';
 
 class ChatMessage {

@@ -71,7 +71,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
   Widget _buildChatMessage(ChatMessage message) {
     final isUser = message.isUser;
     final title = isUser ? 'User' : 'AquaBot';
-    final icon = isUser ? Icons.account_circle : Icons.chat_bubble;
+    final icon = isUser ? Icons.account_circle : Icons.smart_toy_rounded;
     final backgroundColor = isUser ? Colors.blue : Colors.green;
 
     return Padding(

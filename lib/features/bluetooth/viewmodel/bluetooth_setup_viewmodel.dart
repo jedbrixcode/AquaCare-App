@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
 import 'package:aquacare_v5/core/services/bluetooth_service.dart';
@@ -108,24 +109,26 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
   Future<void> sendWifiCredentials({
     required String ssid,
     required String password,
-    String? aquariumId,
   }) async {
     state = state.copyWith(sendingState: const AsyncLoading());
     try {
-      final ok = await _service.sendWifiCredentials(
-        ssid: ssid,
-        password: password,
-        aquariumId: aquariumId,
-      );
+      // ✅ Create JSON string
+      final jsonPayload = jsonEncode({'ssid': ssid, 'password': password});
+
+      // ✅ Pass JSON string to service
+      final ok = await _service.sendRawData(
+        jsonPayload,
+      ); // new function, see below
+
       if (!ok) throw Exception('BLE write failed');
       state = state.copyWith(
         sendingState: const AsyncData(null),
-        statusMessage: 'WiFi credentials sent to TankPi',
+        statusMessage: 'WiFi configuration sent to TankPi (JSON)',
       );
     } catch (e) {
       state = state.copyWith(
         sendingState: AsyncError(e, StackTrace.current),
-        statusMessage: 'Failed to send WiFi credentials',
+        statusMessage: 'Failed to send WiFi configuration',
       );
     }
   }

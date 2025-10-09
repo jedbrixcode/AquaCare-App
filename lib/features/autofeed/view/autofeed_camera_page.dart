@@ -4,8 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/navigation/route_observer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../viewmodel/autofeed_viewmodel.dart';
+// duplicate import removed
 import 'package:webview_flutter/webview_flutter.dart' as webview;
+import '../viewmodel/autofeed_viewmodel.dart';
 
 class CameraPage extends ConsumerStatefulWidget {
   final String aquariumId;
@@ -29,6 +30,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
   Timer? _connectionStatusTimer;
+  Timer? _webViewLoadingTimeout;
 
   @override
   void initState() {
@@ -53,18 +55,21 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     _connectionStatusTimer?.cancel();
     _connectionStatusTimer = Timer.periodic(const Duration(seconds: 4), (
       timer,
-    ) {
-      if (mounted) {
-        try {
+    ) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      try {
+        await Future(() {
+          // small async isolate hop
           ref
               .read(autoFeedViewModelProvider(_cameraUrl).notifier)
               .updateConnectionStatus();
-        } catch (e) {
-          // Widget was disposed, stop checking
-          debugPrint('Connection status update stopped: $e');
-          timer.cancel();
-        }
-      } else {
+        });
+      } catch (e) {
+        debugPrint('Connection status update stopped: $e');
         timer.cancel();
       }
     });
@@ -76,6 +81,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
       '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
     );
     _connectionStatusTimer?.cancel();
+    _webViewLoadingTimeout?.cancel();
     appRouteObserver.unsubscribe(this);
     super.dispose();
   }
@@ -128,20 +134,10 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     _webViewController =
         webview.WebViewController()
           ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
+          ..setBackgroundColor(const Color(0x00000000))
           ..setNavigationDelegate(
             webview.NavigationDelegate(
               onPageFinished: (String url) {
-                _webViewController.runJavaScript('''
-            var video = document.querySelector("img, video");
-            if (video) {
-              video.style.width = "100%";
-              video.style.height = "100%";
-              video.style.objectFit = "cover"; // fills container
-            }
-            document.body.style.margin = "0";
-            document.body.style.padding = "0";
-            document.documentElement.style.overflow = "hidden";
-          ''');
                 if (mounted) {
                   setState(() {
                     _isWebViewLoading = false;
@@ -161,6 +157,17 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
           ..loadRequest(
             Uri.parse('$_cameraUrl/aquarium/${widget.aquariumId}/video_feed'),
           );
+
+    // For streaming endpoints, onPageFinished may never fire.
+    // Hide loader after a short timeout to avoid indefinite spinner.
+    _webViewLoadingTimeout?.cancel();
+    _webViewLoadingTimeout = Timer(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _isWebViewLoading = false;
+        });
+      }
+    });
   }
 
   void _handleManualFeeding(bool isStarting) async {
@@ -277,19 +284,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                       CircularProgressIndicator(
                                         color: Colors.blue[600],
                                       ),
-                                      const SizedBox(height: 16),
-                                      Text(
-                                        'Loading Camera Feed...',
-                                        style: TextStyle(
-                                          fontSize:
-                                              ResponsiveHelper.getFontSize(
-                                                context,
-                                                16,
-                                              ),
-                                          color: Colors.blue[600],
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ),
@@ -350,37 +344,44 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                               ),
                             ),
 
-                            // Camera toggle button
+                            // Camera toggle switch (sends True/False)
                             Positioned(
                               top: 8,
                               left: 8,
-                              child: IconButton(
-                                onPressed: () {
+                              child: CupertinoSwitch(
+                                value: isCameraActive,
+                                onChanged: (value) async {
                                   setState(() {
-                                    isCameraActive = !isCameraActive;
+                                    isCameraActive = value;
+                                    _isWebViewLoading =
+                                        value; // show loader when turning camera ON
                                   });
-                                  ref
+
+                                  // Send camera toggle to backend
+                                  await ref
                                       .read(
                                         autoFeedViewModelProvider(
                                           _cameraUrl,
                                         ).notifier,
                                       )
-                                      .toggleCamera(
-                                        widget.aquariumId,
-                                        isCameraActive,
-                                      );
+                                      .toggleCamera(widget.aquariumId, value);
+
+                                  // Reload or clear WebView depending on state
+                                  if (value) {
+                                    _webViewController.loadRequest(
+                                      Uri.parse(
+                                        '$_cameraUrl/aquarium/${widget.aquariumId}/video_feed',
+                                      ),
+                                    );
+                                  } else {
+                                    _webViewController.loadHtmlString(
+                                      '<html><body style="background:#f4f4f4;display:flex;justify-content:center;align-items:center;height:100%;color:#999;">'
+                                      '<h3>Camera is turned off</h3></body></html>',
+                                    );
+                                  }
                                 },
-                                icon: Icon(
-                                  isCameraActive
-                                      ? Icons.videocam
-                                      : Icons.videocam_off,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                                style: IconButton.styleFrom(
-                                  backgroundColor: Colors.black54,
-                                  shape: const CircleBorder(),
-                                ),
+                                activeColor: Colors.greenAccent,
+                                trackColor: Colors.white24,
                               ),
                             ),
                           ],
@@ -468,15 +469,77 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Manual Feeding',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getFontSize(context, 20),
-            fontWeight: FontWeight.bold,
-            color: Colors.blue[700],
-          ),
+        // --- Top Row: Title + Food Switch Box ---
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Manual Feeding',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 20),
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue[200]!, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Pellets',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 14),
+                      color:
+                          vm.food == 'pellet'
+                              ? Colors.blue[800]
+                              : Colors.blue[400],
+                      fontWeight:
+                          vm.food == 'pellet'
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  CupertinoSwitch(
+                    value: vm.food == 'flakes',
+                    onChanged: (value) {
+                      ref
+                          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+                          .setFood(value ? 'flakes' : 'pellet');
+                    },
+                    activeColor: Colors.blue[600],
+                    trackColor: Colors.blue[200],
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Flakes',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 14),
+                      color:
+                          vm.food == 'flakes'
+                              ? Colors.blue[800]
+                              : Colors.blue[400],
+                      fontWeight:
+                          vm.food == 'flakes'
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+
+        const SizedBox(height: 8),
+
+        // --- Instruction Text ---
         Text(
           'Press and hold to feed manually',
           style: TextStyle(
@@ -484,38 +547,40 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             color: Colors.blue[600],
           ),
         ),
+
         const SizedBox(height: 24),
-        SizedBox(
-          height: 200, // Fixed height instead of Expanded
-          child: Center(
-            child: GestureDetector(
-              onTapDown: (_) => _handleManualFeeding(true),
-              onTapUp: (_) => _handleManualFeeding(false),
-              onTapCancel: () => _handleManualFeeding(false),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: ResponsiveHelper.getCardWidth(context),
-                height: ResponsiveHelper.getCardHeight(context),
-                decoration: BoxDecoration(
-                  color: vm.isFeeding ? Colors.blue[400] : Colors.blue[600],
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.blue.withOpacity(0.3),
-                      blurRadius: 20,
-                      spreadRadius: vm.isFeeding ? 10 : 5,
-                    ),
-                  ],
-                ),
-                child: Icon(
-                  vm.isFeeding ? Icons.pause : Icons.play_arrow,
-                  size: ResponsiveHelper.getFontSize(context, 48),
-                  color: Colors.white,
-                ),
+
+        // --- Center Feed Button ---
+        Center(
+          child: GestureDetector(
+            onTapDown: (_) => _handleManualFeeding(true),
+            onTapUp: (_) => _handleManualFeeding(false),
+            onTapCancel: () => _handleManualFeeding(false),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: ResponsiveHelper.getCardWidth(context),
+              height: ResponsiveHelper.getCardHeight(context),
+              decoration: BoxDecoration(
+                color: vm.isFeeding ? Colors.blue[400] : Colors.blue[600],
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: vm.isFeeding ? 10 : 5,
+                  ),
+                ],
+              ),
+              child: Icon(
+                vm.isFeeding ? Icons.pause : Icons.play_arrow,
+                size: ResponsiveHelper.getFontSize(context, 48),
+                color: Colors.white,
               ),
             ),
           ),
         ),
+
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -524,15 +589,75 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Rotation Feeding',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getFontSize(context, 20),
-            fontWeight: FontWeight.bold,
-            color: Colors.blue[700],
-          ),
+        // Header Row: Rotation Feeding + Food Selector
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Rotation Feeding',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 20),
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
+              ),
+            ),
+            // Food selector: Pellets / Flakes
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.blue[200]!, width: 1),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Pellets',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 13),
+                      color:
+                          vm.food == 'pellet'
+                              ? Colors.blue[800]
+                              : Colors.blue[400],
+                      fontWeight:
+                          vm.food == 'pellet'
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  CupertinoSwitch(
+                    value: vm.food == 'flakes',
+                    onChanged: (value) {
+                      ref
+                          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+                          .setFood(value ? 'flakes' : 'pellet');
+                    },
+                    activeColor: Colors.blue[600],
+                    trackColor: Colors.blue[200],
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Flakes',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 13),
+                      color:
+                          vm.food == 'flakes'
+                              ? Colors.blue[800]
+                              : Colors.blue[400],
+                      fontWeight:
+                          vm.food == 'flakes'
+                              ? FontWeight.w700
+                              : FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         Text(
           'Select number of rotations and confirm',
           style: TextStyle(
@@ -540,7 +665,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             color: Colors.blue[600],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+
+        // Rotation Selector Card
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -563,7 +690,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                   ),
                   Row(
                     children: [
-                      // Down arrow
                       IconButton(
                         onPressed: () {
                           if (vm.rotations > 1) {
@@ -579,13 +705,12 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                         icon: Icon(
                           Icons.keyboard_arrow_down,
                           color: Colors.blue[600],
-                          size: 30,
+                          size: 26,
                         ),
                       ),
-                      // Picker
                       Container(
-                        width: _getPickerWidth(context),
-                        height: 120,
+                        width: 80,
+                        height: 100,
                         decoration: BoxDecoration(
                           color: Colors.grey[50],
                           borderRadius: BorderRadius.circular(8),
@@ -595,7 +720,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                           ),
                         ),
                         child: CupertinoPicker(
-                          itemExtent: 40,
+                          itemExtent: 35,
                           onSelectedItemChanged:
                               (index) => ref
                                   .read(
@@ -612,7 +737,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                 style: TextStyle(
                                   fontSize: ResponsiveHelper.getFontSize(
                                     context,
-                                    18,
+                                    16,
                                   ),
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue[600],
@@ -622,7 +747,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                           ),
                         ),
                       ),
-                      // Up arrow
                       IconButton(
                         onPressed: () {
                           if (vm.rotations < 10) {
@@ -638,7 +762,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                         icon: Icon(
                           Icons.keyboard_arrow_up,
                           color: Colors.blue[600],
-                          size: 30,
+                          size: 26,
                         ),
                       ),
                     ],
@@ -657,7 +781,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         SizedBox(
           width: double.infinity,
           height: 50,
@@ -682,17 +806,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
         ),
       ],
     );
-  }
-
-  // Helper method to get responsive picker width
-  double _getPickerWidth(BuildContext context) {
-    if (ResponsiveHelper.isMobile(context)) {
-      return 100; // Smaller for mobile
-    } else if (ResponsiveHelper.isTablet(context)) {
-      return 120; // Medium for tablet
-    } else {
-      return 140; // Larger for desktop
-    }
   }
 
   void _showRotationConfirmation() {

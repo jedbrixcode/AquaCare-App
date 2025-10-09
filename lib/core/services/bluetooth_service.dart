@@ -9,6 +9,14 @@ class BluetoothService {
 
   BluetoothService._();
 
+  // ✅ Fixed UUIDs for WiFi Configuration
+  final blue.Guid _serviceUuid = blue.Guid(
+    '12345678-1234-5678-1234-56789abcdef0',
+  );
+  final blue.Guid _characteristicUuid = blue.Guid(
+    '12345678-1234-5678-1234-56789abcdef1',
+  );
+
   blue.BluetoothAdapterState _adapterState = blue.BluetoothAdapterState.unknown;
   final List<blue.BluetoothDevice> _discoveredDevices = [];
   blue.BluetoothDevice? _connectedDevice;
@@ -16,7 +24,7 @@ class BluetoothService {
   bool _isScanning = false;
   bool _isConnected = false;
 
-  // Stream controllers for UI updates
+  // 🔄 Stream controllers for UI updates
   final StreamController<List<blue.BluetoothDevice>> _devicesController =
       StreamController<List<blue.BluetoothDevice>>.broadcast();
   final StreamController<blue.BluetoothConnectionState> _connectionController =
@@ -37,30 +45,28 @@ class BluetoothService {
       _connectionController.stream;
   Stream<String> get statusStream => _statusController.stream;
 
-  /// Initialize Bluetooth service
+  // ======================================================
+  // 🔹 Initialization
+  // ======================================================
   Future<bool> initialize() async {
     try {
-      // Request permissions
       await _requestPermissions();
 
-      // Listen to adapter state changes
+      // Listen to Bluetooth adapter state
       blue.FlutterBluePlus.adapterState.listen((state) {
         _adapterState = state;
         _statusController.add('Bluetooth adapter state: $state');
       });
 
-      // Prompt to enable BT if off (shows system dialog on Android)
       try {
         await blue.FlutterBluePlus.turnOn();
       } catch (_) {}
 
-      // Wait for a definite adapter state (avoid unknown)
       _adapterState = await blue.FlutterBluePlus.adapterState.firstWhere(
         (s) => s != blue.BluetoothAdapterState.unknown,
         orElse: () => blue.BluetoothAdapterState.off,
       );
 
-      // Check if Bluetooth is available
       if (_adapterState != blue.BluetoothAdapterState.on) {
         _statusController.add('Bluetooth is off. Please enable it.');
         return false;
@@ -74,7 +80,6 @@ class BluetoothService {
     }
   }
 
-  /// Request necessary permissions
   Future<void> _requestPermissions() async {
     await Permission.bluetooth.request();
     await Permission.bluetoothConnect.request();
@@ -82,7 +87,9 @@ class BluetoothService {
     await Permission.location.request();
   }
 
-  /// Start scanning for TankPi devices
+  // ======================================================
+  // 🔹 Scanning
+  // ======================================================
   Future<void> startScan() async {
     if (_isScanning) return;
 
@@ -92,13 +99,11 @@ class BluetoothService {
       _isScanning = true;
       _statusController.add('Scanning for TankPi devices...');
 
-      // Start scan with timeout
       await blue.FlutterBluePlus.startScan(
         timeout: const Duration(seconds: 10),
-        withServices: [], // Scan for all devices
+        withServices: [], // or [_serviceUuid] if you want specific
       );
 
-      // Listen to scan results
       blue.FlutterBluePlus.scanResults.listen((results) {
         for (blue.ScanResult result in results) {
           if (!_discoveredDevices.any(
@@ -110,17 +115,13 @@ class BluetoothService {
         }
       });
 
-      // Stop scan after timeout
-      Timer(const Duration(seconds: 10), () {
-        stopScan();
-      });
+      Timer(const Duration(seconds: 10), stopScan);
     } catch (e) {
       _statusController.add('Error starting scan: $e');
       _isScanning = false;
     }
   }
 
-  /// Stop scanning
   Future<void> stopScan() async {
     if (!_isScanning) return;
 
@@ -135,7 +136,9 @@ class BluetoothService {
     }
   }
 
-  /// Connect to a TankPi device
+  // ======================================================
+  // 🔹 Connection
+  // ======================================================
   Future<bool> connectToDevice(blue.BluetoothDevice device) async {
     try {
       _statusController.add('Connecting to ${device.platformName}...');
@@ -146,36 +149,58 @@ class BluetoothService {
       _connectionController.add(blue.BluetoothConnectionState.connected);
       _statusController.add('Connected to ${device.platformName}');
 
-      // Discover services
       List<blue.BluetoothService> services = await device.discoverServices();
 
-      // Look for WiFi configuration service
+      // ✅ Find target service and characteristic by UUID
       for (blue.BluetoothService service in services) {
-        if (service.uuid.toString().toLowerCase().contains('wifi') ||
-            service.uuid.toString().toLowerCase().contains('config')) {
-          for (blue.BluetoothCharacteristic characteristic
-              in service.characteristics) {
-            if (characteristic.properties.write) {
-              _wifiCharacteristic = characteristic;
-              _statusController.add('Found WiFi configuration service');
-              break;
-            }
+        // debug: log service uuid
+        _statusController.add('Service discovered: ${service.uuid}');
+        for (blue.BluetoothCharacteristic c in service.characteristics) {
+          // debug: log characteristic + properties
+          _statusController.add(
+            '  Char: ${c.uuid} props -> write:${c.properties.write} writeWithoutResponse:${c.properties.writeWithoutResponse} read:${c.properties.read}',
+          );
+
+          // Accept either write-with-response OR write-without-response
+          if (c.uuid == _characteristicUuid &&
+              (c.properties.write || c.properties.writeWithoutResponse)) {
+            _wifiCharacteristic = c;
+            _statusController.add('Found WiFi configuration characteristic');
+            break;
           }
         }
+        if (_wifiCharacteristic != null) break;
       }
 
-      // Listen to connection state changes
-      device.connectionState.listen((state) {
+      if (_wifiCharacteristic == null) {
+        _statusController.add(
+          'WiFi configuration characteristic not found. Check UUIDs.',
+        );
+      }
+
+      // 🔁 Listen for disconnects & auto-reconnect
+      device.connectionState.listen((state) async {
         _connectionController.add(state);
         if (state == blue.BluetoothConnectionState.disconnected) {
           _isConnected = false;
           _connectedDevice = null;
           _wifiCharacteristic = null;
           _statusController.add('Disconnected from TankPi device');
+
+          // Optional auto-reconnect logic
+          await Future.delayed(const Duration(seconds: 3));
+          try {
+            _statusController.add('Attempting to reconnect...');
+            await device.connect();
+            _isConnected = true;
+            _statusController.add('Reconnected to ${device.platformName}');
+          } catch (e) {
+            _statusController.add('Reconnect failed: $e');
+          }
         }
       });
 
-      return true;
+      return _wifiCharacteristic != null;
     } catch (e) {
       _statusController.add('Error connecting to device: $e');
       _isConnected = false;
@@ -183,7 +208,28 @@ class BluetoothService {
     }
   }
 
-  /// Send WiFi credentials to TankPi
+  // ======================================================
+  // 🔹 Send Raw Data (for manual JSON payloads)
+  // ======================================================
+  Future<bool> sendRawData(String jsonData) async {
+    if (!_isConnected || _wifiCharacteristic == null) {
+      _statusController.add('Not connected to any TankPi device');
+      return false;
+    }
+    try {
+      final data = utf8.encode(jsonData);
+      await _writeInChunks(data);
+      _statusController.add('Raw JSON data sent successfully');
+      return true;
+    } catch (e) {
+      _statusController.add('Error sending raw data: $e');
+      return false;
+    }
+  }
+
+  // ======================================================
+  // 🔹 WiFi Credentials Sending
+  // ======================================================
   Future<bool> sendWifiCredentials({
     required String ssid,
     required String password,
@@ -205,7 +251,13 @@ class BluetoothService {
       }
 
       final data = utf8.encode(jsonEncode(wifiConfig));
-      await _wifiCharacteristic!.write(data);
+      await _writeInChunks(data);
+
+      // Optional: Read confirmation response
+      try {
+        final response = await _wifiCharacteristic!.read();
+        _statusController.add('TankPi response: ${utf8.decode(response)}');
+      } catch (_) {}
 
       _statusController.add('WiFi credentials sent to TankPi');
       return true;
@@ -215,7 +267,22 @@ class BluetoothService {
     }
   }
 
-  /// Disconnect from current device
+  // ======================================================
+  // 🔹 Chunk Writer (safe for long JSON)
+  // ======================================================
+  Future<void> _writeInChunks(List<int> data) async {
+    const int chunkSize = 20;
+    for (int i = 0; i < data.length; i += chunkSize) {
+      int end = (i + chunkSize > data.length) ? data.length : i + chunkSize;
+      List<int> chunk = data.sublist(i, end);
+      await _wifiCharacteristic!.write(chunk, withoutResponse: true);
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+  }
+
+  // ======================================================
+  // 🔹 Disconnect / Dispose
+  // ======================================================
   Future<void> disconnect() async {
     if (_connectedDevice != null) {
       try {
@@ -229,7 +296,6 @@ class BluetoothService {
     _wifiCharacteristic = null;
   }
 
-  /// Dispose resources
   void dispose() {
     disconnect();
     _devicesController.close();

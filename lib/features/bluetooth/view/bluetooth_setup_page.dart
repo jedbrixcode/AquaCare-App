@@ -18,7 +18,6 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
       BluetoothService.instance; // kept if needed for future, not used directly
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _aquariumIdController = TextEditingController();
 
   StreamSubscription<List<blue.BluetoothDevice>>?
   _devicesSub; // deprecated usage, kept to avoid sudden removal
@@ -281,7 +280,6 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
         .sendWifiCredentials(
           ssid: _ssidController.text,
           password: _passwordController.text,
-          aquariumId: null,
         );
 
     final sending = ref.read(bluetoothSetupViewModelProvider).sendingState;
@@ -313,7 +311,6 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   void dispose() {
     _ssidController.dispose();
     _passwordController.dispose();
-    _aquariumIdController.dispose();
     _devicesSub?.cancel();
     _connSub?.cancel();
     _statusSub?.cancel();

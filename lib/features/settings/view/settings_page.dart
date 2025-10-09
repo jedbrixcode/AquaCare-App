@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../settings/viewmodel/theme_viewmodel.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:aquacare_v5/features/settings/viewmodel/settings_viewmodel.dart';
 
 class SettingsPage extends ConsumerWidget {
@@ -12,40 +12,54 @@ class SettingsPage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: ListView(
-        children: [
-          const ListTile(title: Text('Theme')),
-          RadioListTile<ThemeMode>(
-            title: const Text('System'),
-            value: ThemeMode.system,
-            groupValue: themeMode,
-            onChanged:
-                (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          listTileTheme: ListTileThemeData(
+            textColor:
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
+            iconColor:
+                Theme.of(context).brightness == Brightness.dark
+                    ? Colors.white
+                    : Colors.black,
           ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Light'),
-            value: ThemeMode.light,
-            groupValue: themeMode,
-            onChanged:
-                (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
-          ),
-          RadioListTile<ThemeMode>(
-            title: const Text('Dark'),
-            value: ThemeMode.dark,
-            groupValue: themeMode,
-            onChanged:
-                (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
-          ),
-          const Divider(),
-          _GlobalNotificationsTile(),
-        ],
+        ),
+        child: ListView(
+          children: [
+            const ListTile(title: Text('Theme')),
+            RadioListTile<ThemeMode>(
+              title: const Text('System'),
+              value: ThemeMode.system,
+              groupValue: themeMode,
+              onChanged:
+                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Light'),
+              value: ThemeMode.light,
+              groupValue: themeMode,
+              onChanged:
+                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Dark'),
+              value: ThemeMode.dark,
+              groupValue: themeMode,
+              onChanged:
+                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+            ),
+            const Divider(),
+            _GlobalNotificationsTile(),
+          ],
+        ),
       ),
     );
   }

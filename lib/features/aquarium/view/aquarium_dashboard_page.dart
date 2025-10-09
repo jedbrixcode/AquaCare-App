@@ -7,32 +7,40 @@ import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
 import 'package:aquacare_v5/features/bluetooth/viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
-import 'package:aquacare_v5/features/settings/viewmodel/theme_viewmodel.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 
 class AquariumDashboardPage extends ConsumerWidget {
   const AquariumDashboardPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = themeMode == ThemeMode.dark;
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('AquaCare Dashboard'),
-        backgroundColor: Colors.blue,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        titleTextStyle: TextStyle(
+          color: isDark ? Colors.white : Colors.white,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
       ),
       drawer: Drawer(
-        backgroundColor: const Color.fromARGB(255, 107, 159, 255),
+        backgroundColor:
+            isDark
+                ? const Color(0xFF1E293B)
+                : const Color.fromARGB(255, 107, 159, 255),
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
-            const DrawerHeader(
-              child: Text(
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF0F172A) : Colors.blue,
+              ),
+              child: const Text(
                 'AquaCare',
                 style: TextStyle(
                   color: Colors.white,
@@ -81,25 +89,6 @@ class AquariumDashboardPage extends ConsumerWidget {
               ),
               onTap: () {
                 Navigator.pushNamed(context, '/graphs');
-              },
-            ),
-            const SizedBox(height: 25),
-            ListTile(
-              title: const Text(
-                'TankPi Setup',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BluetoothSetupPage(),
-                  ),
-                );
               },
             ),
             const SizedBox(height: 25),
@@ -264,59 +253,6 @@ class AquariumDashboardPage extends ConsumerWidget {
     );
   }
 
-  void _showCreateAquariumDialog(BuildContext context) {
-    final TextEditingController nameController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Create New Aquarium'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: 'Aquarium Name',
-              hintText: 'Enter aquarium name',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (nameController.text.trim().isEmpty) return;
-                final controller = ProviderScope.containerOf(
-                  context,
-                ).read(aquariumDashboardControllerProvider.notifier);
-                final ok = await controller.createAquarium(
-                  nameController.text.trim(),
-                );
-                if (!context.mounted) return;
-                Navigator.of(context).pop();
-                ProviderScope.containerOf(
-                  context,
-                ).invalidate(aquariumsSummaryProvider);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      ok
-                          ? 'Aquarium "${nameController.text}" created successfully!'
-                          : 'Failed to create aquarium',
-                    ),
-                    backgroundColor: ok ? Colors.green : Colors.red,
-                  ),
-                );
-              },
-              child: const Text('Create'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   void _showFabActions(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -328,14 +264,6 @@ class AquariumDashboardPage extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(Icons.add_circle_outline),
-                title: const Text('Create Aquarium'),
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showCreateAquariumDialog(context);
-                },
-              ),
               ListTile(
                 leading: const Icon(Icons.bluetooth),
                 title: const Text('TankPi Setup (Bluetooth)'),
@@ -369,7 +297,7 @@ class AquariumDashboardPage extends ConsumerWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.wifi),
-                title: const Text('Change WiFi (Provision)'),
+                title: const Text('Change WiFi Settings'),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showChangeWifiDialog(context);
@@ -660,7 +588,6 @@ class AquariumDashboardPage extends ConsumerWidget {
                                 .sendWifiCredentials(
                                   ssid: ssid.text,
                                   password: pass.text,
-                                  aquariumId: null,
                                 );
                             if (!context.mounted) return;
                             final s =
