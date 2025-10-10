@@ -2,9 +2,9 @@ class FeedingSchedule {
   final String id;
   final String aquariumId;
   final String time; // Format: "HH:mm" (24-hour)
-  final int cycles;
-  final String foodType;
-  final bool isEnabled;
+  final int cycles; // maps to backend 'cycle'
+  final String foodType; // maps to backend 'food'
+  final bool isEnabled; // maps to backend 'switch' // maps to backend 'daily'
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -21,12 +21,19 @@ class FeedingSchedule {
 
   factory FeedingSchedule.fromJson(Map<String, dynamic> json) {
     return FeedingSchedule(
-      id: json['id']?.toString() ?? '',
+      // Flask backend uses 'time' as unique key per aquarium; reflect it as id
+      id: (json['id'] ?? json['time'] ?? '').toString(),
       aquariumId: json['aquarium_id']?.toString() ?? '',
       time: json['time']?.toString() ?? '00:00',
-      cycles: json['cycles']?.toInt() ?? 1,
-      foodType: json['food_type']?.toString() ?? 'Default',
-      isEnabled: json['is_enabled'] == true,
+      cycles:
+          (json['cycles'] ?? json['cycle'] ?? 1) is int
+              ? (json['cycles'] ?? json['cycle']) as int
+              : int.tryParse(
+                    (json['cycles'] ?? json['cycle'] ?? '1').toString(),
+                  ) ??
+                  1,
+      foodType: (json['food_type'] ?? json['food'] ?? 'Default').toString(),
+      isEnabled: (json['is_enabled'] ?? json['switch'] ?? false) == true,
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -39,12 +46,13 @@ class FeedingSchedule {
 
   Map<String, dynamic> toJson() {
     return {
+      // Prefer Flask backend field names
       'id': id,
       'aquarium_id': aquariumId,
       'time': time,
-      'cycles': cycles,
-      'food_type': foodType,
-      'is_enabled': isEnabled,
+      'cycle': cycles,
+      'food': foodType,
+      'switch': isEnabled,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

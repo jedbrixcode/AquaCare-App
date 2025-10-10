@@ -4,8 +4,9 @@ import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/navigation/route_observer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-// duplicate import removed
 import 'package:webview_flutter/webview_flutter.dart' as webview;
+import 'package:webview_flutter_android/webview_flutter_android.dart'
+    as webview_android;
 import '../viewmodel/autofeed_viewmodel.dart';
 
 class CameraPage extends ConsumerStatefulWidget {
@@ -22,10 +23,10 @@ class CameraPage extends ConsumerStatefulWidget {
   ConsumerState<CameraPage> createState() => _CameraPageState();
 }
 
-class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
+class _CameraPageState extends ConsumerState<CameraPage>
+    with RouteAware, AutomaticKeepAliveClientMixin<CameraPage> {
   bool isCameraActive = true;
   final String _cameraUrl = 'https://pi-cam.alfreds.dev';
-  // _backendUrl is unused; using _cameraUrl for both camera and feeding endpoints per spec
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;
@@ -33,9 +34,14 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   Timer? _webViewLoadingTimeout;
 
   @override
+  bool get wantKeepAlive => true;
+
+  @override
   void initState() {
     super.initState();
+
     _initializeWebView();
+
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .connect(widget.aquariumId);
@@ -43,12 +49,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
 
-    // Update connection status periodically
     _updateConnectionStatus();
 
-    debugPrint(
-      '[CameraPage] initState: entering page for aquariumId=${widget.aquariumId}',
-    );
+    debugPrint('[CameraPage] initState: aquariumId=${widget.aquariumId}');
   }
 
   void _updateConnectionStatus() {
@@ -63,7 +66,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
       try {
         await Future(() {
-          // small async isolate hop
           ref
               .read(autoFeedViewModelProvider(_cameraUrl).notifier)
               .updateConnectionStatus();
@@ -77,9 +79,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   void dispose() {
-    debugPrint(
-      '[CameraPage] dispose: leaving page for aquariumId=${widget.aquariumId}',
-    );
+    debugPrint('[CameraPage] dispose: aquariumId=${widget.aquariumId}');
     _connectionStatusTimer?.cancel();
     _webViewLoadingTimeout?.cancel();
     appRouteObserver.unsubscribe(this);
@@ -89,7 +89,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // subscribe to route observer
     final route = ModalRoute.of(context);
     if (route != null) {
       appRouteObserver.subscribe(this, route);
@@ -98,7 +97,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   void didPush() {
-    debugPrint('[CameraPage] didPush: became visible');
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
@@ -106,17 +104,14 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   void didPop() {
-    debugPrint('[CameraPage] didPop: popped and now hidden');
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
-    // Also disconnect when leaving the page
     ref.read(autoFeedViewModelProvider(_cameraUrl).notifier).disconnect();
   }
 
   @override
   void didPushNext() {
-    debugPrint('[CameraPage] didPushNext: another page covered this one');
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, false);
@@ -124,50 +119,79 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   void didPopNext() {
-    debugPrint('[CameraPage] didPopNext: returned to this page');
     ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .toggleCamera(widget.aquariumId, true);
   }
 
   void _initializeWebView() {
-    _webViewController =
-        webview.WebViewController()
+    final creationParams =
+        const webview.PlatformWebViewControllerCreationParams();
+    final controller =
+        webview.WebViewController.fromPlatformCreationParams(creationParams)
           ..setJavaScriptMode(webview.JavaScriptMode.unrestricted)
           ..setBackgroundColor(const Color(0x00000000))
           ..setNavigationDelegate(
             webview.NavigationDelegate(
-              onPageFinished: (String url) {
+              onProgress: (progress) {
+                if (mounted && _isWebViewLoading && progress > 5) {
+                  _isWebViewLoading = false;
+                  setState(() {});
+                }
+              },
+              onPageFinished: (String _) {
                 if (mounted) {
-                  setState(() {
-                    _isWebViewLoading = false;
-                  });
+                  _isWebViewLoading = false;
+                  setState(() {});
                 }
               },
               onWebResourceError: (webview.WebResourceError error) {
-                print('WebView error: ${error.description}');
+                debugPrint('WebView error: ${error.description}');
                 if (mounted) {
-                  setState(() {
-                    _isWebViewLoading = false;
-                  });
+                  _isWebViewLoading = false;
+                  setState(() {});
                 }
               },
             ),
-          )
-          ..loadRequest(
-            Uri.parse('$_cameraUrl/aquarium/${widget.aquariumId}/video_feed'),
           );
 
-    // For streaming endpoints, onPageFinished may never fire.
-    // Hide loader after a short timeout to avoid indefinite spinner.
+    if (controller.platform is webview_android.AndroidWebViewController) {
+      webview_android.AndroidWebViewController.enableDebugging(false);
+      (controller.platform as webview_android.AndroidWebViewController)
+          .setMediaPlaybackRequiresUserGesture(false);
+    }
+
+    _webViewController = controller;
+
+    // Clear any previous cache and aggressively disable network caching via headers.
+    _webViewController.clearCache();
+    _loadStream();
+
+    // As streams often never fire onPageFinished, hide loader ASAP.
     _webViewLoadingTimeout?.cancel();
-    _webViewLoadingTimeout = Timer(const Duration(milliseconds: 800), () {
+    _webViewLoadingTimeout = Timer(const Duration(milliseconds: 300), () {
       if (mounted) {
-        setState(() {
-          _isWebViewLoading = false;
-        });
+        _isWebViewLoading = false;
+        setState(() {});
       }
     });
+  }
+
+  void _loadStream() {
+    _webViewController.loadRequest(
+      Uri.parse('$_cameraUrl/aquarium/${widget.aquariumId}/video_feed'),
+      headers: const {
+        // Prevent caching/buffering where possible
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+        // Keep connection open; some servers benefit during MJPEG streaming
+        'Connection': 'keep-alive',
+        // Typical accept to avoid content negotiation delays
+        'Accept':
+            'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+    );
   }
 
   void _handleManualFeeding(bool isStarting) async {
@@ -198,7 +222,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     if (!vm.isConnected) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Autofeed is offline. Please check TankPi connection.'),
+          content: Text(
+            'Failed to send rotation feeding command. Check connection.',
+          ),
           backgroundColor: Colors.red,
         ),
       );
@@ -231,7 +257,11 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
 
   @override
   Widget build(BuildContext context) {
+    super.build(
+      context,
+    ); // keeps state alive with AutomaticKeepAliveClientMixin
     final vm = ref.watch(autoFeedViewModelProvider(_cameraUrl));
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -245,7 +275,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
         ),
         backgroundColor: Colors.blue[600],
         elevation: 0,
-        // Removed close action; rely on navigation back behavior to close camera
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.all(
@@ -268,7 +297,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                         borderRadius: BorderRadius.circular(14),
                         child: Stack(
                           children: [
-                            // WebView for camera feed
+                            // WebView for camera feed (persistent controller)
                             webview.WebViewWidget(
                               controller: _webViewController,
                             ),
@@ -344,7 +373,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                               ),
                             ),
 
-                            // Camera toggle switch (sends True/False)
+                            // Camera toggle switch
                             Positioned(
                               top: 8,
                               left: 8,
@@ -353,11 +382,9 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                 onChanged: (value) async {
                                   setState(() {
                                     isCameraActive = value;
-                                    _isWebViewLoading =
-                                        value; // show loader when turning camera ON
+                                    _isWebViewLoading = value;
                                   });
 
-                                  // Send camera toggle to backend
                                   await ref
                                       .read(
                                         autoFeedViewModelProvider(
@@ -366,17 +393,12 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                                       )
                                       .toggleCamera(widget.aquariumId, value);
 
-                                  // Reload or clear WebView depending on state
                                   if (value) {
-                                    _webViewController.loadRequest(
-                                      Uri.parse(
-                                        '$_cameraUrl/aquarium/${widget.aquariumId}/video_feed',
-                                      ),
-                                    );
+                                    _webViewController.clearCache();
+                                    _loadStream();
                                   } else {
                                     _webViewController.loadHtmlString(
-                                      '<html><body style="background:#f4f4f4;display:flex;justify-content:center;align-items:center;height:100%;color:#999;">'
-                                      '<h3>Camera is turned off</h3></body></html>',
+                                      '<html><body style="background:#f4f4f4;display:flex;justify-content:center;align-items:center;height:100%;color:#999;"><h3>Camera is turned off</h3></body></html>',
                                     );
                                   }
                                 },
@@ -457,7 +479,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                       : _buildRotationFeeding(vm),
             ),
 
-            // Bottom padding for safe area
             const SizedBox(height: 32),
           ],
         ),
@@ -469,7 +490,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // --- Top Row: Title + Food Switch Box ---
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -536,10 +556,7 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             ),
           ],
         ),
-
         const SizedBox(height: 8),
-
-        // --- Instruction Text ---
         Text(
           'Press and hold to feed manually',
           style: TextStyle(
@@ -547,39 +564,33 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
             color: Colors.blue[600],
           ),
         ),
-
         const SizedBox(height: 24),
-
-        // --- Center Feed Button ---
-        Center(
-          child: GestureDetector(
-            onTapDown: (_) => _handleManualFeeding(true),
-            onTapUp: (_) => _handleManualFeeding(false),
-            onTapCancel: () => _handleManualFeeding(false),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: ResponsiveHelper.getCardWidth(context),
-              height: ResponsiveHelper.getCardHeight(context),
-              decoration: BoxDecoration(
-                color: vm.isFeeding ? Colors.blue[400] : Colors.blue[600],
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.blue.withOpacity(0.3),
-                    blurRadius: 20,
-                    spreadRadius: vm.isFeeding ? 10 : 5,
-                  ),
-                ],
-              ),
-              child: Icon(
-                vm.isFeeding ? Icons.pause : Icons.play_arrow,
-                size: ResponsiveHelper.getFontSize(context, 48),
-                color: Colors.white,
-              ),
+        GestureDetector(
+          onTapDown: (_) => _handleManualFeeding(true),
+          onTapUp: (_) => _handleManualFeeding(false),
+          onTapCancel: () => _handleManualFeeding(false),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: ResponsiveHelper.getCardWidth(context),
+            height: ResponsiveHelper.getCardHeight(context),
+            decoration: BoxDecoration(
+              color: Colors.blue[600],
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.blue.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 8,
+                ),
+              ],
+            ),
+            child: Icon(
+              vm.isFeeding ? Icons.pause : Icons.play_arrow,
+              size: ResponsiveHelper.getFontSize(context, 48),
+              color: Colors.white,
             ),
           ),
         ),
-
         const SizedBox(height: 16),
       ],
     );
@@ -589,7 +600,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header Row: Rotation Feeding + Food Selector
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -601,7 +611,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
                 color: Colors.blue[700],
               ),
             ),
-            // Food selector: Pellets / Flakes
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
@@ -666,8 +675,6 @@ class _CameraPageState extends ConsumerState<CameraPage> with RouteAware {
           ),
         ),
         const SizedBox(height: 16),
-
-        // Rotation Selector Card
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(

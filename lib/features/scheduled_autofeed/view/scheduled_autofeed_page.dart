@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import '../viewmodel/scheduled_autofeed_viewmodel.dart';
 import '../models/feeding_schedule_model.dart';
+import 'widgets/schedule_list_item.dart';
 
 class ScheduledAutofeedPage extends ConsumerWidget {
   final String aquariumId;
@@ -16,7 +17,20 @@ class ScheduledAutofeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(scheduledAutofeedViewModelProvider(aquariumId));
+    // themeMode from provider not used directly; rely on current Theme.of(context)
+    // Selective watches minimize rebuilds
+    final isLoading = ref.watch(
+      scheduledAutofeedViewModelProvider(aquariumId).select((s) => s.isLoading),
+    );
+    final errorMessage = ref.watch(
+      scheduledAutofeedViewModelProvider(
+        aquariumId,
+      ).select((s) => s.errorMessage),
+    );
+    // Status derives from Firebase switches; master switch removed
+    final schedules = ref.watch(
+      scheduledAutofeedViewModelProvider(aquariumId).select((s) => s.schedules),
+    );
     final viewModel = ref.read(
       scheduledAutofeedViewModelProvider(aquariumId).notifier,
     );
@@ -40,10 +54,6 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Auto Feeder Status Card
-            _buildAutoFeederStatusCard(context, state, viewModel),
-            const SizedBox(height: 24),
-
             // Schedules Header
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -57,11 +67,14 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: () => _showAddScheduleDialog(context, viewModel),
+                  onPressed: () => _showAddChoiceDialog(context, viewModel),
                   icon: const Icon(Icons.add, color: Colors.white),
-                  label: const Text(
+                  label: Text(
                     'Add Schedule',
-                    style: TextStyle(color: Colors.white),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: ResponsiveHelper.getFontSize(context, 15),
+                    ),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[600],
@@ -75,7 +88,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             const SizedBox(height: 16),
 
             // Error Message
-            if (state.errorMessage != null)
+            if (errorMessage != null)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
@@ -91,7 +104,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        state.errorMessage!,
+                        errorMessage,
                         style: TextStyle(color: Colors.red[700]),
                       ),
                     ),
@@ -104,7 +117,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               ),
 
             // Loading Indicator
-            if (state.isLoading)
+            if (isLoading)
               const Center(
                 child: Padding(
                   padding: EdgeInsets.all(32.0),
@@ -113,79 +126,40 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               ),
 
             // Schedules List
-            if (!state.isLoading && state.schedules.isEmpty)
+            if (!isLoading && schedules.isEmpty)
               _buildEmptyState(context, viewModel)
-            else if (!state.isLoading)
-              ...state.schedules
-                  .map(
-                    (schedule) =>
-                        _buildScheduleCard(context, schedule, viewModel),
-                  )
-                  .toList(),
+            else if (!isLoading)
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final schedule = schedules[index];
+                  return ScheduleListItem(
+                    schedule: schedule,
+                    onToggle:
+                        (enabled) =>
+                            viewModel.toggleSchedule(schedule.id, enabled),
+                    onEdit:
+                        () => _showEditScheduleDialog(
+                          context,
+                          schedule,
+                          viewModel,
+                        ),
+                    onDelete:
+                        () => _showDeleteConfirmation(
+                          context,
+                          schedule,
+                          viewModel,
+                        ),
+                  );
+                },
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemCount: schedules.length,
+              ),
 
             const SizedBox(height: 32),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildAutoFeederStatusCard(
-    BuildContext context,
-    ScheduledAutofeedState state,
-    ScheduledAutofeedViewModel viewModel,
-  ) {
-    final isEnabled = state.autoFeederStatus?.isEnabled ?? false;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue[200]!, width: 1),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.schedule, size: 32, color: Colors.blue[600]),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Scheduled Autofeeding',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getFontSize(context, 18),
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  isEnabled ? 'Enabled' : 'Disabled',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getFontSize(context, 14),
-                    color: isEnabled ? Colors.green[600] : Colors.red[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: isEnabled,
-            onChanged: (value) => viewModel.toggleAutoFeeder(value),
-            activeColor: Colors.blue[600],
-            trackColor: MaterialStateProperty.resolveWith<Color?>((
-              Set<MaterialState> states,
-            ) {
-              if (states.contains(MaterialState.selected)) {
-                return Colors.blue[200]; // when ON
-              }
-              return Colors.grey[300]; // when OFF
-            }),
-          ),
-        ],
       ),
     );
   }
@@ -242,120 +216,6 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildScheduleCard(
-    BuildContext context,
-    FeedingSchedule schedule,
-    ScheduledAutofeedViewModel viewModel,
-  ) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: schedule.isEnabled ? Colors.green[200]! : Colors.grey[200]!,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          // Status indicator
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: schedule.isEnabled ? Colors.green : Colors.grey,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 12),
-
-          // Schedule details
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(Icons.access_time, size: 16, color: Colors.blue[600]),
-                    const SizedBox(width: 4),
-                    Text(
-                      schedule.time,
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 16),
-                        fontWeight: FontWeight.bold,
-                        color: Colors.blue[700],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color:
-                            schedule.isEnabled
-                                ? Colors.green[100]
-                                : Colors.grey[100],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        schedule.isEnabled ? 'Active' : 'Inactive',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color:
-                              schedule.isEnabled
-                                  ? Colors.green[700]
-                                  : Colors.grey[600],
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${schedule.cycles} cycle${schedule.cycles > 1 ? 's' : ''} • ${schedule.foodType}',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getFontSize(context, 14),
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Actions
-          Row(
-            children: [
-              IconButton(
-                onPressed:
-                    () => _showEditScheduleDialog(context, schedule, viewModel),
-                icon: Icon(Icons.edit, color: Colors.blue[600]),
-                tooltip: 'Edit',
-              ),
-              IconButton(
-                onPressed:
-                    () => _showDeleteConfirmation(context, schedule, viewModel),
-                icon: Icon(Icons.delete, color: Colors.red[600]),
-                tooltip: 'Delete',
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showAddScheduleDialog(
     BuildContext context,
     ScheduledAutofeedViewModel viewModel,
@@ -365,6 +225,55 @@ class ScheduledAutofeedPage extends ConsumerWidget {
       viewModel: viewModel,
       title: 'Add Feeding Schedule',
       schedule: null,
+    );
+  }
+
+  void _showAddChoiceDialog(
+    BuildContext context,
+    ScheduledAutofeedViewModel viewModel,
+  ) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Create Schedule',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 15),
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showScheduleDialog(
+                    context: context,
+                    viewModel: viewModel,
+                    title: 'Add Daily Feeding',
+                    schedule: null,
+                  );
+                },
+                child: Text('Daily', style: TextStyle(fontSize: 15)),
+              ),
+              const SizedBox(height: 8),
+              FilledButton.tonal(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  _showOneTimeDialog(context, viewModel);
+                },
+                child: const Text('One-time', style: TextStyle(fontSize: 15)),
+              ),
+              SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -387,14 +296,12 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     required String title,
     FeedingSchedule? schedule,
   }) {
+    final formKey = GlobalKey<FormState>();
     final timeController = TextEditingController(
-      text: schedule?.time ?? '08:00',
+      text: _formatDisplayFrom24(schedule?.time ?? '08:00'),
     );
     final cyclesController = TextEditingController(
       text: (schedule?.cycles ?? 1).toString(),
-    );
-    final foodTypeController = TextEditingController(
-      text: schedule?.foodType ?? 'Default',
     );
     bool isEnabled = schedule?.isEnabled ?? true;
 
@@ -406,57 +313,117 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 (context, setState) => AlertDialog(
                   title: Text(title),
                   content: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Time picker
-                        TextField(
-                          controller: timeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Time (HH:mm)',
-                            hintText: '08:00',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.datetime,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Cycles
-                        TextField(
-                          controller: cyclesController,
-                          decoration: const InputDecoration(
-                            labelText: 'Number of Cycles',
-                            hintText: '1',
-                            border: OutlineInputBorder(),
-                          ),
-                          keyboardType: TextInputType.number,
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Food type
-                        TextField(
-                          controller: foodTypeController,
-                          decoration: const InputDecoration(
-                            labelText: 'Food Type',
-                            hintText: 'Default',
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Enabled toggle
-                        Row(
-                          children: [
-                            const Text('Enabled'),
-                            const Spacer(),
-                            Switch(
-                              value: isEnabled,
-                              onChanged:
-                                  (value) => setState(() => isEnabled = value),
+                    child: Form(
+                      key: formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () async {
+                              final initial =
+                                  _parseTimeOfDayDisplay(timeController.text) ??
+                                  const TimeOfDay(hour: 8, minute: 0);
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: initial,
+                                builder: (context, child) {
+                                  return MediaQuery(
+                                    data: MediaQuery.of(
+                                      context,
+                                    ).copyWith(alwaysUse24HourFormat: false),
+                                    child: child ?? const SizedBox.shrink(),
+                                  );
+                                },
+                              );
+                              if (picked != null) {
+                                timeController.text = _formatDisplay(picked);
+                              }
+                            },
+                            child: AbsorbPointer(
+                              child: TextFormField(
+                                controller: timeController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Time (HH:mm)',
+                                  hintText: '08:00',
+                                  border: OutlineInputBorder(),
+                                  prefixIcon: Icon(Icons.access_time),
+                                ),
+                                validator:
+                                    (v) =>
+                                        _parseTimeOfDayDisplay(v ?? '') == null
+                                            ? 'Enter a valid time'
+                                            : null,
+                              ),
                             ),
-                          ],
-                        ),
-                      ],
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: cyclesController,
+                            decoration: const InputDecoration(
+                              labelText: 'Number of Cycles',
+                              hintText: '1',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.repeat),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              final parsed = int.tryParse((v ?? '').trim());
+                              if (parsed == null || parsed < 1 || parsed > 10) {
+                                return 'Enter a number between 1 and 10';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          DropdownButtonFormField<String>(
+                            value:
+                                (schedule?.foodType.toLowerCase() == 'flakes')
+                                    ? 'flakes'
+                                    : 'pellet',
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pellet',
+                                child: Text('pellet'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'flakes',
+                                child: Text('flakes'),
+                              ),
+                            ],
+                            onChanged: (val) {},
+                            decoration: InputDecoration(
+                              labelText: 'Food Type',
+                              border: const OutlineInputBorder(),
+                              prefixIcon: const Icon(Icons.restaurant),
+                              filled: true,
+                              fillColor: Theme.of(context).colorScheme.surface,
+                              labelStyle: TextStyle(
+                                color:
+                                    Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                            validator:
+                                (v) =>
+                                    (v == null ||
+                                            (v != 'pellet' && v != 'flakes'))
+                                        ? 'Select food'
+                                        : null,
+                          ),
+                          const SizedBox(height: 16),
+                          SwitchListTile.adaptive(
+                            value: isEnabled,
+                            onChanged:
+                                (value) => setState(() => isEnabled = value),
+                            title: const Text('Enabled'),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   actions: [
@@ -464,15 +431,17 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
                     ),
-                    ElevatedButton(
+                    FilledButton(
                       onPressed: () {
-                        final time = timeController.text.trim();
-                        final cycles =
-                            int.tryParse(cyclesController.text.trim()) ?? 1;
+                        if (!formKey.currentState!.validate()) return;
+                        final time = _format24FromDisplay(
+                          timeController.text.trim(),
+                        );
+                        final cycles = int.parse(cyclesController.text.trim());
                         final foodType =
-                            foodTypeController.text.trim().isEmpty
-                                ? 'Default'
-                                : foodTypeController.text.trim();
+                            (schedule?.foodType.toLowerCase() == 'flakes')
+                                ? 'flakes'
+                                : 'pellet';
 
                         if (schedule != null) {
                           viewModel.updateSchedule(
@@ -537,4 +506,202 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           ),
     );
   }
+
+  void _showOneTimeDialog(
+    BuildContext context,
+    ScheduledAutofeedViewModel viewModel,
+  ) {
+    final formKey = GlobalKey<FormState>();
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
+    final cyclesController = TextEditingController(text: '1');
+    String selectedFood = 'pellet';
+
+    showDialog(
+      context: context,
+      builder:
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setState) => AlertDialog(
+                  title: const Text('Add One-time Feeding'),
+                  content: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Date picker
+                          ListTile(
+                            leading: const Icon(Icons.calendar_today),
+                            title: Text(
+                              '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                            ),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedDate = picked);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          // Time picker AM/PM
+                          ListTile(
+                            leading: const Icon(Icons.access_time),
+                            title: Text(_formatDisplay(selectedTime)),
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: selectedTime,
+                                builder:
+                                    (context, child) => MediaQuery(
+                                      data: MediaQuery.of(
+                                        context,
+                                      ).copyWith(alwaysUse24HourFormat: false),
+                                      child: child ?? const SizedBox.shrink(),
+                                    ),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedTime = picked);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: cyclesController,
+                            decoration: const InputDecoration(
+                              labelText: 'Cycles',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.repeat),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              final parsed = int.tryParse((v ?? '').trim());
+                              if (parsed == null || parsed < 1 || parsed > 10) {
+                                return 'Enter a number between 1 and 10';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: selectedFood,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pellet',
+                                child: Text('pellet'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'flakes',
+                                child: Text('flakes'),
+                              ),
+                            ],
+                            onChanged:
+                                (v) => setState(
+                                  () => selectedFood = v ?? 'pellet',
+                                ),
+                            decoration: const InputDecoration(
+                              labelText: 'Food Type',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.restaurant),
+                            ),
+                            validator:
+                                (v) =>
+                                    (v == null ||
+                                            (v != 'pellet' && v != 'flakes'))
+                                        ? 'Select food'
+                                        : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      child: const Text('Cancel'),
+                    ),
+                    FilledButton(
+                      onPressed: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final cycles = int.parse(cyclesController.text.trim());
+                        final dt = DateTime(
+                          selectedDate.year,
+                          selectedDate.month,
+                          selectedDate.day,
+                          selectedTime.hour,
+                          selectedTime.minute,
+                          0,
+                        );
+                        await viewModel.addOneTimeTask(
+                          scheduleDateTime: dt,
+                          cycles: cycles,
+                        );
+                        if (context.mounted) Navigator.of(ctx).pop();
+                      },
+                      child: const Text('Add'),
+                    ),
+                  ],
+                ),
+          ),
+    );
+  }
+}
+
+TimeOfDay? _parseTimeOfDay(String input) {
+  final parts = input.split(':');
+  if (parts.length != 2) return null;
+  final h = int.tryParse(parts[0]);
+  final m = int.tryParse(parts[1]);
+  if (h == null || m == null) return null;
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  return TimeOfDay(hour: h, minute: m);
+}
+
+String _formatTimeOfDay(TimeOfDay t) {
+  final hh = t.hour.toString().padLeft(2, '0');
+  final mm = t.minute.toString().padLeft(2, '0');
+  return '$hh:$mm';
+}
+
+// AM/PM helpers for display and parsing
+String _formatDisplay(TimeOfDay t) {
+  final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+  final minute = t.minute.toString().padLeft(2, '0');
+  final suffix = t.period == DayPeriod.am ? 'AM' : 'PM';
+  return '$hour:$minute $suffix';
+}
+
+TimeOfDay? _parseTimeOfDayDisplay(String input) {
+  final trimmed = input.trim().toUpperCase();
+  final am = trimmed.endsWith('AM');
+  final pm = trimmed.endsWith('PM');
+  if (!am && !pm) return null;
+  final timePart = trimmed.replaceAll('AM', '').replaceAll('PM', '').trim();
+  final parts = timePart.split(':');
+  if (parts.length != 2) return null;
+  final hour12 = int.tryParse(parts[0]);
+  final minute = int.tryParse(parts[1]);
+  if (hour12 == null || minute == null) return null;
+  if (hour12 < 1 || hour12 > 12 || minute < 0 || minute > 59) return null;
+  int hour24 = hour12 % 12;
+  if (pm) hour24 += 12;
+  return TimeOfDay(hour: hour24, minute: minute);
+}
+
+String _format24FromDisplay(String display) {
+  final t = _parseTimeOfDayDisplay(display);
+  if (t == null) return '08:00';
+  return _formatTimeOfDay(t);
+}
+
+String _formatDisplayFrom24(String hhmm) {
+  final t = _parseTimeOfDay(hhmm) ?? const TimeOfDay(hour: 8, minute: 0);
+  return _formatDisplay(t);
 }

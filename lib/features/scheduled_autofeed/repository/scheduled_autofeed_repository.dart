@@ -1,56 +1,76 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:aquacare_v5/core/config/backend_config.dart';
+import 'package:firebase_database/firebase_database.dart';
 import '../models/feeding_schedule_model.dart';
 
 class ScheduledAutofeedRepository {
   final String baseUrl = BackendConfig.baseUrl;
 
-  // Get all feeding schedules for an aquarium
+  // Simple in-memory cache placeholder. Swap with Hive/Prefs/Isar.
+  final Map<String, List<FeedingSchedule>> _cache = {};
+
+  // Get all feeding schedules for an aquarium (read from Firebase Realtime DB)
   Future<List<FeedingSchedule>> getFeedingSchedules(String aquariumId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/aquarium/$aquariumId/feeding_schedules'),
-        headers: {'Content-Type': 'application/json'},
+      final ref = FirebaseDatabase.instance.ref(
+        'aquariums/$aquariumId/auto_feeder/schedule',
       );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        return data.map((json) => FeedingSchedule.fromJson(json)).toList();
-      } else {
-        throw Exception(
-          'Failed to load feeding schedules: ${response.statusCode}',
-        );
+      final snapshot = await ref.get();
+      if (!snapshot.exists || snapshot.value == null) {
+        _cache[aquariumId] = const <FeedingSchedule>[];
+        return const <FeedingSchedule>[];
       }
+      final raw = Map<Object?, Object?>.from(snapshot.value as Map);
+      final List<FeedingSchedule> items =
+          raw.entries.map((entry) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(
+              entry.value as Map,
+            );
+            data['id'] = entry.key.toString();
+            data['aquarium_id'] = aquariumId;
+            return FeedingSchedule.fromJson(data);
+          }).toList();
+      // Optional: sort by time ascending
+      items.sort((a, b) => a.time.compareTo(b.time));
+      _cache[aquariumId] = items;
+      return items;
     } catch (e) {
       throw Exception('Error fetching feeding schedules: $e');
     }
   }
 
-  // Add a new feeding schedule
+  // Add a new feeding schedule (Flask)
   Future<FeedingSchedule> addFeedingSchedule({
     required String aquariumId,
     required String time,
     required int cycles,
     required String foodType,
     required bool isEnabled,
+    bool daily = false,
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/aquarium/$aquariumId/feeding_schedules'),
+        Uri.parse('$baseUrl/add_schedule/$aquariumId'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'aquarium_id': aquariumId,
           'time': time,
-          'cycles': cycles,
-          'food_type': foodType,
-          'is_enabled': isEnabled,
+          'cycle': cycles,
+          'switch': isEnabled,
+          'food': foodType,
+          'daily': daily,
         }),
       );
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
-        return FeedingSchedule.fromJson(data);
+        final created = FeedingSchedule.fromJson(data);
+        final List<FeedingSchedule> list = [
+          ...(_cache[aquariumId] ?? const <FeedingSchedule>[]),
+          created,
+        ];
+        _cache[aquariumId] = list;
+        return created;
       } else {
         throw Exception(
           'Failed to add feeding schedule: ${response.statusCode}',
@@ -61,52 +81,131 @@ class ScheduledAutofeedRepository {
     }
   }
 
-  // Update an existing feeding schedule
-  Future<FeedingSchedule> updateFeedingSchedule({
+  // Update helpers (Flask)
+  Future<void> updateCycle({
     required String aquariumId,
-    required String scheduleId,
     required String time,
     required int cycles,
-    required String foodType,
-    required bool isEnabled,
   }) async {
     try {
-      final response = await http.put(
-        Uri.parse(
-          '$baseUrl/aquarium/$aquariumId/feeding_schedules/$scheduleId',
-        ),
+      final response = await http.patch(
+        Uri.parse('$baseUrl/update_schedule_cycle/$aquariumId/$time/$cycles'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'time': time,
-          'cycles': cycles,
-          'food_type': foodType,
-          'is_enabled': isEnabled,
-        }),
       );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return FeedingSchedule.fromJson(data);
-      } else {
-        throw Exception(
-          'Failed to update feeding schedule: ${response.statusCode}',
-        );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update cycle: ${response.statusCode}');
       }
     } catch (e) {
-      throw Exception('Error updating feeding schedule: $e');
+      throw Exception('Error updating cycle: $e');
     }
   }
 
-  // Delete a feeding schedule
+  Future<void> updateSwitch({
+    required String aquariumId,
+    required String time,
+    required bool isEnabled,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(
+          '$baseUrl/update_schedule_switch/$aquariumId/$time/${isEnabled.toString()}',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update switch: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating switch: $e');
+    }
+  }
+
+  Future<void> updateDaily({
+    required String aquariumId,
+    required String time,
+    required bool daily,
+  }) async {
+    try {
+      final response = await http.patch(
+        Uri.parse(
+          '$baseUrl/update_daily/$aquariumId/$time/${daily.toString()}',
+        ),
+        headers: {'Content-Type': 'application/json'},
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to update daily: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error updating daily: $e');
+    }
+  }
+
+  // One-time task: add a single-run feeding via Flask + Firestore/APScheduler
+  Future<void> addOneTimeTask({
+    required String aquariumId,
+    required DateTime scheduleDateTime,
+    required int cycles,
+  }) async {
+    try {
+      final payload = {
+        'cycle': cycles,
+        'schedule_time': _formatDateTime(scheduleDateTime),
+      };
+      final response = await http.post(
+        Uri.parse('$baseUrl/task/$aquariumId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+      if (response.statusCode != 200) {
+        throw Exception('Failed to add one-time task: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error adding one-time task: $e');
+    }
+  }
+
+  // One-time task: delete by schedule_time string
+  Future<void> deleteOneTimeTask({
+    required String aquariumId,
+    required DateTime scheduleDateTime,
+  }) async {
+    try {
+      final payload = {'schedule_time': _formatDateTime(scheduleDateTime)};
+      final response = await http.post(
+        Uri.parse('$baseUrl/task/delete/$aquariumId'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode(payload),
+      );
+      if (response.statusCode != 200) {
+        throw Exception(
+          'Failed to delete one-time task: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error deleting one-time task: $e');
+    }
+  }
+
+  String _two(int n) => n.toString().padLeft(2, '0');
+  String _formatDateTime(DateTime dt) {
+    // yyyy-MM-dd HH:mm:ss in server's local timezone
+    final y = dt.year.toString().padLeft(4, '0');
+    final M = _two(dt.month);
+    final d = _two(dt.day);
+    final h = _two(dt.hour);
+    final m = _two(dt.minute);
+    final s = _two(dt.second);
+    return '$y-$M-$d $h:$m:$s';
+  }
+
+  // Delete a feeding schedule (by time)
   Future<void> deleteFeedingSchedule({
     required String aquariumId,
     required String scheduleId,
   }) async {
     try {
       final response = await http.delete(
-        Uri.parse(
-          '$baseUrl/aquarium/$aquariumId/feeding_schedules/$scheduleId',
-        ),
+        Uri.parse('$baseUrl/delete_schedule/$aquariumId/$scheduleId'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -115,55 +214,61 @@ class ScheduledAutofeedRepository {
           'Failed to delete feeding schedule: ${response.statusCode}',
         );
       }
+      // Optimistically remove from cache
+      final List<FeedingSchedule> list =
+          (_cache[aquariumId] ?? const <FeedingSchedule>[])
+              .where((e) => e.id != scheduleId)
+              .toList();
+      _cache[aquariumId] = list;
     } catch (e) {
       throw Exception('Error deleting feeding schedule: $e');
     }
   }
 
   // Toggle a feeding schedule enabled/disabled
-  Future<FeedingSchedule> toggleFeedingSchedule({
+  Future<void> toggleFeedingSchedule({
     required String aquariumId,
     required String scheduleId,
     required bool isEnabled,
   }) async {
-    try {
-      final response = await http.patch(
-        Uri.parse(
-          '$baseUrl/aquarium/$aquariumId/feeding_schedules/$scheduleId/toggle',
-        ),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'is_enabled': isEnabled}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return FeedingSchedule.fromJson(data);
-      } else {
-        throw Exception(
-          'Failed to toggle feeding schedule: ${response.statusCode}',
-        );
-      }
-    } catch (e) {
-      throw Exception('Error toggling feeding schedule: $e');
-    }
+    await updateSwitch(
+      aquariumId: aquariumId,
+      time: scheduleId,
+      isEnabled: isEnabled,
+    );
+    final List<FeedingSchedule> list =
+        (_cache[aquariumId] ?? const <FeedingSchedule>[])
+            .map(
+              (e) => e.id == scheduleId ? e.copyWith(isEnabled: isEnabled) : e,
+            )
+            .toList();
+    _cache[aquariumId] = list;
   }
 
   // Get auto feeder status for an aquarium
   Future<AutoFeederStatus> getAutoFeederStatus(String aquariumId) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/aquarium/$aquariumId/auto_feeder/status'),
-        headers: {'Content-Type': 'application/json'},
+      // Compute status from Firebase schedules: enabled if any schedule.switch == true
+      final ref = FirebaseDatabase.instance.ref(
+        'aquariums/$aquariumId/auto_feeder/schedule',
       );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return AutoFeederStatus.fromJson(data);
-      } else {
-        throw Exception(
-          'Failed to load auto feeder status: ${response.statusCode}',
-        );
+      final snapshot = await ref.get();
+      bool enabled = false;
+      if (snapshot.exists && snapshot.value != null) {
+        final raw = Map<Object?, Object?>.from(snapshot.value as Map);
+        for (final entry in raw.entries) {
+          final data = Map<String, dynamic>.from(entry.value as Map);
+          if ((data['switch'] ?? false) == true) {
+            enabled = true;
+            break;
+          }
+        }
       }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: enabled,
+        lastUpdated: DateTime.now(),
+      );
     } catch (e) {
       throw Exception('Error fetching auto feeder status: $e');
     }
@@ -175,20 +280,98 @@ class ScheduledAutofeedRepository {
     required bool isEnabled,
   }) async {
     try {
-      final response = await http.patch(
-        Uri.parse('$baseUrl/aquarium/$aquariumId/auto_feeder/toggle'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'enabled': isEnabled}),
+      // Batch toggle all schedules' switch to the desired state using Flask route
+      final ref = FirebaseDatabase.instance.ref(
+        'aquariums/$aquariumId/auto_feeder/schedule',
       );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return AutoFeederStatus.fromJson(data);
-      } else {
-        throw Exception('Failed to toggle auto feeder: ${response.statusCode}');
+      final snapshot = await ref.get();
+      if (snapshot.exists && snapshot.value != null) {
+        final raw = Map<Object?, Object?>.from(snapshot.value as Map);
+        final futures = <Future<void>>[];
+        for (final entry in raw.entries) {
+          final data = Map<String, dynamic>.from(entry.value as Map);
+          final String time = (data['time'] ?? '').toString();
+          if (time.isEmpty) continue;
+          futures.add(
+            updateSwitch(
+              aquariumId: aquariumId,
+              time: time,
+              isEnabled: isEnabled,
+            ),
+          );
+        }
+        await Future.wait(futures);
       }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: isEnabled,
+        lastUpdated: DateTime.now(),
+      );
     } catch (e) {
       throw Exception('Error toggling auto feeder: $e');
     }
+  }
+
+  // Realtime subscriptions and caching APIs (stubs). Replace with Firebase/WS streams.
+  Stream<List<FeedingSchedule>> subscribeSchedules(String aquariumId) {
+    final ref = FirebaseDatabase.instance.ref(
+      'aquariums/$aquariumId/auto_feeder/schedule',
+    );
+    return ref.onValue.map((event) {
+      final snapshot = event.snapshot;
+      if (!snapshot.exists || snapshot.value == null) {
+        _cache[aquariumId] = const <FeedingSchedule>[];
+        return const <FeedingSchedule>[];
+      }
+      final raw = Map<Object?, Object?>.from(snapshot.value as Map);
+      final List<FeedingSchedule> items =
+          raw.entries.map((entry) {
+            final Map<String, dynamic> data = Map<String, dynamic>.from(
+              entry.value as Map,
+            );
+            data['id'] = entry.key.toString();
+            data['aquarium_id'] = aquariumId;
+            return FeedingSchedule.fromJson(data);
+          }).toList();
+      items.sort((a, b) => a.time.compareTo(b.time));
+      _cache[aquariumId] = items;
+      return items;
+    });
+  }
+
+  Stream<AutoFeederStatus> subscribeAutoFeederStatus(String aquariumId) {
+    final ref = FirebaseDatabase.instance.ref(
+      'aquariums/$aquariumId/auto_feeder/schedule',
+    );
+    return ref.onValue.map((event) {
+      bool enabled = false;
+      final snapshot = event.snapshot;
+      if (snapshot.exists && snapshot.value != null) {
+        final raw = Map<Object?, Object?>.from(snapshot.value as Map);
+        for (final entry in raw.entries) {
+          final data = Map<String, dynamic>.from(entry.value as Map);
+          if ((data['switch'] ?? false) == true) {
+            enabled = true;
+            break;
+          }
+        }
+      }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: enabled,
+        lastUpdated: DateTime.now(),
+      );
+    });
+  }
+
+  Future<List<FeedingSchedule>?> getCachedSchedules(String aquariumId) async {
+    return _cache[aquariumId];
+  }
+
+  Future<void> cacheSchedules(
+    String aquariumId,
+    List<FeedingSchedule> items,
+  ) async {
+    _cache[aquariumId] = items;
   }
 }
