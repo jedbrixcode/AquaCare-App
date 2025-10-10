@@ -61,7 +61,7 @@ class AutoFeedRepository {
     final response = await _client.post(
       url,
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'food': food, 'cycles': rotations.toString()}),
+      body: jsonEncode({'food': food, 'cycle': rotations.toString()}),
     );
     return response.statusCode >= 200 && response.statusCode < 300;
   }

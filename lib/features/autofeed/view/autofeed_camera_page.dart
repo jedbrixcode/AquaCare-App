@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:aquacare_v5/core/config/backend_config.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/navigation/route_observer.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,7 +27,7 @@ class CameraPage extends ConsumerStatefulWidget {
 class _CameraPageState extends ConsumerState<CameraPage>
     with RouteAware, AutomaticKeepAliveClientMixin<CameraPage> {
   bool isCameraActive = true;
-  final String _cameraUrl = 'https://pi-cam.alfreds.dev';
+  final String _cameraUrl = BackendConfig.piCamBaseUrl;
 
   late final webview.WebViewController _webViewController;
   bool _isWebViewLoading = true;

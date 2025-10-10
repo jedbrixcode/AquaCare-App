@@ -1,8 +1,12 @@
 class BackendConfig {
-  static const String baseUrl = 'https://aquacare-5cyr.onrender.com';
+  // --- Base URLs ---
+  static const String flaskBaseUrl = 'https://aquacare-5cyr.onrender.com';
+  static const String piCamBaseUrl = 'https://pi-cam.alfreds.dev';
 
-  static Uri url(String path) {
+  // --- Helper to build a full URL ---
+  static Uri url(String path, {bool usePiCam = false}) {
+    final base = usePiCam ? piCamBaseUrl : flaskBaseUrl;
     final normalized = path.startsWith('/') ? path : '/$path';
-    return Uri.parse('$baseUrl$normalized');
+    return Uri.parse('$base$normalized');
   }
 }

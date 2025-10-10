@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repository/autofeed_repository.dart';
+import 'package:aquacare_v5/core/config/backend_config.dart';
 
 class AutoFeedState {
   final bool isManualMode;
@@ -51,6 +52,8 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
   final AutoFeedRepository _repo;
   final String backendUrl;
 
+  bool? get isConnected => null;
+
   Future<void> connect(String aquariumId) async {
     final ok = await _repo.connectFeeder(
       backendUrl: backendUrl,
@@ -80,7 +83,13 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
   }
 
   void setFood(String f) {
-    state = state.copyWith(food: f);
+    final validFoods = ['pellet', 'flakes'];
+    final normalized = f.toLowerCase();
+    if (validFoods.contains(normalized)) {
+      state = state.copyWith(food: normalized);
+    } else {
+      print('Invalid food type: $f');
+    }
   }
 
   Future<bool> startManual(String aquariumId) async {

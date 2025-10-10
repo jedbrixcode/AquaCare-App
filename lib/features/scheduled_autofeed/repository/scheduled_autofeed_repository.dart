@@ -5,7 +5,7 @@ import 'package:firebase_database/firebase_database.dart';
 import '../models/feeding_schedule_model.dart';
 
 class ScheduledAutofeedRepository {
-  final String baseUrl = BackendConfig.baseUrl;
+  final String baseUrl = BackendConfig.piCamBaseUrl;
 
   // Simple in-memory cache placeholder. Swap with Hive/Prefs/Isar.
   final Map<String, List<FeedingSchedule>> _cache = {};
