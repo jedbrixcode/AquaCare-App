@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:aquacare_v5/core/models/sensor_log_point.dart';
+import 'package:aquacare_v5/core/services/local_storage_service.dart';
 
 class GraphsRepository {
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
@@ -61,102 +62,158 @@ class GraphsRepository {
     String sensorType,
     String aquariumId,
   ) async {
-    final snapshot = await _db.child('aquariums/$aquariumId/hourly_log').get();
-    final List<SensorLogPoint> points = [];
+    try {
+      final snapshot =
+          await _db.child('aquariums/$aquariumId/hourly_log').get();
+      final List<SensorLogPoint> points = [];
+      if (snapshot.exists) {
+        for (final entry in snapshot.children) {
+          final key = int.tryParse(entry.key ?? '');
+          if (key == null) continue;
+          final raw = entry.value;
+          if (raw is! Map) continue;
+          final data = Map<String, dynamic>.from(raw);
+          final value = double.tryParse(
+            data[sensorType.toLowerCase()]?.toString() ?? '',
+          );
+          if (value == null) continue;
+          points.add(
+            SensorLogPoint(
+              value: value,
+              time: DateTime(0).add(Duration(hours: key)),
+              label: sensorType,
+            ),
+          );
 
-    if (snapshot.exists) {
-      for (final entry in snapshot.children) {
-        final key = int.tryParse(entry.key ?? '');
-        if (key == null) continue;
-        // Skip non-map entries like "index"
-        final raw = entry.value;
-        if (raw is! Map) continue;
-        final data = Map<String, dynamic>.from(raw);
-        final value = double.tryParse(
-          data[sensorType.toLowerCase()]?.toString() ?? '',
-        );
-        if (value == null) continue;
-
-        // Use the hour index directly as X-axis
-        points.add(
-          SensorLogPoint(
-            value: value,
-            time: DateTime(0).add(Duration(hours: key)), // x-axis = 0..23
-            label: sensorType,
-          ),
-        );
+          // cache locally
+          await LocalStorageService.instance.cacheHourlyLog(
+            aquariumId: aquariumId,
+            hourIndex: key,
+            temperature: sensorType.toLowerCase() == 'temperature' ? value : 0,
+            ph: sensorType.toLowerCase() == 'ph' ? value : 0,
+            turbidity: sensorType.toLowerCase() == 'turbidity' ? value : 0,
+          );
+        }
       }
+      points.sort((a, b) => a.time.hour.compareTo(b.time.hour));
+      return points;
+    } catch (_) {
+      // fallback to cached
+      final logs = await LocalStorageService.instance.getHourlyLogs(aquariumId);
+      final lower = sensorType.toLowerCase();
+      final List<SensorLogPoint> points =
+          logs.map((e) {
+              final v = (e[lower] ?? 0).toDouble();
+              return SensorLogPoint(
+                value: v,
+                time: DateTime(
+                  0,
+                ).add(Duration(hours: (e['hourIndex'] ?? 0) as int)),
+                label: sensorType,
+              );
+            }).toList()
+            ..sort((a, b) => a.time.hour.compareTo(b.time.hour));
+      return points;
     }
-
-    // Sort by hour just in case
-    points.sort((a, b) => a.time.hour.compareTo(b.time.hour));
-
-    return points;
   }
 
   /// Fetch weekly averages for a specific aquarium
   Future<List<SensorLogPoint>> fetchWeeklyAverages(String aquariumId) async {
-    final snapshot = await _db.child('aquariums/$aquariumId/average').get();
-    if (!snapshot.exists) return [];
+    try {
+      final snapshot = await _db.child('aquariums/$aquariumId/average').get();
+      if (!snapshot.exists) return [];
 
-    final List<SensorLogPoint> points = [];
-    final value = snapshot.value;
-    if (value is! Map) return [];
-    final map = Map<String, dynamic>.from(value);
+      final List<SensorLogPoint> points = [];
+      final value = snapshot.value;
+      if (value is! Map) return [];
+      final map = Map<String, dynamic>.from(value);
 
-    // Backend structure:
-    // average: {
-    //   "1": { ph: 7.1, temperature: 25.5, turbidity: 3.2 },
-    //   "2": { ... },
-    //   "index": 2
-    // }
-    final entries =
-        map.entries
-            .where((e) => e.key != 'index')
-            .where((e) => int.tryParse(e.key) != null)
-            .toList()
-          ..sort((a, b) => (int.parse(a.key)).compareTo(int.parse(b.key)));
+      final entries =
+          map.entries
+              .where((e) => e.key != 'index')
+              .where((e) => int.tryParse(e.key) != null)
+              .toList()
+            ..sort((a, b) => (int.parse(a.key)).compareTo(int.parse(b.key)));
 
-    for (int i = 0; i < entries.length; i++) {
-      final e = entries[i];
-      final record = e.value;
-      if (record is! Map) continue;
-      final rec = Map<String, dynamic>.from(record);
+      for (int i = 0; i < entries.length; i++) {
+        final e = entries[i];
+        final record = e.value;
+        if (record is! Map) continue;
+        final rec = Map<String, dynamic>.from(record);
 
-      final ph = rec['ph'];
-      final temp = rec['temperature'];
-      final turb = rec['turbidity'];
+        final ph = rec['ph'];
+        final temp = rec['temperature'];
+        final turb = rec['turbidity'];
 
-      final time = DateTime.now().subtract(
-        Duration(days: entries.length - 1 - i),
-      );
+        final time = DateTime.now().subtract(
+          Duration(days: entries.length - 1 - i),
+        );
 
-      if (ph is num) {
-        points.add(
-          SensorLogPoint(value: ph.toDouble(), time: time, label: 'PH'),
+        if (ph is num) {
+          points.add(
+            SensorLogPoint(value: ph.toDouble(), time: time, label: 'PH'),
+          );
+        }
+        if (temp is num) {
+          points.add(
+            SensorLogPoint(
+              value: temp.toDouble(),
+              time: time,
+              label: 'Temperature',
+            ),
+          );
+        }
+        if (turb is num) {
+          points.add(
+            SensorLogPoint(
+              value: turb.toDouble(),
+              time: time,
+              label: 'Turbidity',
+            ),
+          );
+        }
+
+        // cache locally
+        await LocalStorageService.instance.cacheAverage(
+          aquariumId: aquariumId,
+          dayIndex: i,
+          temperature: (temp is num) ? temp.toDouble() : 0,
+          ph: (ph is num) ? ph.toDouble() : 0,
+          turbidity: (turb is num) ? turb.toDouble() : 0,
         );
       }
-      if (temp is num) {
+      return points;
+    } catch (_) {
+      final avgs = await LocalStorageService.instance.getAverages(aquariumId);
+      final now = DateTime.now();
+      final points = <SensorLogPoint>[];
+      for (int i = 0; i < avgs.length; i++) {
+        final rec = avgs[i];
+        final time = now.subtract(Duration(days: avgs.length - 1 - i));
         points.add(
           SensorLogPoint(
-            value: temp.toDouble(),
+            value: (rec['ph'] ?? 0).toDouble(),
+            time: time,
+            label: 'PH',
+          ),
+        );
+        points.add(
+          SensorLogPoint(
+            value: (rec['temperature'] ?? 0).toDouble(),
             time: time,
             label: 'Temperature',
           ),
         );
-      }
-      if (turb is num) {
         points.add(
           SensorLogPoint(
-            value: turb.toDouble(),
+            value: (rec['turbidity'] ?? 0).toDouble(),
             time: time,
             label: 'Turbidity',
           ),
         );
       }
+      return points;
     }
-
-    return points;
   }
 }
 

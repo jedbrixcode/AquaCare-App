@@ -2,6 +2,8 @@ import 'package:firebase_database/firebase_database.dart';
 import 'package:aquacare_v5/core/models/sensor_model.dart';
 import 'package:aquacare_v5/core/models/threshold_model.dart';
 import 'package:aquacare_v5/core/models/notification_model.dart';
+import 'package:aquacare_v5/core/services/local_storage_service.dart';
+import 'dart:async';
 
 class AquariumSummary {
   final String aquariumId;
@@ -52,11 +54,22 @@ class AquariumRepository {
             if (data == null) {
               return Sensor(temperature: 0, turbidity: 0, ph: 0);
             }
-            return Sensor(
+            final sensor = Sensor(
               temperature: (data['temperature'] ?? 0).toDouble(),
               turbidity: (data['turbidity'] ?? 0).toDouble(),
               ph: (data['ph'] ?? 0).toDouble(),
             );
+            // cache latest for offline
+            unawaited(
+              LocalStorageService.instance.cacheLatestSensors(
+                aquariumId: aquariumId,
+                temperature: sensor.temperature,
+                ph: sensor.ph,
+                turbidity: sensor.turbidity,
+                timestampMs: DateTime.now().millisecondsSinceEpoch,
+              ),
+            );
+            return sensor;
           } catch (e) {
             print('Error processing sensor data for aquarium $aquariumId: $e');
             return Sensor(temperature: 0, turbidity: 0, ph: 0);

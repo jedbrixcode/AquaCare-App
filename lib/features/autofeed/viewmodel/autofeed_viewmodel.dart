@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repository/autofeed_repository.dart';
-import 'package:aquacare_v5/core/config/backend_config.dart';
 
 class AutoFeedState {
   final bool isManualMode;

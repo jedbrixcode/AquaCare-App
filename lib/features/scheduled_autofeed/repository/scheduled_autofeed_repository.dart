@@ -1,8 +1,11 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'package:aquacare_v5/core/config/backend_config.dart';
 import 'package:firebase_database/firebase_database.dart';
 import '../models/feeding_schedule_model.dart';
+import 'package:aquacare_v5/core/services/local_storage_service.dart';
+import 'package:aquacare_v5/core/models/feeding_schedule_cache.dart';
 
 class ScheduledAutofeedRepository {
   final String baseUrl = BackendConfig.piCamBaseUrl;
@@ -19,6 +22,11 @@ class ScheduledAutofeedRepository {
       final snapshot = await ref.get();
       if (!snapshot.exists || snapshot.value == null) {
         _cache[aquariumId] = const <FeedingSchedule>[];
+        // clear local cache for this aquarium
+        await LocalStorageService.instance.cacheFeedingSchedules(
+          aquariumId,
+          const <FeedingScheduleCache>[],
+        );
         return const <FeedingSchedule>[];
       }
       final raw = Map<Object?, Object?>.from(snapshot.value as Map);
@@ -34,8 +42,46 @@ class ScheduledAutofeedRepository {
       // Optional: sort by time ascending
       items.sort((a, b) => a.time.compareTo(b.time));
       _cache[aquariumId] = items;
+
+      // persist to Isar
+      await LocalStorageService.instance.cacheFeedingSchedules(
+        aquariumId,
+        items
+            .map(
+              (e) =>
+                  FeedingScheduleCache()
+                    ..aquariumId = aquariumId
+                    ..scheduleId = e.id
+                    ..time = e.time
+                    ..cycles = e.cycles
+                    ..foodType = e.foodType
+                    ..isEnabled = e.isEnabled
+                    ..daily = false,
+            )
+            .toList(),
+      );
       return items;
     } catch (e) {
+      // Fallback to local cache in Isar
+      final cached = await LocalStorageService.instance.getFeedingSchedules(
+        aquariumId,
+      );
+      if (cached.isNotEmpty) {
+        return cached
+            .map(
+              (e) => FeedingSchedule(
+                id: e.scheduleId,
+                aquariumId: aquariumId,
+                time: e.time,
+                cycles: e.cycles,
+                foodType: e.foodType,
+                isEnabled: e.isEnabled,
+                createdAt: DateTime.now(),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.time.compareTo(b.time));
+      }
       throw Exception('Error fetching feeding schedules: $e');
     }
   }
@@ -335,6 +381,25 @@ class ScheduledAutofeedRepository {
           }).toList();
       items.sort((a, b) => a.time.compareTo(b.time));
       _cache[aquariumId] = items;
+      // update local cache
+      unawaited(
+        LocalStorageService.instance.cacheFeedingSchedules(
+          aquariumId,
+          items
+              .map(
+                (e) =>
+                    FeedingScheduleCache()
+                      ..aquariumId = aquariumId
+                      ..scheduleId = e.id
+                      ..time = e.time
+                      ..cycles = e.cycles
+                      ..foodType = e.foodType
+                      ..isEnabled = e.isEnabled
+                      ..daily = false,
+              )
+              .toList(),
+        ),
+      );
       return items;
     });
   }
@@ -365,7 +430,26 @@ class ScheduledAutofeedRepository {
   }
 
   Future<List<FeedingSchedule>?> getCachedSchedules(String aquariumId) async {
-    return _cache[aquariumId];
+    final mem = _cache[aquariumId];
+    if (mem != null) return mem;
+    final cached = await LocalStorageService.instance.getFeedingSchedules(
+      aquariumId,
+    );
+    if (cached.isEmpty) return null;
+    return cached
+        .map(
+          (e) => FeedingSchedule(
+            id: e.scheduleId,
+            aquariumId: aquariumId,
+            time: e.time,
+            cycles: e.cycles,
+            foodType: e.foodType,
+            isEnabled: e.isEnabled,
+            createdAt: DateTime.now(),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.time.compareTo(b.time));
   }
 
   Future<void> cacheSchedules(

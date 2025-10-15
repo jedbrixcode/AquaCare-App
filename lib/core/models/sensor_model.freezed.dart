@@ -24,12 +24,8 @@ mixin _$Sensor {
   double get turbidity => throw _privateConstructorUsedError;
   double get ph => throw _privateConstructorUsedError;
 
-  /// Serializes this Sensor to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of Sensor
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $SensorCopyWith<Sensor> get copyWith => throw _privateConstructorUsedError;
 }
 
@@ -51,8 +47,6 @@ class _$SensorCopyWithImpl<$Res, $Val extends Sensor>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of Sensor
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -95,8 +89,6 @@ class __$$SensorImplCopyWithImpl<$Res>
       _$SensorImpl _value, $Res Function(_$SensorImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of Sensor
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -154,13 +146,11 @@ class _$SensorImpl implements _Sensor {
             (identical(other.ph, ph) || other.ph == ph));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, temperature, turbidity, ph);
 
-  /// Create a copy of Sensor
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$SensorImplCopyWith<_$SensorImpl> get copyWith =>
@@ -188,11 +178,8 @@ abstract class _Sensor implements Sensor {
   double get turbidity;
   @override
   double get ph;
-
-  /// Create a copy of Sensor
-  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$SensorImplCopyWith<_$SensorImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

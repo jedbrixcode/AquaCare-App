@@ -34,95 +34,101 @@ class SensorGraphsPage extends ConsumerWidget {
         child: Theme(
           data: Theme.of(context).copyWith(
             listTileTheme: ListTileThemeData(
-              textColor:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
-              iconColor:
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.white
-                      : Colors.black,
+              textColor: isDark ? Colors.white : Colors.black,
+              iconColor: isDark ? Colors.white : Colors.black,
             ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Header Row
               Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text('Aquarium:'),
                   const SizedBox(width: 10),
-                  DropdownButton<String?>(
-                    value: aquariumNames.valueOrNull?.firstWhere(
-                      (name) => nameToId[name] == viewModel.aquariumId,
-                      orElse:
-                          () =>
-                              aquariumNames.valueOrNull?.first ??
-                              '', // default to first or empty
-                    ),
-                    onChanged: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        ref
-                            .read(sensorGraphsViewModelProvider.notifier)
-                            .setAquariumByName(value);
-                      }
-                    },
-                    items: aquariumNames.when(
-                      data:
-                          (names) =>
-                              names
-                                  .map(
-                                    (name) => DropdownMenuItem<String>(
-                                      value: name,
-                                      child: Text(name),
-                                    ),
-                                  )
-                                  .toList(),
-                      loading:
-                          () => const [
-                            DropdownMenuItem<String>(
-                              value: '',
-                              child: Text('Loading...'),
-                            ),
-                          ],
-                      error:
-                          (e, _) => [
-                            DropdownMenuItem<String>(
-                              value: '',
-                              child: Text('Error loading'),
-                            ),
-                          ],
+                  Expanded(
+                    child: DropdownButton<String?>(
+                      isExpanded: false,
+                      value: aquariumNames.valueOrNull?.firstWhere(
+                        (name) => nameToId[name] == viewModel.aquariumId,
+                        orElse: () => aquariumNames.valueOrNull?.first ?? '',
+                      ),
+                      onChanged: (value) {
+                        if (value != null && value.isNotEmpty) {
+                          ref
+                              .read(sensorGraphsViewModelProvider.notifier)
+                              .setAquariumByName(value);
+                        }
+                      },
+                      items: aquariumNames.when(
+                        data:
+                            (names) =>
+                                names
+                                    .map(
+                                      (name) => DropdownMenuItem<String>(
+                                        value: name,
+                                        child: Text(name),
+                                      ),
+                                    )
+                                    .toList(),
+                        loading:
+                            () => const [
+                              DropdownMenuItem<String>(
+                                value: '',
+                                child: Text('Loading...'),
+                              ),
+                            ],
+                        error:
+                            (e, _) => const [
+                              DropdownMenuItem<String>(
+                                value: '',
+                                child: Text('Error loading'),
+                              ),
+                            ],
+                      ),
                     ),
                   ),
-                  const Spacer(),
-                  SegmentedButton<GraphRange>(
-                    segments: const [
-                      ButtonSegment(
-                        value: GraphRange.hourly,
-                        label: Text('Hourly'),
+                  const SizedBox(width: 10),
+                  Flexible(
+                    fit: FlexFit.loose,
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: IntrinsicWidth(
+                        child: SegmentedButton<GraphRange>(
+                          segments: const [
+                            ButtonSegment(
+                              value: GraphRange.hourly,
+                              label: Text('Hourly'),
+                            ),
+                            ButtonSegment(
+                              value: GraphRange.weekly,
+                              label: Text('Weekly'),
+                            ),
+                          ],
+                          selected: {graphs.range},
+                          onSelectionChanged: (s) {
+                            if (s.isNotEmpty) {
+                              ref
+                                  .read(sensorGraphsViewModelProvider.notifier)
+                                  .setRange(s.first);
+                            }
+                          },
+                        ),
                       ),
-                      ButtonSegment(
-                        value: GraphRange.weekly,
-                        label: Text('Weekly'),
-                      ),
-                    ],
-                    selected: {graphs.range},
-                    onSelectionChanged: (s) {
-                      if (s.isNotEmpty) {
-                        ref
-                            .read(sensorGraphsViewModelProvider.notifier)
-                            .setRange(s.first);
-                      }
-                    },
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+
+              const SizedBox(height: 12),
+
+              // Scrollable chart area
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       const SizedBox(height: 12),
-
                       if (graphs.range == GraphRange.hourly) ...[
                         graphs.temperature.when(
                           data:

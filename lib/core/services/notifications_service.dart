@@ -32,7 +32,16 @@ class NotificationsService {
 
     await FirebaseMessaging.instance.requestPermission();
 
-    FirebaseMessaging.onMessage.listen(showRemoteMessage);
+    FirebaseMessaging.onMessage.listen((RemoteMessage m) {
+      // Only show manually if message does NOT have `notification` payload
+      if (m.notification == null) {
+        final data = m.data;
+        showLocal(
+          title: data['title'] ?? 'AquaCare',
+          body: data['body'] ?? 'You have a new sensor alert.',
+        );
+      }
+    });
   }
 
   void showRemoteMessage(RemoteMessage m) {

@@ -23,12 +23,8 @@ mixin _$Aquarium {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
 
-  /// Serializes this Aquarium to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of Aquarium
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $AquariumCopyWith<Aquarium> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -51,8 +47,6 @@ class _$AquariumCopyWithImpl<$Res, $Val extends Aquarium>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of Aquarium
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -91,8 +85,6 @@ class __$$AquariumImplCopyWithImpl<$Res>
       _$AquariumImpl _value, $Res Function(_$AquariumImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of Aquarium
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -139,13 +131,11 @@ class _$AquariumImpl implements _Aquarium {
             (identical(other.name, name) || other.name == name));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, id, name);
 
-  /// Create a copy of Aquarium
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$AquariumImplCopyWith<_$AquariumImpl> get copyWith =>
@@ -170,11 +160,8 @@ abstract class _Aquarium implements Aquarium {
   String get id;
   @override
   String get name;
-
-  /// Create a copy of Aquarium
-  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$AquariumImplCopyWith<_$AquariumImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

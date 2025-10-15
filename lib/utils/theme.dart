@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:aquacare_v5/core/services/local_storage_service.dart';
 
 /// ----------------------------
 /// THEME DEFINITIONS
@@ -49,8 +49,7 @@ class ThemeController extends StateNotifier<ThemeMode> {
   }
 
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final stored = prefs.getString('theme_mode');
+    final stored = await LocalStorageService.instance.getThemeModeString();
     if (stored == 'light') state = ThemeMode.light;
     if (stored == 'dark') state = ThemeMode.dark;
     if (stored == 'system') state = ThemeMode.system;
@@ -58,15 +57,13 @@ class ThemeController extends StateNotifier<ThemeMode> {
 
   Future<void> setThemeMode(ThemeMode mode) async {
     state = mode;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(
-      'theme_mode',
-      mode == ThemeMode.light
-          ? 'light'
-          : mode == ThemeMode.dark
-          ? 'dark'
-          : 'system',
-    );
+    final value =
+        mode == ThemeMode.light
+            ? 'light'
+            : mode == ThemeMode.dark
+            ? 'dark'
+            : 'system';
+    await LocalStorageService.instance.setThemeModeString(value);
   }
 }
 

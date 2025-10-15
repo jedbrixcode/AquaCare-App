@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/chat/repository/chat_repository.dart';
+import 'package:aquacare_v5/core/services/local_storage_service.dart';
+import 'package:aquacare_v5/core/models/chat_message_isar.dart';
 
 class ChatMessage {
   final String id;
@@ -61,7 +63,51 @@ class ChatState {
 
 class ChatViewModel extends StateNotifier<ChatState> {
   final ChatRepository _repo;
-  ChatViewModel(this._repo) : super(const ChatState());
+  ChatViewModel(this._repo) : super(const ChatState()) {
+    _loadFromCache();
+    _subscribe();
+  }
+
+  Future<void> _loadFromCache() async {
+    final items = await LocalStorageService.instance.getChatMessages();
+    final mapped =
+        items
+            .map(
+              (e) => ChatMessage(
+                id: e.messageId,
+                text: e.text,
+                isUser: e.isUser,
+                timestamp: e.timestamp,
+                imageBytes:
+                    e.imageBytes != null
+                        ? Uint8List.fromList(e.imageBytes!)
+                        : null,
+              ),
+            )
+            .toList();
+    state = state.copyWith(messages: mapped);
+  }
+
+  void _subscribe() {
+    LocalStorageService.instance.watchChatMessages().listen((items) {
+      final mapped =
+          items
+              .map(
+                (e) => ChatMessage(
+                  id: e.messageId,
+                  text: e.text,
+                  isUser: e.isUser,
+                  timestamp: e.timestamp,
+                  imageBytes:
+                      e.imageBytes != null
+                          ? Uint8List.fromList(e.imageBytes!)
+                          : null,
+                ),
+              )
+              .toList();
+      state = state.copyWith(messages: mapped);
+    });
+  }
 
   void setInput(String text) {
     state = state.copyWith(inputText: text, clearError: true);
@@ -81,6 +127,7 @@ class ChatViewModel extends StateNotifier<ChatState> {
 
   void clearChatHistory() {
     state = state.copyWith(messages: []);
+    LocalStorageService.instance.clearChatMessages();
   }
 
   Future<void> send() async {
@@ -99,6 +146,14 @@ class ChatViewModel extends StateNotifier<ChatState> {
       imageBytes: image,
     );
     state = state.copyWith(messages: [...state.messages, userMsg]);
+    await LocalStorageService.instance.addChatMessage(
+      ChatMessageIsar()
+        ..messageId = userMsg.id
+        ..text = userMsg.text
+        ..isUser = true
+        ..timestamp = userMsg.timestamp
+        ..imageBytes = image?.toList(),
+    );
 
     try {
       String aiText;
@@ -124,6 +179,13 @@ class ChatViewModel extends StateNotifier<ChatState> {
         inputText: '',
         isSending: false,
         clearAttachment: true,
+      );
+      await LocalStorageService.instance.addChatMessage(
+        ChatMessageIsar()
+          ..messageId = aiMsg.id
+          ..text = aiMsg.text
+          ..isUser = false
+          ..timestamp = aiMsg.timestamp,
       );
     } catch (e) {
       state = state.copyWith(isSending: false, errorMessage: e.toString());

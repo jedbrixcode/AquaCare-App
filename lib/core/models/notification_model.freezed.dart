@@ -24,12 +24,8 @@ mixin _$NotificationPref {
   bool get turbidity => throw _privateConstructorUsedError;
   bool get ph => throw _privateConstructorUsedError;
 
-  /// Serializes this NotificationPref to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
-
-  /// Create a copy of NotificationPref
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   $NotificationPrefCopyWith<NotificationPref> get copyWith =>
       throw _privateConstructorUsedError;
 }
@@ -53,8 +49,6 @@ class _$NotificationPrefCopyWithImpl<$Res, $Val extends NotificationPref>
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of NotificationPref
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -98,8 +92,6 @@ class __$$NotificationPrefImplCopyWithImpl<$Res>
       $Res Function(_$NotificationPrefImpl) _then)
       : super(_value, _then);
 
-  /// Create a copy of NotificationPref
-  /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
   $Res call({
@@ -157,13 +149,11 @@ class _$NotificationPrefImpl implements _NotificationPref {
             (identical(other.ph, ph) || other.ph == ph));
   }
 
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   int get hashCode => Object.hash(runtimeType, temperature, turbidity, ph);
 
-  /// Create a copy of NotificationPref
-  /// with the given fields replaced by the non-null parameter values.
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   @override
   @pragma('vm:prefer-inline')
   _$$NotificationPrefImplCopyWith<_$NotificationPrefImpl> get copyWith =>
@@ -193,11 +183,8 @@ abstract class _NotificationPref implements NotificationPref {
   bool get turbidity;
   @override
   bool get ph;
-
-  /// Create a copy of NotificationPref
-  /// with the given fields replaced by the non-null parameter values.
   @override
-  @JsonKey(includeFromJson: false, includeToJson: false)
+  @JsonKey(ignore: true)
   _$$NotificationPrefImplCopyWith<_$NotificationPrefImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }
