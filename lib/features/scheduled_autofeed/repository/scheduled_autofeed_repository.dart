@@ -8,7 +8,7 @@ import 'package:aquacare_v5/core/services/local_storage_service.dart';
 import 'package:aquacare_v5/core/models/feeding_schedule_cache.dart';
 
 class ScheduledAutofeedRepository {
-  final String baseUrl = BackendConfig.piCamBaseUrl;
+  final String baseUrl = BackendConfig.flaskBaseUrl;
 
   // Simple in-memory cache placeholder. Swap with Hive/Prefs/Isar.
   final Map<String, List<FeedingSchedule>> _cache = {};
@@ -191,11 +191,13 @@ class ScheduledAutofeedRepository {
     required String aquariumId,
     required DateTime scheduleDateTime,
     required int cycles,
+    required String food,
   }) async {
     try {
       final payload = {
         'cycle': cycles,
         'schedule_time': _formatDateTime(scheduleDateTime),
+        'food': food,
       };
       final response = await http.post(
         Uri.parse('$baseUrl/task/$aquariumId'),
@@ -216,7 +218,11 @@ class ScheduledAutofeedRepository {
     required DateTime scheduleDateTime,
   }) async {
     try {
-      final payload = {'schedule_time': _formatDateTime(scheduleDateTime)};
+      final scheduleTime = _formatDateTime(scheduleDateTime);
+      final payload = {
+        // Backend expects document_id formatted as f"{aquarium_id}_schedule_at_{schedule_time}"
+        'document_id': '${aquariumId}_schedule_at_$scheduleTime',
+      };
       final response = await http.post(
         Uri.parse('$baseUrl/task/delete/$aquariumId'),
         headers: {'Content-Type': 'application/json'},

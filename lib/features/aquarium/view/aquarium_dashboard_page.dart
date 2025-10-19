@@ -14,8 +14,6 @@ class AquariumDashboardPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = themeMode == ThemeMode.dark;
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
 
     return Scaffold(
@@ -23,27 +21,33 @@ class AquariumDashboardPage extends ConsumerWidget {
         title: const Text('AquaCare Dashboard'),
         backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         titleTextStyle: TextStyle(
-          color: isDark ? Colors.white : Colors.white,
+          color: Theme.of(context).appBarTheme.foregroundColor,
           fontSize: 24,
           fontWeight: FontWeight.bold,
         ),
       ),
       drawer: Drawer(
-        backgroundColor:
-            isDark
-                ? const Color(0xFF1E293B)
-                : const Color.fromARGB(255, 107, 159, 255),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.only(
+            topRight: Radius.circular(16),
+            bottomRight: Radius.circular(16),
+          ),
+        ),
+        elevation: 10,
+        shadowColor: Theme.of(context).colorScheme.shadow,
+        width: 290,
+        backgroundColor: Theme.of(context).drawerTheme.backgroundColor,
         child: ListView(
           padding: EdgeInsets.zero,
           children: <Widget>[
             DrawerHeader(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF0F172A) : Colors.blue,
+                color: Theme.of(context).appBarTheme.backgroundColor,
               ),
-              child: const Text(
+              child: Text(
                 'AquaCare',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).appBarTheme.foregroundColor,
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
                 ),
@@ -51,10 +55,10 @@ class AquariumDashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 30),
             ListTile(
-              title: const Text(
+              title: Text(
                 'Home',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -65,10 +69,10 @@ class AquariumDashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 25),
             ListTile(
-              title: const Text(
+              title: Text(
                 'Chat with AI',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -79,10 +83,10 @@ class AquariumDashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 25),
             ListTile(
-              title: const Text(
+              title: Text(
                 'Monitoring Graphs',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -93,10 +97,10 @@ class AquariumDashboardPage extends ConsumerWidget {
             ),
             const SizedBox(height: 25),
             ListTile(
-              title: const Text(
+              title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: Theme.of(context).colorScheme.onSurface,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -118,11 +122,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                 return Container(
                   width: double.infinity,
                   color: Colors.orange,
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 8,
-                    horizontal: 16,
-                  ),
-                  child: const Row(
+                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: Row(
                     children: [
                       Icon(Icons.wifi_off, color: Colors.white, size: 20),
                       SizedBox(width: 8),
@@ -130,7 +131,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                         child: Text(
                           'You are currently offline. Some features may be limited.',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: Theme.of(context).colorScheme.onSurface,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -142,29 +143,37 @@ class AquariumDashboardPage extends ConsumerWidget {
               return const SizedBox.shrink();
             },
           ),
-          // Main Content
+
+          // Main body of page
           Expanded(
             child: summaryAsync.when(
               data: (summaries) {
                 if (summaries.isEmpty) {
-                  return const Center(
+                  return Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.water_drop, size: 64, color: Colors.grey),
+                        Icon(
+                          Icons.water_drop,
+                          size: 64,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
                         SizedBox(height: 16),
                         Text(
                           'No Aquariums Found',
                           style: TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         SizedBox(height: 8),
                         Text(
                           'Waiting for aquarium data...',
-                          style: TextStyle(fontSize: 16, color: Colors.grey),
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                         ),
                       ],
                     ),
@@ -179,6 +188,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                       Text(
                         'Active Aquariums (${summaries.length})',
                         style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: ResponsiveHelper.getFontSize(context, 20),
                           fontWeight: FontWeight.bold,
                         ),
@@ -218,17 +228,20 @@ class AquariumDashboardPage extends ConsumerWidget {
                           color: Colors.red,
                         ),
                         const SizedBox(height: 16),
-                        const Text(
+                        Text(
                           'Error loading aquariums',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           error.toString(),
-                          style: const TextStyle(color: Colors.grey),
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
@@ -236,7 +249,12 @@ class AquariumDashboardPage extends ConsumerWidget {
                           onPressed: () {
                             ref.invalidate(aquariumsSummaryProvider);
                           },
-                          child: const Text('Retry'),
+                          child: Text(
+                            'Retry',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -247,8 +265,11 @@ class AquariumDashboardPage extends ConsumerWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showFabActions(context),
-        backgroundColor: Colors.blue,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        child: Icon(
+          Icons.add,
+          color: Theme.of(context).appBarTheme.foregroundColor,
+        ),
       ),
     );
   }
@@ -265,8 +286,16 @@ class AquariumDashboardPage extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.bluetooth),
-                title: const Text('TankPi Setup (Bluetooth)'),
+                leading: Icon(
+                  Icons.bluetooth,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
+                  'TankPi Setup (Bluetooth)',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   Navigator.push(
@@ -291,29 +320,54 @@ class AquariumDashboardPage extends ConsumerWidget {
         return AlertDialog(
           title: Text(
             '${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'} Options',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: const Icon(Icons.wifi),
-                title: const Text('Change WiFi Settings'),
+                leading: Icon(
+                  Icons.wifi,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
+                  'Change WiFi Settings',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showChangeWifiDialog(context);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.edit),
-                title: const Text('Edit Name'),
+                leading: Icon(
+                  Icons.edit,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
+                  'Edit Name',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showEditAquariumDialog(context, s);
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text('Notification Settings'),
+                leading: Icon(
+                  Icons.notifications,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+                title: Text(
+                  'Notification Settings',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
                 onTap: () {
                   Navigator.of(context).pop();
                   _showNotificationSettingsDialog(context, s);
@@ -346,18 +400,38 @@ class AquariumDashboardPage extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Edit Aquarium Name'),
+          title: Text(
+            'Edit Aquarium Name',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            decoration: InputDecoration(
               labelText: 'Aquarium Name',
               hintText: 'Enter new name',
+              labelStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              hintStyle: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -443,22 +517,42 @@ class AquariumDashboardPage extends ConsumerWidget {
                 return StatefulBuilder(
                   builder: (context, setState) {
                     return AlertDialog(
-                      title: const Text('Notification Settings'),
+                      title: Text(
+                        'Notification Settings',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                      ),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           SwitchListTile(
-                            title: const Text('Temperature Alerts'),
+                            title: Text(
+                              'Temperature Alerts',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                             value: tempNotif,
                             onChanged: (v) => setState(() => tempNotif = v),
                           ),
                           SwitchListTile(
-                            title: const Text('pH Level Alerts'),
+                            title: Text(
+                              'pH Level Alerts',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                             value: phNotif,
                             onChanged: (v) => setState(() => phNotif = v),
                           ),
                           SwitchListTile(
-                            title: const Text('Turbidity Alerts'),
+                            title: Text(
+                              'Turbidity Alerts',
+                              style: TextStyle(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
+                            ),
                             value: turbidityNotif,
                             onChanged:
                                 (v) => setState(() => turbidityNotif = v),
@@ -468,7 +562,12 @@ class AquariumDashboardPage extends ConsumerWidget {
                       actions: [
                         TextButton(
                           onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('Cancel'),
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                          ),
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -496,7 +595,12 @@ class AquariumDashboardPage extends ConsumerWidget {
                               ),
                             );
                           },
-                          child: const Text('Save'),
+                          child: Text(
+                            'Save',
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onError,
+                            ),
+                          ),
                         ),
                       ],
                     );
@@ -540,7 +644,12 @@ class AquariumDashboardPage extends ConsumerWidget {
                 ref.watch(bluetoothSetupViewModelProvider).sendingState;
             final isLoading = sending is AsyncLoading;
             return AlertDialog(
-              title: const Text('Change WiFi on TankPi'),
+              title: Text(
+                'Change WiFi on TankPi',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+              ),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -565,7 +674,12 @@ class AquariumDashboardPage extends ConsumerWidget {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
+                  ),
                 ),
                 ElevatedButton(
                   onPressed:
@@ -622,9 +736,13 @@ class AquariumDashboardPage extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('Delete Aquarium'),
+          title: Text(
+            'Delete Aquarium',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+          ),
           content: Text(
             'Are you sure you want to delete "${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'}"? This action cannot be undone.',
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
           ),
           actions: [
             TextButton(
@@ -639,6 +757,7 @@ class AquariumDashboardPage extends ConsumerWidget {
 
                 try {
                   await vm.deleteAquarium(s.aquariumId);
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
 
                   // Refresh the provider to remove deleted aquarium
@@ -651,20 +770,26 @@ class AquariumDashboardPage extends ConsumerWidget {
                       content: Text(
                         'Aquarium "${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'}" deleted successfully!',
                       ),
-                      backgroundColor: Colors.green,
+                      backgroundColor:
+                          Theme.of(
+                            context,
+                          ).colorScheme.secondary, // Use theme green equivalent
                     ),
                   );
                 } catch (e) {
+                  if (!context.mounted) return;
                   Navigator.of(context).pop();
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error deleting aquarium: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: Theme.of(context).colorScheme.error,
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+              ),
               child: const Text(
                 'Delete',
                 style: TextStyle(color: Colors.white),
@@ -680,6 +805,7 @@ class AquariumDashboardPage extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Card(
+        color: Theme.of(context).colorScheme.surface,
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: InkWell(
@@ -714,26 +840,9 @@ class AquariumDashboardPage extends ConsumerWidget {
                       child: Text(
                         s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.green,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Text(
-                        'Active',
                         style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

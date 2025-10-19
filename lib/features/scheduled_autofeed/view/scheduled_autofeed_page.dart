@@ -55,35 +55,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Schedules Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Feeding Schedules',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getFontSize(context, 24),
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[700],
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showAddChoiceDialog(context, viewModel),
-                  icon: const Icon(Icons.add, color: Colors.white),
-                  label: Text(
-                    'Add Schedule',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: ResponsiveHelper.getFontSize(context, 15),
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue[600],
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              ],
+            Text(
+              'Feeding Schedules',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 24),
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[700],
+              ),
             ),
             const SizedBox(height: 16),
 
@@ -160,6 +138,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             const SizedBox(height: 32),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showAddChoiceDialog(context, viewModel),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -642,6 +624,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                         await viewModel.addOneTimeTask(
                           scheduleDateTime: dt,
                           cycles: cycles,
+                          food: selectedFood,
                         );
                         if (context.mounted) Navigator.of(ctx).pop();
                       },

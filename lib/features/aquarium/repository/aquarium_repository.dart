@@ -4,6 +4,7 @@ import 'package:aquacare_v5/core/models/threshold_model.dart';
 import 'package:aquacare_v5/core/models/notification_model.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
 import 'dart:async';
+import 'package:rxdart/rxdart.dart';
 
 class AquariumSummary {
   final String aquariumId;
@@ -83,16 +84,33 @@ class AquariumRepository {
         });
   }
 
-  // Stream of all aquariums with name and sensors (supports Map and List)
+  // Stream of all aquariums with name and sensors, offline-first (emit cached immediately)
   Stream<List<AquariumSummary>> getAllAquariumsSummary() {
-    return _db
+    final cached$ = Stream.fromFuture(
+      LocalStorageService.instance.getAllLatestSensorsLatest().then((list) {
+        return list
+            .map(
+              (e) => AquariumSummary(
+                aquariumId: (e['aquariumId'] ?? '').toString(),
+                name: '', // name is unknown from cache; UI can fallback
+                sensor: Sensor(
+                  temperature: (e['temperature'] ?? 0).toDouble(),
+                  turbidity: (e['turbidity'] ?? 0).toDouble(),
+                  ph: (e['ph'] ?? 0).toDouble(),
+                ),
+              ),
+            )
+            .toList();
+      }),
+    );
+
+    final live$ = _db
         .child('aquariums')
         .onValue
         .map((event) {
           try {
             final dynamic data = event.snapshot.value;
             final List<AquariumSummary> result = [];
-
             if (data == null) return result;
 
             if (data is Map) {
@@ -117,7 +135,6 @@ class AquariumRepository {
                     }
                   }
                 } catch (e) {
-                  // Skip invalid aquarium data
                   print('Error processing aquarium $key: $e');
                 }
               });
@@ -150,7 +167,6 @@ class AquariumRepository {
                     }
                   }
                 } catch (e) {
-                  // Skip invalid aquarium data
                   print('Error processing aquarium item: $e');
                 }
               }
@@ -167,6 +183,31 @@ class AquariumRepository {
           print('Firebase error in getAllAquariumsSummary: $error');
           return <AquariumSummary>[];
         });
+
+    // Emit cached first, then live; also update when local cache changes
+    final cacheWatch$ = LocalStorageService.instance
+        .watchAllLatestSensorsLazy()
+        .asyncMap(
+          (_) => LocalStorageService.instance.getAllLatestSensorsLatest().then(
+            (list) =>
+                list
+                    .map(
+                      (e) => AquariumSummary(
+                        aquariumId: (e['aquariumId'] ?? '').toString(),
+                        name: '',
+                        sensor: Sensor(
+                          temperature: (e['temperature'] ?? 0).toDouble(),
+                          turbidity: (e['turbidity'] ?? 0).toDouble(),
+                          ph: (e['ph'] ?? 0).toDouble(),
+                        ),
+                      ),
+                    )
+                    .toList(),
+          ),
+        )
+        .onErrorReturn(<AquariumSummary>[]);
+
+    return Rx.merge<List<AquariumSummary>>([cached$, cacheWatch$, live$]);
   }
 
   Future<Threshold> fetchThresholds(String aquariumId) async {

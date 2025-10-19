@@ -240,6 +240,7 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
   Future<void> addOneTimeTask({
     required DateTime scheduleDateTime,
     required int cycles,
+    required String food,
   }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
@@ -247,6 +248,7 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
         aquariumId: aquariumId,
         scheduleDateTime: scheduleDateTime,
         cycles: cycles,
+        food: food,
       );
       state = state.copyWith(isLoading: false);
     } catch (e) {

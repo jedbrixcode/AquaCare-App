@@ -10,9 +10,8 @@ class BluetoothService {
   BluetoothService._();
 
   // ✅ Fixed UUIDs for WiFi Configuration
-  final blue.Guid _serviceUuid = blue.Guid(
-    '12345678-1234-5678-1234-56789abcdef0',
-  );
+  // Note: Service UUID kept here for potential filtering; not required at runtime.
+  // final blue.Guid _serviceUuid = blue.Guid('12345678-1234-5678-1234-56789abcdef0');
   final blue.Guid _characteristicUuid = blue.Guid(
     '12345678-1234-5678-1234-56789abcdef1',
   );
@@ -21,6 +20,8 @@ class BluetoothService {
   final List<blue.BluetoothDevice> _discoveredDevices = [];
   blue.BluetoothDevice? _connectedDevice;
   blue.BluetoothCharacteristic? _wifiCharacteristic;
+  blue.BluetoothCharacteristic?
+  _notifyCharacteristic; // optional if Pi adds notify later
   bool _isScanning = false;
   bool _isConnected = false;
 
@@ -168,6 +169,10 @@ class BluetoothService {
             _statusController.add('Found WiFi configuration characteristic');
             break;
           }
+          // If Pi exposes the same UUID with notify later, subscribe to it
+          if (c.uuid == _characteristicUuid && c.properties.notify) {
+            _notifyCharacteristic = c;
+          }
         }
         if (_wifiCharacteristic != null) break;
       }
@@ -176,6 +181,19 @@ class BluetoothService {
         _statusController.add(
           'WiFi configuration characteristic not found. Check UUIDs.',
         );
+      }
+
+      // Try enable notifications for confirmation if available
+      if (_notifyCharacteristic != null) {
+        try {
+          await _notifyCharacteristic!.setNotifyValue(true);
+          _notifyCharacteristic!.onValueReceived.listen((data) {
+            try {
+              final text = utf8.decode(data);
+              _statusController.add('TankPi notify: $text');
+            } catch (_) {}
+          });
+        } catch (_) {}
       }
 
       // 🔁 Listen for disconnects & auto-reconnect
@@ -241,16 +259,9 @@ class BluetoothService {
     }
 
     try {
-      final Map<String, dynamic> wifiConfig = {
-        'ssid': ssid,
-        'password': password,
-        'timestamp': DateTime.now().millisecondsSinceEpoch,
-      };
-      if (aquariumId != null && aquariumId.isNotEmpty) {
-        wifiConfig['aquarium_id'] = aquariumId;
-      }
-
-      final data = utf8.encode(jsonEncode(wifiConfig));
+      // Must match Pi expectation strictly: {"ssid":"...","password":"..."}
+      final payload = jsonEncode({'ssid': ssid, 'password': password});
+      final data = utf8.encode(payload);
       await _writeInChunks(data);
 
       // Optional: Read confirmation response

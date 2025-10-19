@@ -17,31 +17,35 @@ class NotificationsService {
     importance: Importance.high,
   );
 
-  Future<void> init() async {
+  Future<void> init({bool silentOnFailure = false}) async {
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
-    await _local.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
-    );
+    try {
+      await _local.initialize(
+        const InitializationSettings(android: androidInit, iOS: iosInit),
+      );
 
-    await _local
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_channel);
+      await _local
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >()
+          ?.createNotificationChannel(_channel);
 
-    await FirebaseMessaging.instance.requestPermission();
+      await FirebaseMessaging.instance.requestPermission();
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage m) {
-      // Only show manually if message does NOT have `notification` payload
-      if (m.notification == null) {
-        final data = m.data;
-        showLocal(
-          title: data['title'] ?? 'AquaCare',
-          body: data['body'] ?? 'You have a new sensor alert.',
-        );
-      }
-    });
+      FirebaseMessaging.onMessage.listen((RemoteMessage m) {
+        // Only show manually if message does NOT have `notification` payload
+        if (m.notification == null) {
+          final data = m.data;
+          showLocal(
+            title: data['title'] ?? 'AquaCare',
+            body: data['body'] ?? 'You have a new sensor alert.',
+          );
+        }
+      });
+    } catch (e) {
+      if (!silentOnFailure) rethrow;
+    }
   }
 
   void showRemoteMessage(RemoteMessage m) {

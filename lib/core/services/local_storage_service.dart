@@ -116,6 +116,34 @@ class LocalStorageService {
     };
   }
 
+  // ✅ Get latest sensor snapshot for ALL aquariums (dedup by newest timestamp)
+  Future<List<Map<String, dynamic>>> getAllLatestSensorsLatest() async {
+    final all = await _isar.latestSensors.where().findAll();
+    final Map<String, LatestSensor> newestByAquariumId = {};
+    for (final entry in all) {
+      final existing = newestByAquariumId[entry.aquariumId];
+      if (existing == null || (entry.timestampMs) > (existing.timestampMs)) {
+        newestByAquariumId[entry.aquariumId] = entry;
+      }
+    }
+    return newestByAquariumId.values
+        .map(
+          (e) => {
+            'aquariumId': e.aquariumId,
+            'temperature': e.temperature,
+            'ph': e.ph,
+            'turbidity': e.turbidity,
+            'timestampMs': e.timestampMs,
+          },
+        )
+        .toList();
+  }
+
+  // Reactive watcher for any latest sensor change across all aquariums
+  Stream<void> watchAllLatestSensorsLazy() {
+    return _isar.latestSensors.watchLazy();
+  }
+
   // Reactive watcher for latest sensors per aquarium
   Stream<void> watchLatestSensorsLazy(String aquariumId) {
     return _isar.latestSensors
