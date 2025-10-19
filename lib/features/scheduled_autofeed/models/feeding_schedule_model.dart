@@ -4,7 +4,8 @@ class FeedingSchedule {
   final String time; // Format: "HH:mm" (24-hour)
   final int cycles; // maps to backend 'cycle'
   final String foodType; // maps to backend 'food'
-  final bool isEnabled; // maps to backend 'switch' // maps to backend 'daily'
+  final bool isEnabled; // maps to backend 'switch'
+  final bool daily; // maps to backend 'daily'
   final DateTime createdAt;
   final DateTime? updatedAt;
 
@@ -15,6 +16,7 @@ class FeedingSchedule {
     required this.cycles,
     required this.foodType,
     required this.isEnabled,
+    this.daily = true,
     required this.createdAt,
     this.updatedAt,
   });
@@ -34,6 +36,7 @@ class FeedingSchedule {
                   1,
       foodType: (json['food_type'] ?? json['food'] ?? 'Default').toString(),
       isEnabled: (json['is_enabled'] ?? json['switch'] ?? false) == true,
+      daily: (json['daily'] ?? true) == true,
       createdAt:
           DateTime.tryParse(json['created_at']?.toString() ?? '') ??
           DateTime.now(),
@@ -53,6 +56,7 @@ class FeedingSchedule {
       'cycle': cycles,
       'food': foodType,
       'switch': isEnabled,
+      'daily': daily,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };
@@ -65,6 +69,7 @@ class FeedingSchedule {
     int? cycles,
     String? foodType,
     bool? isEnabled,
+    bool? daily,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -75,6 +80,7 @@ class FeedingSchedule {
       cycles: cycles ?? this.cycles,
       foodType: foodType ?? this.foodType,
       isEnabled: isEnabled ?? this.isEnabled,
+      daily: daily ?? this.daily,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

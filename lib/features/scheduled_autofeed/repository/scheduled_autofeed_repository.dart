@@ -93,7 +93,7 @@ class ScheduledAutofeedRepository {
     required int cycles,
     required String foodType,
     required bool isEnabled,
-    bool daily = false,
+    bool daily = true,
   }) async {
     try {
       final response = await http.post(

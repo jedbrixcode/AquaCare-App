@@ -19,6 +19,17 @@ class ScheduleListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    String _formatToAmPm(String hhmm) {
+      final parts = hhmm.split(':');
+      if (parts.length != 2) return hhmm;
+      final h = int.tryParse(parts[0]) ?? 0;
+      final m = int.tryParse(parts[1]) ?? 0;
+      final period = h >= 12 ? 'PM' : 'AM';
+      final hour12 = (h % 12 == 0) ? 12 : (h % 12);
+      final mm = m.toString().padLeft(2, '0');
+      return '$hour12:$mm $period';
+    }
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
@@ -68,11 +79,36 @@ class ScheduleListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        schedule.time,
+                        _formatToAmPm(schedule.time),
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getFontSize(context, 18),
                           fontWeight: FontWeight.bold,
                           color: colorScheme.primary,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color:
+                              schedule.daily
+                                  ? Colors.blue[50]
+                                  : Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          schedule.daily ? 'Daily' : 'One-time',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color:
+                                schedule.daily
+                                    ? Colors.blue[700]
+                                    : Colors.orange[700],
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 8),

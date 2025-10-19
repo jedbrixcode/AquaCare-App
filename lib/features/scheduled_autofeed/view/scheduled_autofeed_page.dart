@@ -140,8 +140,12 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).colorScheme.primary,
         onPressed: () => _showAddChoiceDialog(context, viewModel),
-        child: const Icon(Icons.add),
+        child: Icon(
+          Icons.add,
+          color: Theme.of(context).colorScheme.onSecondary,
+        ),
       ),
     );
   }
@@ -241,7 +245,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                     schedule: null,
                   );
                 },
-                child: Text('Daily', style: TextStyle(fontSize: 15)),
+                child: Text(
+                  'Daily',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ),
               const SizedBox(height: 8),
               FilledButton.tonal(
@@ -249,7 +259,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   Navigator.of(ctx).pop();
                   _showOneTimeDialog(context, viewModel);
                 },
-                child: const Text('One-time', style: TextStyle(fontSize: 15)),
+                child: Text(
+                  'One-time',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: Theme.of(context).colorScheme.onSurface,
+                  ),
+                ),
               ),
               SizedBox(height: MediaQuery.of(context).padding.bottom + 8),
             ],
@@ -285,6 +301,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     final cyclesController = TextEditingController(
       text: (schedule?.cycles ?? 1).toString(),
     );
+    final bool isDaily = schedule?.daily ?? true;
     bool isEnabled = schedule?.isEnabled ?? true;
 
     showDialog(
@@ -365,11 +382,11 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             items: const [
                               DropdownMenuItem(
                                 value: 'pellet',
-                                child: Text('pellet'),
+                                child: Text('Pellets'),
                               ),
                               DropdownMenuItem(
                                 value: 'flakes',
-                                child: Text('flakes'),
+                                child: Text('Flakes'),
                               ),
                             ],
                             onChanged: (val) {},
@@ -397,13 +414,14 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                                         : null,
                           ),
                           const SizedBox(height: 16),
-                          SwitchListTile.adaptive(
-                            value: isEnabled,
-                            onChanged:
-                                (value) => setState(() => isEnabled = value),
-                            title: const Text('Enabled'),
-                            contentPadding: EdgeInsets.zero,
-                          ),
+                          if (!isDaily)
+                            SwitchListTile.adaptive(
+                              value: isEnabled,
+                              onChanged:
+                                  (value) => setState(() => isEnabled = value),
+                              title: const Text('Enabled'),
+                              contentPadding: EdgeInsets.zero,
+                            ),
                         ],
                       ),
                     ),
@@ -413,6 +431,21 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                       onPressed: () => Navigator.of(context).pop(),
                       child: const Text('Cancel'),
                     ),
+                    if (schedule != null && (schedule.daily))
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: TextButton.icon(
+                          onPressed: () {
+                            viewModel.deleteSchedule(schedule.id);
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          label: const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                      ),
                     FilledButton(
                       onPressed: () {
                         if (!formKey.currentState!.validate()) return;
@@ -438,7 +471,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             time: time,
                             cycles: cycles,
                             foodType: foodType,
-                            isEnabled: isEnabled,
+                            isEnabled: true, // daily default ON, no extra step
                           );
                         }
 
