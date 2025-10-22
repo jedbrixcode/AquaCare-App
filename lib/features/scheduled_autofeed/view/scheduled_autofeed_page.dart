@@ -139,14 +139,16 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        onPressed: () => _showAddChoiceDialog(context, viewModel),
-        child: Icon(
-          Icons.add,
-          color: Theme.of(context).colorScheme.onSecondary,
+      if (schedules.isNotEmpty) ...[
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Theme.of(context).colorScheme.primary,
+          onPressed: () => _showAddChoiceDialog(context, viewModel),
+          child: Icon(
+            Icons.add,
+            color: Theme.of(context).colorScheme.onSecondary,
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -161,43 +163,47 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!),
       ),
-      child: Column(
-        children: [
-          Icon(Icons.schedule_outlined, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No Feeding Schedules',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 18),
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[600],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add a schedule to enable automatic feeding',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 14),
-              color: Colors.grey[500],
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed: () => _showAddScheduleDialog(context, viewModel),
-            icon: const Icon(Icons.add, color: Colors.white),
-            label: const Text(
-              'Add First Schedule',
-              style: TextStyle(color: Colors.white),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue[600],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.schedule_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No Feeding Schedules',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 18),
+                fontWeight: FontWeight.bold,
+                color: Colors.grey[600],
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Add a schedule to enable automatic feeding',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 14),
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _showAddScheduleDialog(context, viewModel),
+              icon: const Icon(Icons.add, color: Colors.white),
+              label: const Text(
+                'Add First Schedule',
+                style: TextStyle(color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[600],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
