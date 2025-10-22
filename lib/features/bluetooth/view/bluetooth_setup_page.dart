@@ -5,6 +5,7 @@ import 'package:aquacare_v5/core/services/bluetooth_service.dart';
 import '../viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
+import 'package:aquacare_v5/utils/theme.dart';
 
 class BluetoothSetupPage extends ConsumerStatefulWidget {
   const BluetoothSetupPage({super.key});
@@ -40,14 +41,16 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   @override
   Widget build(BuildContext context) {
     final vm = ref.watch(bluetoothSetupViewModelProvider);
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isDark ? darkTheme.colorScheme.surface : Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.blue[600],
-        title: const Text(
+        backgroundColor:
+            isDark ? darkTheme.colorScheme.primary : Colors.blue[600],
+        title: Text(
           'TankPi Setup',
           style: TextStyle(
-            color: Colors.white,
+            color: isDark ? darkTheme.colorScheme.onSurface : Colors.black,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -64,23 +67,38 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: isDark ? darkTheme.colorScheme.surface : Colors.blue[50],
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!, width: 1),
+                border: Border.all(
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : Colors.blue[200]!,
+                  width: 1,
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.bluetooth, color: Colors.blue[600]),
+                      Icon(
+                        Icons.bluetooth,
+                        color:
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : Colors.blue[600],
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Status',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.blue[700],
+                          color:
+                              isDark
+                                  ? darkTheme.colorScheme.onSurface
+                                  : Colors.blue[700],
                         ),
                       ),
                     ],
@@ -88,7 +106,13 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                   const SizedBox(height: 8),
                   Text(
                     vm.statusMessage,
-                    style: TextStyle(fontSize: 14, color: Colors.blue[600]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color:
+                          isDark
+                              ? darkTheme.colorScheme.onSurface
+                              : Colors.blue[600],
+                    ),
                   ),
                 ],
               ),
@@ -117,8 +141,10 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
+                  backgroundColor:
+                      isDark ? darkTheme.colorScheme.primary : Colors.blue[600],
+                  foregroundColor:
+                      isDark ? darkTheme.colorScheme.onSurface : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -130,11 +156,14 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
             // Discovered Devices
             if (vm.devices.isNotEmpty) ...[
               Text(
-                'Found TankPi Devices:',
+                'Found Devices:',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                  color: Colors.blue[700],
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.onSurface
+                          : Colors.blue[700],
                 ),
               ),
               const SizedBox(height: 12),
@@ -148,7 +177,11 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                       child: ListTile(
                         leading: Icon(
                           Icons.bluetooth_connected,
-                          color: Colors.blue[600],
+                          size: 50,
+                          color:
+                              isDark
+                                  ? darkTheme.colorScheme.secondary
+                                  : Colors.blue[600],
                         ),
                         title: Text(
                           device.platformName.isNotEmpty

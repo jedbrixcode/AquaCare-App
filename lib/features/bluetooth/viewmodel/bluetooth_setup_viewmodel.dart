@@ -86,7 +86,8 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
     if (state.isScanning) return;
     state = state.copyWith(
       isScanning: true,
-      statusMessage: 'Scanning for TankPi devices...',
+      statusMessage:
+          'Scanning for devices... (Ensure that the device is powered on and advertising)',
     );
     await _service.startScan();
     state = state.copyWith(isScanning: false);
@@ -123,7 +124,7 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
       if (!ok) throw Exception('BLE write failed');
       state = state.copyWith(
         sendingState: const AsyncData(null),
-        statusMessage: 'WiFi configuration sent to TankPi (JSON)',
+        statusMessage: 'WiFi configuration sent to TankPi!',
       );
     } catch (e) {
       state = state.copyWith(

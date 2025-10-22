@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class AutoFeedRepository {
@@ -15,7 +16,13 @@ class AutoFeedRepository {
     final url = Uri.parse(
       '$backendUrl/aquarium/$aquariumId/camera_switch/$onParam',
     );
-    await _client.post(url);
+    try {
+      await _client.post(url);
+    } on SocketException catch (e) {
+      throw Exception('Camera connection failed: ${e.message}');
+    } catch (e) {
+      throw Exception('Camera error: $e');
+    }
   }
 
   Future<bool> connectFeeder({

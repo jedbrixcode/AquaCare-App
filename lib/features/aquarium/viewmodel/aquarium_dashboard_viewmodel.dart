@@ -5,15 +5,17 @@ import 'package:aquacare_v5/core/models/notification_model.dart';
 import '../repository/aquarium_repository.dart';
 import 'dart:async';
 
-final aquariumRepositoryProvider = Provider((ref) => AquariumRepository());
+final aquariumRepositoryProvider = Provider<AquariumRepository>(
+  (ref) => AquariumRepository(),
+);
 
-// Stream of all aquariums with their name and sensor data
+/// Stream of all aquariums with their name and sensor data
 final aquariumsSummaryProvider = StreamProvider<List<AquariumSummary>>((ref) {
   final repo = ref.watch(aquariumRepositoryProvider);
   return repo.getAllAquariumsSummary();
 });
 
-// Provider for a specific aquarium's sensor data
+/// Provider for a specific aquarium's sensor data
 final aquariumSensorProvider = StreamProvider.family<Sensor, String>((
   ref,
   aquariumId,
@@ -22,7 +24,7 @@ final aquariumSensorProvider = StreamProvider.family<Sensor, String>((
   return repo.sensorStream(aquariumId);
 });
 
-// Provider for a specific aquarium's thresholds
+/// Provider for a specific aquarium's thresholds
 final aquariumThresholdProvider = FutureProvider.family<Threshold, String>((
   ref,
   aquariumId,
@@ -31,14 +33,14 @@ final aquariumThresholdProvider = FutureProvider.family<Threshold, String>((
   return await repo.fetchThresholds(aquariumId);
 });
 
-// Provider for a specific aquarium's notification preferences
+/// Provider for a specific aquarium's notification preferences
 final aquariumNotificationProvider =
     FutureProvider.family<NotificationPref, String>((ref, aquariumId) async {
       final repo = ref.watch(aquariumRepositoryProvider);
       return await repo.fetchNotificationPrefs(aquariumId);
     });
 
-// Provider for a specific aquarium's auto-light status (live)
+/// Provider for a specific aquarium's auto-light status (live)
 final aquariumAutoLightProvider = StreamProvider.family<bool, String>((
   ref,
   aquariumId,
@@ -81,17 +83,18 @@ final aquariumDashboardViewModelProvider = Provider<AquariumDashboardViewModel>(
 
 // Controller ViewModel to handle dashboard actions and expose transient messages
 class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
-  AquariumDashboardController(this._repo) : super(const AsyncData(null));
+  AquariumDashboardController(this.repo) : super(const AsyncData(null));
 
-  final AquariumRepository _repo;
+  final AquariumRepository repo;
   final StreamController<String> _messageController =
-      StreamController.broadcast();
+      StreamController<String>.broadcast();
+
   Stream<String> get messages => _messageController.stream;
 
   Future<bool> createAquarium(String name) async {
     state = const AsyncLoading();
     try {
-      await _repo.createAquarium(name);
+      await repo.createAquarium(name);
       _messageController.add('Aquarium "$name" created successfully!');
       state = const AsyncData(null);
       return true;
@@ -105,7 +108,7 @@ class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
   Future<bool> updateAquariumName(String aquariumId, String newName) async {
     state = const AsyncLoading();
     try {
-      await _repo.updateAquariumName(aquariumId, newName);
+      await repo.updateAquariumName(aquariumId, newName);
       _messageController.add('Aquarium renamed to "$newName" successfully!');
       state = const AsyncData(null);
       return true;
@@ -119,7 +122,7 @@ class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
   Future<bool> deleteAquarium(String aquariumId) async {
     state = const AsyncLoading();
     try {
-      await _repo.deleteAquarium(aquariumId);
+      await repo.deleteAquarium(aquariumId);
       _messageController.add('Aquarium deleted successfully!');
       state = const AsyncData(null);
       return true;
@@ -138,7 +141,7 @@ class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
   ) async {
     state = const AsyncLoading();
     try {
-      await _repo.updateNotificationSettings(
+      await repo.updateNotificationSettings(
         aquariumId,
         temperature,
         turbidity,
@@ -155,7 +158,7 @@ class AquariumDashboardController extends StateNotifier<AsyncValue<void>> {
   }
 
   Future<bool> isAquariumNameExists(String name, {String? excludeId}) {
-    return _repo.isAquariumNameExists(name, excludeId: excludeId);
+    return repo.isAquariumNameExists(name, excludeId: excludeId);
   }
 
   @override
