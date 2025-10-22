@@ -139,16 +139,14 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           ],
         ),
       ),
-      if (schedules.isNotEmpty) ...[
-        floatingActionButton: FloatingActionButton(
-          backgroundColor: Theme.of(context).colorScheme.primary,
-          onPressed: () => _showAddChoiceDialog(context, viewModel),
-          child: Icon(
-            Icons.add,
-            color: Theme.of(context).colorScheme.onSecondary,
-          ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        onPressed: () => _showAddChoiceDialog(context, viewModel),
+        child: Icon(
+          Icons.add,
+          color: Theme.of(context).colorScheme.onSecondary,
         ),
-      ],
+      ),
     );
   }
 
@@ -189,7 +187,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
-              onPressed: () => _showAddScheduleDialog(context, viewModel),
+              onPressed: () => _showAddChoiceDialog(context, viewModel),
               icon: const Icon(Icons.add, color: Colors.white),
               label: const Text(
                 'Add First Schedule',
@@ -238,8 +236,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             children: [
               Text(
                 'Create Schedule',
-                style: Theme.of(context).textTheme.titleMedium,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontSize: ResponsiveHelper.getFontSize(context, 20),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
+
               const SizedBox(height: 15),
               FilledButton(
                 onPressed: () {
@@ -254,7 +257,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 child: Text(
                   'Daily',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: ResponsiveHelper.getFontSize(context, 20),
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
@@ -268,7 +271,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 child: Text(
                   'One-time',
                   style: TextStyle(
-                    fontSize: 15,
+                    fontSize: ResponsiveHelper.getFontSize(context, 20),
                     color: Theme.of(context).colorScheme.onSurface,
                   ),
                 ),
