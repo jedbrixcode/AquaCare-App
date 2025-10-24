@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart' as perms;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../../aquarium/view/aquarium_dashboard_page.dart';
 import '../viewmodel/splash_viewmodel.dart';
+import '../../../utils/theme.dart' as theme;
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -16,7 +17,7 @@ class SplashScreen extends ConsumerStatefulWidget {
 class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _initComplete = false;
   bool _timerComplete = false;
-  bool _isDialogShowing = false; // ✅ Track if dialogs are open
+  bool _isDialogShowing = false;
   Timer? _minimumDisplayTimer;
 
   @override
@@ -71,8 +72,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       if (!status.isGranted && mounted) {
         _isDialogShowing = true; // ✅ Mark dialog as showing
         await _showBatteryOptimizationDialog();
-        _isDialogShowing = false; // ✅ Mark dialog as closed
-        _tryNavigate(); // ✅ Try to navigate after dialog closes
       }
     } catch (e) {
       debugPrint('Battery optimization check failed: $e');
@@ -86,6 +85,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
+        bool isDark = Theme.of(dialogContext).brightness == Brightness.dark;
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
@@ -96,10 +96,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               children: [
                 Icon(Icons.battery_alert, color: Colors.orange[700], size: 28),
                 const SizedBox(width: 12),
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Battery Optimization',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color:
+                          isDark
+                              ? theme.darkTheme.textTheme.bodyMedium?.color
+                              : theme.lightTheme.textTheme.bodyMedium?.color,
+                    ),
                   ),
                 ),
               ],
@@ -108,15 +115,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'AquaCare needs to run in the background to send you timely alerts about your aquarium.',
-                  style: TextStyle(fontSize: 14, height: 1.4),
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color:
+                        isDark
+                            ? theme.darkTheme.textTheme.bodyMedium?.color
+                            : theme.lightTheme.textTheme.bodyMedium?.color,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue[50],
+                    color:
+                        isDark
+                            ? theme.darkTheme.colorScheme.surface
+                            : Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue[200]!),
                   ),
@@ -128,10 +145,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Tap "Allow" to disable battery optimization',
                           style: TextStyle(
+                            color:
+                                isDark
+                                    ? theme
+                                        .darkTheme
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                    : theme
+                                        .lightTheme
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -147,17 +176,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 onPressed: () => _handleSkipPermission(dialogContext),
                 child: Text(
                   'Skip',
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ),
               ElevatedButton(
                 onPressed: () => _handleAllowPermission(dialogContext),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
+                  foregroundColor: isDark ? Colors.white : Colors.black,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 12,
@@ -166,9 +192,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                child: const Text(
+                child: Text(
                   'Allow',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -192,14 +222,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       debugPrint('Failed to request battery optimization: $e');
       await perms.openAppSettings();
     }
+    _isDialogShowing = false;
+    _tryNavigate();
   }
 
   Future<void> _handleSkipPermission(BuildContext dialogContext) async {
     Navigator.of(dialogContext).pop();
 
-    // ✅ Show warning and wait for it to close
     if (mounted) {
       await _showSkipWarningDialog();
+      _isDialogShowing = false;
+      _tryNavigate();
     }
   }
 
@@ -277,7 +310,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 _isDialogShowing = true;
                 await _showBatteryOptimizationDialog();
                 _isDialogShowing = false;
-                _tryNavigate();
               },
               child: const Text(
                 'Allow Permission',
@@ -327,7 +359,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(splashViewModelProvider);
-
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 64, 125, 255),
       body: SafeArea(

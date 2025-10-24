@@ -10,7 +10,6 @@ import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_android;
 import '../viewmodel/autofeed_viewmodel.dart';
 import 'widgets/camera_feed_widget.dart';
-import 'widgets/mode_switch_widget.dart';
 import 'widgets/manual_feeding_widget.dart';
 import 'widgets/rotation_feeding_widget.dart';
 import 'package:aquacare_v5/utils/theme.dart';
@@ -47,12 +46,15 @@ class _CameraPageState extends ConsumerState<CameraPage>
   void initState() {
     super.initState();
     _initializeWebView();
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .connect(widget.aquariumId);
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, true);
+    try {
+      ref
+          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+          .connect(widget.aquariumId);
+    } catch (_) {}
+    // Use guarded handler to enable camera on load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _handleCameraToggle(true);
+    });
     _updateConnectionStatus();
     debugPrint('[CameraPage] initState: aquariumId=${widget.aquariumId}');
   }
@@ -148,7 +150,12 @@ class _CameraPageState extends ConsumerState<CameraPage>
               onWebResourceError: (webview.WebResourceError error) {
                 debugPrint('WebView error: ${error.description}');
                 if (mounted) {
-                  setState(() => _isWebViewLoading = false);
+                  setState(() {
+                    _isWebViewLoading = false;
+                    _isCameraOffline = true;
+                    isCameraActive = false;
+                  });
+                  _showOfflineSnackbar();
                 }
               },
             ),
@@ -206,25 +213,32 @@ class _CameraPageState extends ConsumerState<CameraPage>
           '<html><body style="background:#f4f4f4;display:flex;justify-content:center;align-items:center;height:100%;color:#999;"><h3>Camera is turned off</h3></body></html>',
         );
       }
-    } on SocketException catch (e) {
+    } on SocketException catch (_) {
       setState(() {
         isCameraActive = false;
         _isWebViewLoading = false;
         _isCameraOffline = true;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Cannot connect to camera')));
-    } catch (e) {
+      _showOfflineSnackbar();
+    } catch (_) {
       setState(() {
         isCameraActive = false;
         _isWebViewLoading = false;
         _isCameraOffline = true;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      _showOfflineSnackbar();
     }
+  }
+
+  void _showOfflineSnackbar() {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Camera offline. Using offline mode.'),
+        duration: Duration(days: 1),
+      ),
+    );
   }
 
   void _handleManualFeeding(bool isStarting) async {
@@ -370,16 +384,57 @@ class _CameraPageState extends ConsumerState<CameraPage>
               isConnected: vm.isConnected,
               isCameraActive: isCameraActive,
               isCameraOffline: _isCameraOffline,
-              onCameraToggle: _handleCameraToggle,
             ),
-            const SizedBox(height: 32),
-            ModeSwitchWidget(
-              isManualMode: vm.isManualMode,
-              onModeChanged:
-                  (value) => ref
-                      .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-                      .setManualMode(value),
+            const SizedBox(height: 12),
+            // Row with feeding mode switch and camera toggle switch
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.blue[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.blue[200]!, width: 1),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Rotation | Hold feeding switch
+                  Row(
+                    children: [
+                      const Text(
+                        'Rotation',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 8),
+                      Switch.adaptive(
+                        value: vm.isManualMode,
+                        onChanged:
+                            (value) => ref
+                                .read(
+                                  autoFeedViewModelProvider(
+                                    _cameraUrl,
+                                  ).notifier,
+                                )
+                                .setManualMode(value),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text('Hold'),
+                    ],
+                  ),
+                  // Camera feed switch
+                  Row(
+                    children: [
+                      const Text('Camera'),
+                      const SizedBox(width: 8),
+                      Switch.adaptive(
+                        value: isCameraActive,
+                        onChanged: _handleCameraToggle,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
+            const SizedBox(height: 24),
             const SizedBox(height: 24),
             Container(
               padding: const EdgeInsets.all(20),

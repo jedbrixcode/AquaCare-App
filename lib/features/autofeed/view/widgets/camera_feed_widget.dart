@@ -8,7 +8,6 @@ class CameraFeedWidget extends StatelessWidget {
   final bool isConnected;
   final bool isCameraActive;
   final bool isCameraOffline;
-  final ValueChanged<bool> onCameraToggle;
 
   const CameraFeedWidget({
     super.key,
@@ -17,7 +16,6 @@ class CameraFeedWidget extends StatelessWidget {
     required this.isConnected,
     required this.isCameraActive,
     required this.isCameraOffline,
-    required this.onCameraToggle,
   });
 
   @override
@@ -39,7 +37,6 @@ class CameraFeedWidget extends StatelessWidget {
                     webview.WebViewWidget(controller: controller),
                     if (isLoading) _buildLoadingOverlay(),
                     _buildConnectionStatus(),
-                    _buildCameraSwitch(),
                   ],
                 ),
               )
@@ -105,16 +102,5 @@ class CameraFeedWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildCameraSwitch() {
-    return Positioned(
-      top: 8,
-      left: 8,
-      child: CupertinoSwitch(
-        value: isCameraActive,
-        onChanged: onCameraToggle,
-        activeColor: Colors.greenAccent,
-        trackColor: Colors.white24,
-      ),
-    );
-  }
+  // Camera switch moved to parent row below the feed
 }

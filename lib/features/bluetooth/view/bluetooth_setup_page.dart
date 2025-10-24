@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:aquacare_v5/core/services/bluetooth_service.dart';
 import '../viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
@@ -15,8 +14,6 @@ class BluetoothSetupPage extends ConsumerStatefulWidget {
 }
 
 class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
-  final BluetoothService _bluetoothService =
-      BluetoothService.instance; // kept if needed for future, not used directly
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 

@@ -17,7 +17,10 @@ class AutoFeedRepository {
       '$backendUrl/aquarium/$aquariumId/camera_switch/$onParam',
     );
     try {
-      await _client.post(url);
+      final resp = await _client.post(url);
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        throw Exception('HTTP ${resp.statusCode}');
+      }
     } on SocketException catch (e) {
       throw Exception('Camera connection failed: ${e.message}');
     } catch (e) {

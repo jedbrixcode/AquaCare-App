@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/splash/view/splash_screen.dart';
 import 'core/services/local_storage_service.dart';
+import 'core/services/firebase_service.dart';
 import 'core/navigation/route_observer.dart';
 import 'utils/theme.dart';
 import 'features/chat/view/chat_with_ai_page.dart';
@@ -11,6 +12,7 @@ import 'features/settings/view/settings_page.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await LocalStorageService.instance.initialize();
+  await FirebaseService.ensureInitialized();
   runApp(const ProviderScope(child: MyApp()));
 }
 

@@ -51,7 +51,7 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
   final AutoFeedRepository _repo;
   final String backendUrl;
 
-  bool? get isConnected => null;
+  bool? get isConnectedOrNull => state.isConnected;
 
   Future<void> connect(String aquariumId) async {
     final ok = await _repo.connectFeeder(

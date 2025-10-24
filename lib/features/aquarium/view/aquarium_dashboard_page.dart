@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
 import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
 import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
-import 'package:aquacare_v5/features/bluetooth/viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
 import 'package:aquacare_v5/utils/theme.dart';
@@ -15,6 +14,7 @@ class AquariumDashboardPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -29,13 +29,13 @@ class AquariumDashboardPage extends ConsumerWidget {
       drawer: Drawer(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
-            topRight: Radius.circular(16),
-            bottomRight: Radius.circular(16),
+            topRight: Radius.circular(20),
+            bottomRight: Radius.circular(20),
           ),
         ),
         elevation: 10,
         shadowColor: Theme.of(context).colorScheme.shadow,
-        width: 290,
+        width: 270,
         backgroundColor: Theme.of(context).drawerTheme.backgroundColor,
         child: ListView(
           padding: EdgeInsets.zero,
@@ -43,11 +43,18 @@ class AquariumDashboardPage extends ConsumerWidget {
             DrawerHeader(
               decoration: BoxDecoration(
                 color: Theme.of(context).appBarTheme.backgroundColor,
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context).colorScheme.shadow,
+                    blurRadius: 10,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Text(
                 'AquaCare',
                 style: TextStyle(
-                  color: Theme.of(context).appBarTheme.foregroundColor,
+                  color: Colors.white,
                   fontSize: 38,
                   fontWeight: FontWeight.bold,
                 ),
@@ -58,7 +65,10 @@ class AquariumDashboardPage extends ConsumerWidget {
               title: Text(
                 'Home',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -72,7 +82,10 @@ class AquariumDashboardPage extends ConsumerWidget {
               title: Text(
                 'Chat with AI',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -86,7 +99,10 @@ class AquariumDashboardPage extends ConsumerWidget {
               title: Text(
                 'Monitoring Graphs',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -100,7 +116,10 @@ class AquariumDashboardPage extends ConsumerWidget {
               title: Text(
                 'Settings',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -188,7 +207,10 @@ class AquariumDashboardPage extends ConsumerWidget {
                       Text(
                         'Active Aquariums (${summaries.length})',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color:
+                              isDark
+                                  ? darkTheme.textTheme.bodyMedium?.color
+                                  : lightTheme.textTheme.bodyMedium?.color,
                           fontSize: ResponsiveHelper.getFontSize(context, 20),
                           fontWeight: FontWeight.bold,
                         ),
@@ -338,7 +360,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                 ),
                 onTap: () {
                   Navigator.of(context).pop();
-                  _showChangeWifiDialog(context);
+                  _confirmBleReconfigure(context);
                 },
               ),
               ListTile(
@@ -632,102 +654,45 @@ class AquariumDashboardPage extends ConsumerWidget {
     );
   }
 
-  void _showChangeWifiDialog(BuildContext context) {
-    final TextEditingController ssid = TextEditingController();
-    final TextEditingController pass = TextEditingController();
+  void _confirmBleReconfigure(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, _) {
-            final sending =
-                ref.watch(bluetoothSetupViewModelProvider).sendingState;
-            final isLoading = sending is AsyncLoading;
-            return AlertDialog(
-              title: Text(
-                'Change WiFi on TankPi',
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
+      builder:
+          (context) => AlertDialog(
+            title: Text(
+              'Reconfigure TankPi',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+            content: Text(
+              'Wi‑Fi credentials changed. TankPi must be reconfigured via Bluetooth. Continue?',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Cancel'),
               ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: ssid,
-                    decoration: const InputDecoration(
-                      labelText: 'WiFi Network Name (SSID)',
-                      border: OutlineInputBorder(),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BluetoothSetupPage(),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: pass,
-                    decoration: const InputDecoration(
-                      labelText: 'WiFi Password',
-                      border: OutlineInputBorder(),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text(
+                        'Please complete Bluetooth setup to reconnect TankPi',
+                      ),
                     ),
-                    obscureText: true,
-                  ),
-                ],
+                  );
+                },
+                child: const Text('Continue'),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed:
-                      isLoading
-                          ? null
-                          : () async {
-                            if (ssid.text.isEmpty || pass.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please fill in SSID and Password',
-                                  ),
-                                  backgroundColor: Colors.orange,
-                                ),
-                              );
-                              return;
-                            }
-                            await ProviderScope.containerOf(context)
-                                .read(bluetoothSetupViewModelProvider.notifier)
-                                .sendWifiCredentials(
-                                  ssid: ssid.text,
-                                  password: pass.text,
-                                );
-                            if (!context.mounted) return;
-                            final s =
-                                ProviderScope.containerOf(context)
-                                    .read(bluetoothSetupViewModelProvider)
-                                    .sendingState;
-                            Navigator.of(context).pop();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  s is AsyncData
-                                      ? 'WiFi configuration sent to TankPi'
-                                      : 'Failed to send WiFi configuration',
-                                ),
-                                backgroundColor:
-                                    s is AsyncData ? Colors.green : Colors.red,
-                              ),
-                            );
-                          },
-                  child: const Text('Send'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+            ],
+          ),
     );
   }
 
@@ -802,12 +767,19 @@ class AquariumDashboardPage extends ConsumerWidget {
   }
 
   Widget _buildAquariumCard(BuildContext context, AquariumSummary s) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Card(
-        color: Theme.of(context).colorScheme.surface,
+        color: Colors.transparent.withOpacity(0.3),
         elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 1,
+          ),
+        ),
         child: InkWell(
           onTap: () {
             Navigator.of(context).push(
@@ -841,7 +813,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                         s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color: isDark ? Colors.black87 : Colors.white70,
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
@@ -870,7 +842,14 @@ class AquariumDashboardPage extends ConsumerWidget {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.dashboard, size: 16, color: Colors.blue[600]),
+                    Icon(
+                      Icons.dashboard,
+                      size: 16,
+                      color:
+                          isDark
+                              ? darkTheme.colorScheme.primary
+                              : lightTheme.colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Text(
                       'Tap to view dashboard',
@@ -893,17 +872,24 @@ class AquariumDashboardPage extends ConsumerWidget {
   Widget _buildSensorRow(String label, String value, IconData icon) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: Colors.grey[600]),
+        Icon(icon, size: 20, color: const Color.fromARGB(255, 201, 201, 201)),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             label,
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 16,
+              color: const Color.fromARGB(255, 201, 201, 201),
+            ),
           ),
         ),
         Text(
           value,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Color.fromARGB(255, 201, 201, 201),
+          ),
         ),
       ],
     );
