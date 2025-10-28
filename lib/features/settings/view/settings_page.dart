@@ -36,25 +36,43 @@ class SettingsPage extends ConsumerWidget {
           children: [
             const ListTile(title: Text('Theme')),
             RadioListTile<ThemeMode>(
-              title: const Text('System'),
+              title: Text(
+                'System',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
               value: ThemeMode.system,
               groupValue: themeMode,
               onChanged:
                   (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('Light'),
+              title: Text(
+                'Light',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
               value: ThemeMode.light,
               groupValue: themeMode,
               onChanged:
                   (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
             ),
             RadioListTile<ThemeMode>(
-              title: const Text('Dark'),
+              title: Text(
+                'Dark',
+                style: TextStyle(
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
               value: ThemeMode.dark,
               groupValue: themeMode,
               onChanged:
                   (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
+              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
             ),
             const Divider(),
             _GlobalNotificationsTile(),

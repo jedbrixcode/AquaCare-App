@@ -26,6 +26,7 @@ class AquariumDashboardPage extends ConsumerWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
+      backgroundColor: Theme.of(context).colorScheme.background,
       drawer: Drawer(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.only(
@@ -771,12 +772,19 @@ class AquariumDashboardPage extends ConsumerWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Card(
-        color: Colors.transparent.withOpacity(0.3),
+        color:
+            isDark
+                ? Color.fromARGB(255, 0, 30, 75)
+                : Color.fromARGB(255, 53, 171, 240),
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
+            color:
+                isDark
+                    ? const Color.fromARGB(255, 53, 171, 240)
+                    : const Color.fromARGB(255, 0, 17, 255),
+
             width: 1,
           ),
         ),
@@ -813,8 +821,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                         s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}',
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                          color: isDark ? Colors.black87 : Colors.white70,
-                          fontSize: 16,
+                          color: Colors.white.withOpacity(0.87),
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -823,39 +831,39 @@ class AquariumDashboardPage extends ConsumerWidget {
                 ),
                 const SizedBox(height: 16),
                 _buildSensorRow(
+                  context,
                   'Temperature',
                   '${s.sensor.temperature.toStringAsFixed(1)}°C',
                   Icons.thermostat,
                 ),
                 const SizedBox(height: 8),
                 _buildSensorRow(
+                  context,
                   'pH',
                   s.sensor.ph.toStringAsFixed(2),
                   Icons.water_drop,
                 ),
                 const SizedBox(height: 8),
                 _buildSensorRow(
+                  context,
                   'Turbidity',
                   '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
-                  Icons.visibility,
+                  Icons.water_rounded,
                 ),
                 const SizedBox(height: 16),
                 Row(
                   children: [
                     Icon(
                       Icons.dashboard,
-                      size: 16,
-                      color:
-                          isDark
-                              ? darkTheme.colorScheme.primary
-                              : lightTheme.colorScheme.primary,
+                      size: 20,
+                      color: Colors.white.withOpacity(0.87),
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Tap to view dashboard',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.blue[600],
+                        color: Colors.white.withOpacity(0.87),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -869,17 +877,22 @@ class AquariumDashboardPage extends ConsumerWidget {
     );
   }
 
-  Widget _buildSensorRow(String label, String value, IconData icon) {
+  Widget _buildSensorRow(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+  ) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: const Color.fromARGB(255, 201, 201, 201)),
+        Icon(icon, size: 20, color: Colors.white.withOpacity(0.87)),
         const SizedBox(width: 6),
         Expanded(
           child: Text(
             label,
             style: TextStyle(
               fontSize: 16,
-              color: const Color.fromARGB(255, 201, 201, 201),
+              color: Colors.white.withOpacity(0.87),
             ),
           ),
         ),
@@ -888,7 +901,7 @@ class AquariumDashboardPage extends ConsumerWidget {
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Color.fromARGB(255, 201, 201, 201),
+            color: Colors.white.withOpacity(0.87),
           ),
         ),
       ],

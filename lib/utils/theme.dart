@@ -18,6 +18,7 @@ final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
       color: Colors.white,
     ),
   ),
+
   textTheme: const TextTheme(
     displayLarge: TextStyle(color: Colors.black87),
     displayMedium: TextStyle(color: Colors.black87),

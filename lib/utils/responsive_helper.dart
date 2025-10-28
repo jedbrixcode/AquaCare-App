@@ -33,11 +33,11 @@ class ResponsiveHelper {
 
   static EdgeInsets getScreenPadding(BuildContext context) {
     if (isMobile(context)) {
-      return const EdgeInsets.all(16.0);
+      return const EdgeInsets.only(left: 16.0, right: 16.0, top: 5, bottom: 5);
     } else if (isTablet(context)) {
-      return const EdgeInsets.all(24.0);
+      return const EdgeInsets.only(left: 16.0, right: 16.0, top: 5, bottom: 5);
     } else {
-      return const EdgeInsets.all(32.0);
+      return const EdgeInsets.only(left: 16.0, right: 16.0, top: 5, bottom: 5);
     }
   }
 
@@ -58,6 +58,16 @@ class ResponsiveHelper {
       return baseSize * 1.1;
     } else {
       return baseSize * 1.2;
+    }
+  }
+
+  static verticalPadding(BuildContext context) {
+    if (isMobile(context)) {
+      return 12.0;
+    } else if (isTablet(context)) {
+      return 16.0;
+    } else {
+      return 20.0;
     }
   }
 }

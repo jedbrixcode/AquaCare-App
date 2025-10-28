@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/sensor_graphs_viewmodel.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:aquacare_v5/utils/responsive_helper.dart';
 
 class SensorGraphsPage extends ConsumerWidget {
   const SensorGraphsPage({super.key});
@@ -21,16 +22,23 @@ class SensorGraphsPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Monitoring Graphs'),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
+        title: Text(
+          'Monitoring Graphs',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getFontSize(context, 20),
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
           fontSize: 20,
           fontWeight: FontWeight.bold,
         ),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: ResponsiveHelper.getScreenPadding(context),
         child: Theme(
           data: Theme.of(context).copyWith(
             listTileTheme: ListTileThemeData(
@@ -46,19 +54,22 @@ class SensorGraphsPage extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const Text('Aquarium:'),
-                  const SizedBox(width: 10),
-                  Expanded(
+                  const SizedBox(width: 7),
+
+                  // 🔹 Dropdown (shortened)
+                  Flexible(
+                    flex: 1,
                     child: DropdownButton<String?>(
-                      isExpanded: false,
+                      isExpanded: true,
                       value: aquariumNames.valueOrNull?.firstWhere(
-                        (name) => nameToId[name] == viewModel.aquariumId,
+                        (n) => nameToId[n] == viewModel.aquariumId,
                         orElse: () => aquariumNames.valueOrNull?.first ?? '',
                       ),
-                      onChanged: (value) {
-                        if (value != null && value.isNotEmpty) {
+                      onChanged: (v) {
+                        if (v?.isNotEmpty ?? false) {
                           ref
                               .read(sensorGraphsViewModelProvider.notifier)
-                              .setAquariumByName(value);
+                              .setAquariumByName(v!);
                         }
                       },
                       items: aquariumNames.when(
@@ -66,69 +77,105 @@ class SensorGraphsPage extends ConsumerWidget {
                             (names) =>
                                 names
                                     .map(
-                                      (name) => DropdownMenuItem<String>(
-                                        value: name,
-                                        child: Text(name),
+                                      (n) => DropdownMenuItem(
+                                        value: n,
+                                        child: Text(n),
                                       ),
                                     )
                                     .toList(),
                         loading:
                             () => const [
-                              DropdownMenuItem<String>(
+                              DropdownMenuItem(
                                 value: '',
                                 child: Text('Loading...'),
                               ),
                             ],
                         error:
-                            (e, _) => const [
-                              DropdownMenuItem<String>(
-                                value: '',
-                                child: Text('Error loading'),
-                              ),
+                            (_, __) => const [
+                              DropdownMenuItem(value: '', child: Text('Error')),
                             ],
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10),
+
+                  SizedBox(
+                    width: ResponsiveHelper.horizontalPadding(context) / 1.5,
+                  ),
+
+                  // 🔹 Segmented Button (cleaned + compact)
                   Flexible(
-                    fit: FlexFit.loose,
-                    child: Align(
-                      alignment: Alignment.centerRight,
-                      child: IntrinsicWidth(
-                        child: SegmentedButton<GraphRange>(
-                          segments: const [
-                            ButtonSegment(
-                              value: GraphRange.hourly,
-                              label: Text('Hourly'),
-                            ),
-                            ButtonSegment(
-                              value: GraphRange.weekly,
-                              label: Text('Weekly'),
-                            ),
-                          ],
-                          selected: {graphs.range},
-                          onSelectionChanged: (s) {
-                            if (s.isNotEmpty) {
-                              ref
-                                  .read(sensorGraphsViewModelProvider.notifier)
-                                  .setRange(s.first);
-                            }
-                          },
+                    child: SegmentedButton<GraphRange>(
+                      style: ButtonStyle(
+                        backgroundColor: WidgetStateProperty.resolveWith((
+                          states,
+                        ) {
+                          final theme = Theme.of(context);
+                          return states.contains(WidgetState.selected)
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.surface.withOpacity(0.2);
+                        }),
+                        foregroundColor: WidgetStateProperty.all(
+                          isDark ? Colors.white : Colors.black87,
+                        ),
+                        side: WidgetStateProperty.resolveWith((states) {
+                          final theme = Theme.of(context);
+                          final color = theme.colorScheme.primary;
+                          return BorderSide(
+                            color:
+                                states.contains(WidgetState.selected)
+                                    ? color
+                                    : theme.colorScheme.onSurface.withOpacity(
+                                      0.3,
+                                    ),
+                            width:
+                                states.contains(WidgetState.selected) ? 1.5 : 1,
+                          );
+                        }),
+                        shape: WidgetStateProperty.all(
+                          RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                        ),
+                        padding: WidgetStateProperty.all(
+                          const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 0,
+                          ),
                         ),
                       ),
+                      segments: const [
+                        ButtonSegment(
+                          value: GraphRange.hourly,
+                          label: Text('Hourly'),
+                        ),
+                        ButtonSegment(
+                          value: GraphRange.weekly,
+                          label: Text('Weekly'),
+                        ),
+                      ],
+                      selected: {graphs.range},
+                      onSelectionChanged: (s) {
+                        if (s.isNotEmpty) {
+                          ref
+                              .read(sensorGraphsViewModelProvider.notifier)
+                              .setRange(s.first);
+                        }
+                      },
                     ),
                   ),
                 ],
               ),
 
-              const SizedBox(height: 12),
+              SizedBox(height: ResponsiveHelper.verticalPadding(context) / 12),
 
               // Scrollable chart area
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
-                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: ResponsiveHelper.verticalPadding(context),
+                      ),
                       if (graphs.range == GraphRange.hourly) ...[
                         graphs.temperature.when(
                           data:
@@ -143,7 +190,10 @@ class SensorGraphsPage extends ConsumerWidget {
                           loading: () => const CircularProgressIndicator(),
                           error: (e, _) => Text('Error: $e'),
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(
+                          height:
+                              ResponsiveHelper.verticalPadding(context) + 12.0,
+                        ),
                         graphs.turbidity.when(
                           data:
                               (d) => _buildChart(
@@ -157,7 +207,10 @@ class SensorGraphsPage extends ConsumerWidget {
                           loading: () => const CircularProgressIndicator(),
                           error: (e, _) => Text('Error: $e'),
                         ),
-                        const SizedBox(height: 24),
+                        SizedBox(
+                          height:
+                              ResponsiveHelper.verticalPadding(context) + 12.0,
+                        ),
                         graphs.ph.when(
                           data:
                               (d) => _buildChart(
@@ -199,7 +252,13 @@ class SensorGraphsPage extends ConsumerWidget {
                                   isWeekly,
                                   isDark,
                                 ),
-                                const SizedBox(height: 24),
+                                SizedBox(
+                                  height:
+                                      ResponsiveHelper.verticalPadding(
+                                        context,
+                                      ) +
+                                      12.0,
+                                ),
                                 _buildChart(
                                   turb,
                                   'Turbidity (Avg)',
@@ -208,7 +267,13 @@ class SensorGraphsPage extends ConsumerWidget {
                                   isWeekly,
                                   isDark,
                                 ),
-                                const SizedBox(height: 24),
+                                SizedBox(
+                                  height:
+                                      ResponsiveHelper.verticalPadding(
+                                        context,
+                                      ) +
+                                      12.0,
+                                ),
                                 _buildChart(
                                   ph,
                                   'pH (Avg)',

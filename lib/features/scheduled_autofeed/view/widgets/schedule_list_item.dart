@@ -19,7 +19,7 @@ class ScheduleListItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    String _formatToAmPm(String hhmm) {
+    String formatToAmPm(String hhmm) {
       final parts = hhmm.split(':');
       if (parts.length != 2) return hhmm;
       final h = int.tryParse(parts[0]) ?? 0;
@@ -79,7 +79,7 @@ class ScheduleListItem extends StatelessWidget {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        _formatToAmPm(schedule.time),
+                        formatToAmPm(schedule.time),
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getFontSize(context, 18),
                           fontWeight: FontWeight.bold,

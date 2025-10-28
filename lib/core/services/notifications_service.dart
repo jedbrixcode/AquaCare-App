@@ -2,6 +2,8 @@
 import 'dart:math';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 class NotificationsService {
   static final NotificationsService _i = NotificationsService._();
@@ -32,6 +34,9 @@ class NotificationsService {
           ?.createNotificationChannel(_channel);
 
       await FirebaseMessaging.instance.requestPermission();
+
+      // Timezone init for zoned scheduling
+      tz.initializeTimeZones();
 
       FirebaseMessaging.onMessage.listen((RemoteMessage m) {
         // Only show manually if message does NOT have `notification` payload
@@ -69,5 +74,36 @@ class NotificationsService {
       body,
       const NotificationDetails(android: androidDetails, iOS: iosDetails),
     );
+  }
+
+  Future<void> scheduleLocal({
+    required int id,
+    required DateTime scheduledAt,
+    required String title,
+    required String body,
+  }) async {
+    const androidDetails = AndroidNotificationDetails(
+      'aquacare_alerts',
+      'Aquacare Alerts',
+      importance: Importance.high,
+      priority: Priority.high,
+    );
+    const iosDetails = DarwinNotificationDetails();
+    await _local.zonedSchedule(
+      id,
+      title,
+      body,
+      tz.TZDateTime.from(scheduledAt, tz.local),
+      const NotificationDetails(android: androidDetails, iOS: iosDetails),
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+    );
+  }
+
+  Future<void> cancel(int id) => _local.cancel(id);
+
+  Future<void> cancelAllByIds(Iterable<int> ids) async {
+    for (final i in ids) {
+      await _local.cancel(i);
+    }
   }
 }

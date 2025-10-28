@@ -8,6 +8,7 @@ import '../models/average_log.dart';
 import '../models/app_settings.dart';
 import '../models/chat_message_isar.dart';
 import '../models/feeding_schedule_cache.dart';
+import '../models/one_time_schedule_cache.dart';
 
 class LocalStorageService {
   LocalStorageService._();
@@ -30,6 +31,7 @@ class LocalStorageService {
       AppSettingsSchema,
       ChatMessageIsarSchema,
       FeedingScheduleCacheSchema,
+      OneTimeScheduleCacheSchema,
     ], directory: dir.path);
   }
 
@@ -296,6 +298,46 @@ class LocalStorageService {
         .filter()
         .aquariumIdEqualTo(aquariumId)
         .sortByTime()
+        .watch(fireImmediately: true);
+  }
+
+  // -----------------
+  // One-time schedules cache (Firestore mirror)
+  // -----------------
+  Future<void> cacheOneTimeSchedules(
+    String aquariumId,
+    List<OneTimeScheduleCache> items,
+  ) async {
+    await _isar.writeTxn(() async {
+      final old =
+          await _isar.oneTimeScheduleCaches
+              .filter()
+              .aquariumIdEqualTo(aquariumId)
+              .findAll();
+      if (old.isNotEmpty) {
+        await _isar.oneTimeScheduleCaches.deleteAll(
+          old.map((e) => e.id).toList(),
+        );
+      }
+      await _isar.oneTimeScheduleCaches.putAll(items);
+    });
+  }
+
+  Future<List<OneTimeScheduleCache>> getOneTimeSchedules(
+    String aquariumId,
+  ) async {
+    return _isar.oneTimeScheduleCaches
+        .filter()
+        .aquariumIdEqualTo(aquariumId)
+        .sortByScheduleTime()
+        .findAll();
+  }
+
+  Stream<List<OneTimeScheduleCache>> watchOneTimeSchedules(String aquariumId) {
+    return _isar.oneTimeScheduleCaches
+        .filter()
+        .aquariumIdEqualTo(aquariumId)
+        .sortByScheduleTime()
         .watch(fireImmediately: true);
   }
 }

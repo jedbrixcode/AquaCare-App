@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
+import 'package:flutter_blue_plus/flutter_blue_plus.dart' show License;
 import 'package:permission_handler/permission_handler.dart';
 
 class BluetoothService {
@@ -9,7 +10,7 @@ class BluetoothService {
 
   BluetoothService._();
 
-  // ✅ Fixed UUIDs for WiFi Configuration
+  // Fixed UUIDs for WiFi Configuration
   // Note: Service UUID kept here for potential filtering; not required at runtime.
   // final blue.Guid _serviceUuid = blue.Guid('12345678-1234-5678-1234-56789abcdef0');
   final blue.Guid _characteristicUuid = blue.Guid(
@@ -20,12 +21,11 @@ class BluetoothService {
   final List<blue.BluetoothDevice> _discoveredDevices = [];
   blue.BluetoothDevice? _connectedDevice;
   blue.BluetoothCharacteristic? _wifiCharacteristic;
-  blue.BluetoothCharacteristic?
-  _notifyCharacteristic; // optional if Pi adds notify later
+  blue.BluetoothCharacteristic? _notifyCharacteristic;
   bool _isScanning = false;
   bool _isConnected = false;
 
-  // 🔄 Stream controllers for UI updates
+  // Stream controllers for UI updates
   final StreamController<List<blue.BluetoothDevice>> _devicesController =
       StreamController<List<blue.BluetoothDevice>>.broadcast();
   final StreamController<blue.BluetoothConnectionState> _connectionController =
@@ -46,9 +46,7 @@ class BluetoothService {
       _connectionController.stream;
   Stream<String> get statusStream => _statusController.stream;
 
-  // ======================================================
-  // 🔹 Initialization
-  // ======================================================
+  // Initialization
   Future<bool> initialize() async {
     try {
       await _requestPermissions();
@@ -88,9 +86,7 @@ class BluetoothService {
     await Permission.location.request();
   }
 
-  // ======================================================
-  // 🔹 Scanning
-  // ======================================================
+  // Scanning
   Future<void> startScan() async {
     if (_isScanning) return;
 
@@ -137,14 +133,15 @@ class BluetoothService {
     }
   }
 
-  // ======================================================
-  // 🔹 Connection
-  // ======================================================
+  // Connection
   Future<bool> connectToDevice(blue.BluetoothDevice device) async {
     try {
       _statusController.add('Connecting to ${device.platformName}...');
 
-      await device.connect(timeout: const Duration(seconds: 15));
+      await device.connect(
+        timeout: const Duration(seconds: 15),
+        license: License.free,
+      );
       _connectedDevice = device;
       _isConnected = true;
       _connectionController.add(blue.BluetoothConnectionState.connected);
@@ -152,7 +149,7 @@ class BluetoothService {
 
       List<blue.BluetoothService> services = await device.discoverServices();
 
-      // ✅ Find target service and characteristic by UUID
+      // Find target service and characteristic by UUID
       for (blue.BluetoothService service in services) {
         // debug: log service uuid
         _statusController.add('Service discovered: ${service.uuid}');
@@ -196,7 +193,7 @@ class BluetoothService {
         } catch (_) {}
       }
 
-      // 🔁 Listen for disconnects & auto-reconnect
+      // Listen for disconnects & auto-reconnect
       device.connectionState.listen((state) async {
         _connectionController.add(state);
         if (state == blue.BluetoothConnectionState.disconnected) {
@@ -209,7 +206,7 @@ class BluetoothService {
           await Future.delayed(const Duration(seconds: 3));
           try {
             _statusController.add('Attempting to reconnect...');
-            await device.connect();
+            await device.connect(license: License.free);
             _isConnected = true;
             _statusController.add('Reconnected to ${device.platformName}');
           } catch (e) {
@@ -226,9 +223,7 @@ class BluetoothService {
     }
   }
 
-  // ======================================================
-  // 🔹 Send Raw Data (for manual JSON payloads)
-  // ======================================================
+  // Send Raw Data, manual JSON payloads
   Future<bool> sendRawData(String jsonData) async {
     if (!_isConnected || _wifiCharacteristic == null) {
       _statusController.add('Not connected to any TankPi device');
@@ -245,9 +240,7 @@ class BluetoothService {
     }
   }
 
-  // ======================================================
-  // 🔹 WiFi Credentials Sending
-  // ======================================================
+  // WiFi Credentials Sending
   Future<bool> sendWifiCredentials({
     required String ssid,
     required String password,
@@ -264,7 +257,7 @@ class BluetoothService {
       final data = utf8.encode(payload);
       await _writeInChunks(data);
 
-      // Optional: Read confirmation response
+      // Read confirmation response to show to user
       try {
         final response = await _wifiCharacteristic!.read();
         _statusController.add('TankPi response: ${utf8.decode(response)}');
@@ -278,9 +271,7 @@ class BluetoothService {
     }
   }
 
-  // ======================================================
-  // 🔹 Chunk Writer (safe for long JSON)
-  // ======================================================
+  // Chunk Writer (safe for long JSON)
   Future<void> _writeInChunks(List<int> data) async {
     const int chunkSize = 20;
     for (int i = 0; i < data.length; i += chunkSize) {
@@ -291,9 +282,7 @@ class BluetoothService {
     }
   }
 
-  // ======================================================
-  // 🔹 Disconnect / Dispose
-  // ======================================================
+  // Disconnect / Dispose
   Future<void> disconnect() async {
     if (_connectedDevice != null) {
       try {

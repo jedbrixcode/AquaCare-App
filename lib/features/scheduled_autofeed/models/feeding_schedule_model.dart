@@ -34,7 +34,7 @@ class FeedingSchedule {
                     (json['cycles'] ?? json['cycle'] ?? '1').toString(),
                   ) ??
                   1,
-      foodType: (json['food_type'] ?? json['food'] ?? 'Default').toString(),
+      foodType: (json['food_type'] ?? json['food']).toString(),
       isEnabled: (json['is_enabled'] ?? json['switch'] ?? false) == true,
       daily: (json['daily'] ?? true) == true,
       createdAt:

@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/feeding_schedule_model.dart';
+import '../models/one_time_schedule_model.dart';
 import '../repository/scheduled_autofeed_repository.dart';
+import '../repository/firestore_schedule_repository.dart';
 
 // Repository provider
 final scheduledAutofeedRepositoryProvider =
@@ -75,19 +77,50 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final schedules = await _repository.getFeedingSchedules(aquariumId);
-      final autoFeederStatus = await _repository.getAutoFeederStatus(
-        aquariumId,
-      );
+      // 1. Daily schedules from RTDB
+      final daily = await _repository.getFeedingSchedules(aquariumId);
 
-      state = state.copyWith(
-        schedules: schedules,
-        autoFeederStatus: autoFeederStatus,
-        isLoading: false,
+      // 2. One-time schedules from Firestore
+      final oneTimeRepo = FirestoreScheduleRepository();
+      final oneTimeStream = oneTimeRepo.getOneTimeSchedules(
+        int.tryParse(aquariumId) ?? 0,
       );
+      final oneTime =
+          await oneTimeStream.first; // one-time fetch (initial load)
+
+      // 3. Merge results
+      final merged = [
+        ...daily, // daily (RTDB)
+        ...oneTime.map(fromOneTime), // convert Firestore to FeedingSchedule
+      ];
+
+      // 4. Sort all by time
+      merged.sort((a, b) => a.time.compareTo(b.time));
+
+      state = state.copyWith(schedules: merged, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
+  }
+
+  FeedingSchedule fromOneTime(OneTimeSchedule o) {
+    final parts = o.scheduleTime.split(' ');
+    String hhmm = '00:00';
+    if (parts.length >= 2) {
+      final timeParts = parts[1].split(':');
+      if (timeParts.length >= 2) hhmm = '${timeParts[0]}:${timeParts[1]}';
+    }
+    return FeedingSchedule(
+      id: o.id,
+      aquariumId: o.aquariumId.toString(),
+      time: hhmm,
+      cycles: o.cycle,
+      foodType: o.food,
+      isEnabled: o.status == 'pending' || o.status == 'running',
+      daily: false,
+      createdAt: DateTime.now(),
+      updatedAt: null,
+    );
   }
 
   Future<void> addSchedule({
@@ -130,16 +163,19 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
       final bool timeChanged = existing.time != time;
       final bool foodChanged = existing.foodType != foodType;
       if (timeChanged || foodChanged) {
+        // Delete old schedule by its time (backend expects time in URL)
         await _repository.deleteFeedingSchedule(
           aquariumId: aquariumId,
-          scheduleId: scheduleId,
+          scheduleId: existing.time,
         );
+        // Recreate with same daily flag
         final created = await _repository.addFeedingSchedule(
           aquariumId: aquariumId,
           time: time,
           cycles: cycles,
           foodType: foodType,
           isEnabled: isEnabled,
+          daily: existing.daily,
         );
         final replaced =
             state.schedules.where((s) => s.id != scheduleId).toList()
@@ -178,9 +214,10 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      final existing = state.schedules.firstWhere((s) => s.id == scheduleId);
       await _repository.deleteFeedingSchedule(
         aquariumId: aquariumId,
-        scheduleId: scheduleId,
+        scheduleId: existing.time, // backend expects time in URL
       );
 
       final updatedSchedules =
@@ -198,9 +235,10 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
+      final existing = state.schedules.firstWhere((s) => s.id == scheduleId);
       await _repository.toggleFeedingSchedule(
         aquariumId: aquariumId,
-        scheduleId: scheduleId,
+        scheduleId: existing.time, // backend expects time in URL
         isEnabled: isEnabled,
       );
       final updatedSchedules =
@@ -256,12 +294,16 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
     }
   }
 
-  Future<void> deleteOneTimeTask({required DateTime scheduleDateTime}) async {
+  Future<void> deleteOneTimeTask({
+    required DateTime scheduleDateTime,
+    String? documentId,
+  }) async {
     state = state.copyWith(isLoading: true, errorMessage: null);
     try {
       await _repository.deleteOneTimeTask(
         aquariumId: aquariumId,
         scheduleDateTime: scheduleDateTime,
+        documentId: documentId,
       );
       state = state.copyWith(isLoading: false);
     } catch (e) {

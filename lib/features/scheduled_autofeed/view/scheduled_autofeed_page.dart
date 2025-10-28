@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 import '../viewmodel/scheduled_autofeed_viewmodel.dart';
 import '../models/feeding_schedule_model.dart';
 import 'widgets/schedule_list_item.dart';
@@ -37,15 +38,16 @@ class ScheduledAutofeedPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
         title: Text(
           'Scheduled Autofeeding - $aquariumName',
-          style: const TextStyle(
-            color: Colors.white,
+          style: TextStyle(
+            color: Theme.of(context).colorScheme.onPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
-        backgroundColor: Colors.blue[600],
         elevation: 0,
         centerTitle: true,
       ),
@@ -60,7 +62,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 24),
                 fontWeight: FontWeight.bold,
-                color: Colors.blue[700],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 16),
@@ -173,7 +175,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 18),
                 fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
             ),
             const SizedBox(height: 8),
@@ -181,20 +183,25 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               'Add a schedule to enable automatic feeding',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 14),
-                color: Colors.grey[500],
+                color: Theme.of(context).colorScheme.onSurface,
               ),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _showAddChoiceDialog(context, viewModel),
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text(
+              icon: Icon(
+                Icons.add,
+                color: Theme.of(context).colorScheme.onSurface,
+              ),
+              label: Text(
                 'Add First Schedule',
-                style: TextStyle(color: Colors.white),
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
+                backgroundColor: Theme.of(context).colorScheme.background,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -405,12 +412,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                               prefixIcon: const Icon(Icons.restaurant),
                               filled: true,
                               fillColor: Theme.of(context).colorScheme.surface,
-                              labelStyle: TextStyle(
-                                color:
-                                    Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                              ),
+                              labelStyle: TextStyle(color: Colors.white),
                             ),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
@@ -480,7 +482,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             time: time,
                             cycles: cycles,
                             foodType: foodType,
-                            isEnabled: true, // daily default ON, no extra step
+                            isEnabled: true,
                           );
                         }
 
@@ -619,11 +621,11 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             items: const [
                               DropdownMenuItem(
                                 value: 'pellet',
-                                child: Text('pellet'),
+                                child: Text('Pellets'),
                               ),
                               DropdownMenuItem(
                                 value: 'flakes',
-                                child: Text('flakes'),
+                                child: Text('Flakes'),
                               ),
                             ],
                             onChanged:

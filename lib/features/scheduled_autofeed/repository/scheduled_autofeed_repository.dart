@@ -96,6 +96,11 @@ class ScheduledAutofeedRepository {
     bool daily = true,
   }) async {
     try {
+      // Normalize food naming for backend compatibility
+      final String normalizedFood =
+          foodType.toLowerCase() == 'pellet'
+              ? 'pellets'
+              : foodType.toLowerCase();
       final response = await http.post(
         Uri.parse('$baseUrl/add_schedule/$aquariumId'),
         headers: {'Content-Type': 'application/json'},
@@ -103,7 +108,7 @@ class ScheduledAutofeedRepository {
           'time': time,
           'cycle': cycles,
           'switch': isEnabled,
-          'food': foodType,
+          'food': normalizedFood,
           'daily': daily,
         }),
       );
@@ -134,8 +139,11 @@ class ScheduledAutofeedRepository {
     required int cycles,
   }) async {
     try {
+      final encodedTime = Uri.encodeComponent(time);
       final response = await http.patch(
-        Uri.parse('$baseUrl/update_schedule_cycle/$aquariumId/$time/$cycles'),
+        Uri.parse(
+          '$baseUrl/update_schedule_cycle/$aquariumId/$encodedTime/$cycles',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode != 200) {
@@ -152,9 +160,10 @@ class ScheduledAutofeedRepository {
     required bool isEnabled,
   }) async {
     try {
+      final encodedTime = Uri.encodeComponent(time);
       final response = await http.patch(
         Uri.parse(
-          '$baseUrl/update_schedule_switch/$aquariumId/$time/${isEnabled.toString()}',
+          '$baseUrl/update_schedule_switch/$aquariumId/$encodedTime/${isEnabled ? 'true' : 'false'}',
         ),
         headers: {'Content-Type': 'application/json'},
       );
@@ -172,9 +181,10 @@ class ScheduledAutofeedRepository {
     required bool daily,
   }) async {
     try {
+      final encodedTime = Uri.encodeComponent(time);
       final response = await http.patch(
         Uri.parse(
-          '$baseUrl/update_daily/$aquariumId/$time/${daily.toString()}',
+          '$baseUrl/update_daily/$aquariumId/$encodedTime/${daily ? 'true' : 'false'}',
         ),
         headers: {'Content-Type': 'application/json'},
       );
@@ -197,7 +207,8 @@ class ScheduledAutofeedRepository {
       final payload = {
         'cycle': cycles,
         'schedule_time': _formatDateTime(scheduleDateTime),
-        'food': food,
+        // Normalize food naming for backend compatibility
+        'food': food.toLowerCase() == 'pellet' ? 'pellets' : food.toLowerCase(),
       };
       final response = await http.post(
         Uri.parse('$baseUrl/task/$aquariumId'),
@@ -216,12 +227,13 @@ class ScheduledAutofeedRepository {
   Future<void> deleteOneTimeTask({
     required String aquariumId,
     required DateTime scheduleDateTime,
+    String? documentId,
   }) async {
     try {
       final scheduleTime = _formatDateTime(scheduleDateTime);
       final payload = {
-        // Backend expects document_id formatted as f"{aquarium_id}_schedule_at_{schedule_time}"
-        'document_id': '${aquariumId}_schedule_at_$scheduleTime',
+        // Prefer provided documentId; fallback to conventional id pattern
+        'document_id': documentId ?? '${aquariumId}_schedule_at_$scheduleTime',
       };
       final response = await http.post(
         Uri.parse('$baseUrl/task/delete/$aquariumId'),
@@ -256,8 +268,10 @@ class ScheduledAutofeedRepository {
     required String scheduleId,
   }) async {
     try {
+      // scheduleId maps to time string for backend; ensure safe URL
+      final encodedTime = Uri.encodeComponent(scheduleId);
       final response = await http.delete(
-        Uri.parse('$baseUrl/delete_schedule/$aquariumId/$scheduleId'),
+        Uri.parse('$baseUrl/delete_schedule/$aquariumId/$encodedTime'),
         headers: {'Content-Type': 'application/json'},
       );
 
@@ -269,7 +283,7 @@ class ScheduledAutofeedRepository {
       // Optimistically remove from cache
       final List<FeedingSchedule> list =
           (_cache[aquariumId] ?? const <FeedingSchedule>[])
-              .where((e) => e.id != scheduleId)
+              .where((e) => e.id != scheduleId && e.time != scheduleId)
               .toList();
       _cache[aquariumId] = list;
     } catch (e) {
@@ -285,13 +299,16 @@ class ScheduledAutofeedRepository {
   }) async {
     await updateSwitch(
       aquariumId: aquariumId,
-      time: scheduleId,
+      time: scheduleId, // scheduleId corresponds to time for backend
       isEnabled: isEnabled,
     );
     final List<FeedingSchedule> list =
         (_cache[aquariumId] ?? const <FeedingSchedule>[])
             .map(
-              (e) => e.id == scheduleId ? e.copyWith(isEnabled: isEnabled) : e,
+              (e) =>
+                  (e.id == scheduleId || e.time == scheduleId)
+                      ? e.copyWith(isEnabled: isEnabled)
+                      : e,
             )
             .toList();
     _cache[aquariumId] = list;
