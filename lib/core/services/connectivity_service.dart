@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart' as connectivity;
 
+/// Singleton Connectivity Service
 class ConnectivityService {
   ConnectivityService._();
   static final ConnectivityService instance = ConnectivityService._();
@@ -8,15 +9,17 @@ class ConnectivityService {
   final connectivity.Connectivity _conn = connectivity.Connectivity();
   final StreamController<bool> _onlineController =
       StreamController<bool>.broadcast();
+
   StreamSubscription<List<connectivity.ConnectivityResult>>? _sub;
 
+  /// Public stream for online/offline changes
   Stream<bool> get onlineStream => _onlineController.stream;
 
+  /// Initialize once at app startup (e.g., in main())
   Future<void> initialize() async {
-    // Emit initial
     final initial = await _conn.checkConnectivity();
     _onlineController.add(!_isNone(initial));
-    // Listen live (v4+ emits List<ConnectivityResult>)
+
     _sub = _conn.onConnectivityChanged.listen((results) {
       _onlineController.add(!_isNone(results));
     });
@@ -33,6 +36,7 @@ class ConnectivityService {
     return true;
   }
 
+  /// One-time connectivity check
   Future<bool> isOnline() async {
     final res = await _conn.checkConnectivity();
     return !_isNone(res);

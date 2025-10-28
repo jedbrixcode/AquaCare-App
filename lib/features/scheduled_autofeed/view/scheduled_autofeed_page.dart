@@ -18,6 +18,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     // themeMode from provider not used directly; rely on current Theme.of(context)
     // Selective watches minimize rebuilds
     final isLoading = ref.watch(
@@ -43,7 +44,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         title: Text(
           'Scheduled Autofeeding - $aquariumName',
           style: TextStyle(
-            color: Theme.of(context).colorScheme.onPrimary,
+            color:
+                isDark
+                    ? Theme.of(context).textTheme.displayLarge?.color
+                    : Theme.of(context).colorScheme.onPrimary,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -57,12 +61,16 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Schedules Header
+            const SizedBox(height: 10),
             Text(
               'Feeding Schedules',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 24),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? Theme.of(context).textTheme.displayLarge?.color
+                        : Theme.of(context).textTheme.displayLarge?.color,
               ),
             ),
             const SizedBox(height: 16),

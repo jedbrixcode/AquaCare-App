@@ -6,7 +6,6 @@ import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
 import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
-import 'package:aquacare_v5/utils/theme.dart';
 
 class AquariumDashboardPage extends ConsumerWidget {
   const AquariumDashboardPage({super.key});
@@ -68,8 +67,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                 style: TextStyle(
                   color:
                       isDark
-                          ? darkTheme.textTheme.bodyMedium?.color
-                          : lightTheme.textTheme.bodyMedium?.color,
+                          ? Colors.white.withOpacity(0.87)
+                          : Colors.black.withOpacity(0.87),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -85,8 +84,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                 style: TextStyle(
                   color:
                       isDark
-                          ? darkTheme.textTheme.bodyMedium?.color
-                          : lightTheme.textTheme.bodyMedium?.color,
+                          ? Colors.white.withOpacity(0.87)
+                          : Colors.black.withOpacity(0.87),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -102,8 +101,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                 style: TextStyle(
                   color:
                       isDark
-                          ? darkTheme.textTheme.bodyMedium?.color
-                          : lightTheme.textTheme.bodyMedium?.color,
+                          ? Colors.white.withOpacity(0.87)
+                          : Colors.black.withOpacity(0.87),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -119,8 +118,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                 style: TextStyle(
                   color:
                       isDark
-                          ? darkTheme.textTheme.bodyMedium?.color
-                          : lightTheme.textTheme.bodyMedium?.color,
+                          ? Colors.white.withOpacity(0.87)
+                          : Colors.black.withOpacity(0.87),
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
                 ),
@@ -210,8 +209,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                         style: TextStyle(
                           color:
                               isDark
-                                  ? darkTheme.textTheme.bodyMedium?.color
-                                  : lightTheme.textTheme.bodyMedium?.color,
+                                  ? Colors.white.withOpacity(0.87)
+                                  : Colors.black.withOpacity(0.87),
                           fontSize: ResponsiveHelper.getFontSize(context, 20),
                           fontWeight: FontWeight.bold,
                         ),

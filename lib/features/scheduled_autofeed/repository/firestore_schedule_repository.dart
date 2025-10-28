@@ -14,16 +14,19 @@ class FirestoreScheduleRepository {
   static const String _rootCollection = 'Schedules';
   static const int _pageSize = 20;
 
-  Query<Map<String, dynamic>> _baseQueryFlexible(int aquariumId) {
+  Query<Map<String, dynamic>> getSchedulesQuery(int aquariumId) {
     return _firestore
         .collection(_rootCollection)
-        .where('aquarium_id', isEqualTo: aquariumId.toString());
+        .where('aquarium_id', isEqualTo: aquariumId.toString())
+        .limit(_pageSize);
   }
 
   Stream<List<OneTimeSchedule>> getOneTimeSchedules(int aquariumId) {
     final controller = StreamController<List<OneTimeSchedule>>.broadcast();
 
-    List<OneTimeSchedule> _mapSnap(QuerySnapshot<Map<String, dynamic>> snap) {
+    List<OneTimeSchedule> mapSnapshotToSchedules(
+      QuerySnapshot<Map<String, dynamic>> snap,
+    ) {
       final items =
           snap.docs
               .map((d) => OneTimeSchedule.fromJson(d.data(), id: d.id))
@@ -50,17 +53,17 @@ class FirestoreScheduleRepository {
     numericSub = numericQuery.snapshots().listen(
       (snap) async {
         if (snap.docs.isNotEmpty) {
-          controller.add(_mapSnap(snap));
+          controller.add(mapSnapshotToSchedules(snap));
           await stringSub?.cancel();
         } else {
           stringSub ??= stringQuery.snapshots().listen((snap2) {
-            controller.add(_mapSnap(snap2));
+            controller.add(mapSnapshotToSchedules(snap2));
           });
         }
       },
       onError: (e) async {
         stringSub ??= stringQuery.snapshots().listen((snap2) {
-          controller.add(_mapSnap(snap2));
+          controller.add(mapSnapshotToSchedules(snap2));
         });
       },
     );

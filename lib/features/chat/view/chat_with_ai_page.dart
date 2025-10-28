@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:aquacare_v5/features/chat/viewmodel/chat_with_ai_viewmodel.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:typed_data';
+import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 class AIChatPage extends ConsumerStatefulWidget {
   const AIChatPage({super.key});
@@ -55,16 +57,16 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
   }
 
   Future<void> _send() async {
+    if (_controller.text.trim().isEmpty) return;
+
+    // Send message
     await ref.read(chatViewModelProvider.notifier).send();
     ref.read(chatViewModelProvider.notifier).setInput('');
-    if (mounted) {
-      _controller.clear();
-      await Future.delayed(const Duration(milliseconds: 100));
-      Future.delayed(const Duration(milliseconds: 200), () {
-        if (_scroll.hasClients) {
-          _scroll.jumpTo(_scroll.position.maxScrollExtent);
-        }
-      });
+    _controller.clear();
+    // Scroll to the bottom after sending message
+    await Future.delayed(const Duration(milliseconds: 200));
+    if (_scroll.hasClients) {
+      _scroll.jumpTo(_scroll.position.maxScrollExtent);
     }
   }
 
@@ -72,7 +74,15 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
     final isUser = message.isUser;
     final title = isUser ? 'User' : 'AquaBot';
     final icon = isUser ? Icons.account_circle : Icons.smart_toy_rounded;
-    final backgroundColor = isUser ? Colors.blue : Colors.green;
+    final bool isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor =
+        isUser
+            ? (isDarkMode
+                ? const Color.fromARGB(255, 21, 101, 192)
+                : Colors.blue)
+            : (isDarkMode
+                ? const Color.fromARGB(255, 0, 77, 64)
+                : const Color.fromARGB(255, 0, 121, 107));
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
@@ -85,8 +95,8 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
             // Title and Icon
             Container(
               padding: const EdgeInsets.symmetric(
-                vertical: 2.0,
-                horizontal: 8.0,
+                vertical: 1.0,
+                horizontal: 10.0,
               ),
               decoration: BoxDecoration(
                 color: backgroundColor,
@@ -141,15 +151,11 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
   Widget build(BuildContext context) {
     final chat = ref.watch(chatViewModelProvider);
 
-    if (_controller.text != chat.inputText) {
-      _controller.text = chat.inputText;
-      _controller.selection = TextSelection.fromPosition(
-        TextPosition(offset: _controller.text.length),
-      );
-    }
-
+    // 🔧 Scroll to bottom after frame build
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scroll.hasClients) {}
+      if (_scroll.hasClients) {
+        _scroll.jumpTo(_scroll.position.maxScrollExtent);
+      }
       if (chat.errorMessage != null && chat.errorMessage!.isNotEmpty) {
         ScaffoldMessenger.of(
           context,
@@ -157,10 +163,14 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
       }
     });
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text("Chat with AquaBot"),
-        backgroundColor: const Color.fromARGB(255, 8, 165, 146),
+        backgroundColor:
+            isDark
+                ? Color.fromARGB(255, 0, 105, 93)
+                : Color.fromARGB(255, 0, 173, 153),
         titleTextStyle: const TextStyle(
           color: Colors.white,
           fontSize: 24,
@@ -204,131 +214,160 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          children: [
-            Expanded(
-              child: NotificationListener<OverscrollIndicatorNotification>(
-                onNotification: (overScroll) {
-                  overScroll.disallowIndicator();
-                  return true;
-                },
-                child: ListView.builder(
-                  controller: _scroll,
-                  reverse: false,
-                  itemCount: chat.messages.length + (chat.isSending ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == 0 && chat.isSending) {
-                      return const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: CircularProgressIndicator(),
+
+      // MAIN CHAT BODY
+      body: Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: Colors.blue,
+            brightness: Brightness.dark,
+          ),
+        ),
+        child: Container(
+          color: Theme.of(context).colorScheme.background,
+          child: Padding(
+            padding: const EdgeInsets.all(12.0),
+            child: Column(
+              children: [
+                Expanded(
+                  child: NotificationListener<OverscrollIndicatorNotification>(
+                    onNotification: (overScroll) {
+                      overScroll.disallowIndicator();
+                      return true;
+                    },
+                    child: ListView.builder(
+                      controller: _scroll,
+                      reverse: false,
+                      itemCount:
+                          chat.messages.length + (chat.isSending ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        // Show the waveDots loader at the BOTTOM
+                        if (index == chat.messages.length && chat.isSending) {
+                          return Padding(
+                            padding: EdgeInsets.symmetric(vertical: 8.0),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Center(
+                                child: LoadingAnimationWidget.waveDots(
+                                  color: Colors.teal,
+                                  size: 50,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                        return _buildChatMessage(chat.messages[index]);
+                      },
+                    ),
+                  ),
+                ),
+
+                // 🔧 Image preview if attached
+                if (chat.attachedImage != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color:
+                          isDark ? Colors.grey.shade800 : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        Image.memory(
+                          chat.attachedImage!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
                         ),
-                      );
-                    }
-                    final messageIndex = chat.isSending ? index - 1 : index;
-                    return _buildChatMessage(chat.messages[messageIndex]);
-                  },
-                ),
-              ),
-            ),
-            if (chat.attachedImage != null)
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Image.memory(
-                      chat.attachedImage!,
-                      width: 60,
-                      height: 60,
-                      fit: BoxFit.cover,
+                        const SizedBox(width: 8),
+                        const Expanded(child: Text('Attached image')),
+                        IconButton(
+                          onPressed:
+                              () =>
+                                  ref
+                                      .read(chatViewModelProvider.notifier)
+                                      .removeAttachment(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(child: Text('Attached image')),
-                    IconButton(
-                      onPressed:
-                          () =>
-                              ref
-                                  .read(chatViewModelProvider.notifier)
-                                  .removeAttachment(),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 2.0,
-                vertical: 8.0,
-              ),
-              child: Row(
-                children: [
-                  // Left image buttons
-                  Row(
+                  ),
+
+                // INPUT AREA
+                Padding(
+                  padding: EdgeInsets.only(
+                    top: ResponsiveHelper.verticalPadding(context) / 2,
+                    bottom: ResponsiveHelper.verticalPadding(context) / 2,
+                    left: ResponsiveHelper.horizontalPadding(context) / 16,
+                    right: ResponsiveHelper.horizontalPadding(context) / 16,
+                  ),
+                  child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.photo_camera),
-                        onPressed: chat.isSending ? null : _pickFromCamera,
-                        tooltip: 'Capture fish photo',
+                      // Camera & Gallery
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.photo_camera, size: 28),
+                            onPressed: chat.isSending ? null : _pickFromCamera,
+                            tooltip: 'Capture fish photo',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.photo_library, size: 28),
+                            onPressed: chat.isSending ? null : _pickFromGallery,
+                            tooltip: 'Upload fish photo',
+                          ),
+                        ],
                       ),
+                      SizedBox(
+                        width: ResponsiveHelper.horizontalPadding(context) / 16,
+                      ),
+
+                      // Text input
+                      Expanded(
+                        child: TextField(
+                          controller: _controller,
+                          onChanged:
+                              (v) => ref
+                                  .read(chatViewModelProvider.notifier)
+                                  .setInput(v),
+                          decoration: const InputDecoration(
+                            hintText: "Ask me anything about aquatic life...",
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ),
+
+                      // Send Button
                       IconButton(
-                        icon: const Icon(Icons.photo_library),
-                        onPressed: chat.isSending ? null : _pickFromGallery,
-                        tooltip: 'Upload fish photo',
+                        icon: Icon(Icons.send, size: 28),
+                        onPressed:
+                            chat.isSending
+                                ? null
+                                : () async {
+                                  await _send();
+                                  _controller.clear();
+                                  ref
+                                      .read(chatViewModelProvider.notifier)
+                                      .setInput('');
+                                  await Future.delayed(
+                                    const Duration(milliseconds: 300),
+                                  );
+                                  if (_scroll.hasClients) {
+                                    _scroll.jumpTo(
+                                      _scroll.position.maxScrollExtent,
+                                    );
+                                  }
+                                },
                       ),
                     ],
                   ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      onChanged:
-                          (v) => ref
-                              .read(chatViewModelProvider.notifier)
-                              .setInput(v),
-                      decoration: const InputDecoration(
-                        hintText: "Ask me anything about aquatic life...",
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send, size: 28),
-                    onPressed: chat.isSending ? null : _send,
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-    );
-  }
-}
-
-class ChatWithAIPage extends StatelessWidget {
-  const ChatWithAIPage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Chat with AI'),
-        backgroundColor: Colors.blue,
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      body: const Center(child: Text('Chat feature coming soon')),
     );
   }
 }

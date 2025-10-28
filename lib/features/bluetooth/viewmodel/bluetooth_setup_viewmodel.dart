@@ -113,13 +113,11 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
   }) async {
     state = state.copyWith(sendingState: const AsyncLoading());
     try {
-      // ✅ Create JSON string
+      // Create JSON string
       final jsonPayload = jsonEncode({'ssid': ssid, 'password': password});
 
-      // ✅ Pass JSON string to service
-      final ok = await _service.sendRawData(
-        jsonPayload,
-      ); // new function, see below
+      // Pass JSON string to service
+      final ok = await _service.sendRawData(jsonPayload);
 
       if (!ok) throw Exception('BLE write failed');
       state = state.copyWith(

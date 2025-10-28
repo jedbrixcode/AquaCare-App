@@ -35,7 +35,7 @@ class LocalStorageService {
     ], directory: dir.path);
   }
 
-  // ✅ Cache latest sensor values per aquarium
+  // Cache latest sensor values per aquarium
   Future<void> cacheLatestSensors({
     required String aquariumId,
     required double temperature,
@@ -56,7 +56,7 @@ class LocalStorageService {
     });
   }
 
-  // ✅ Cache hourly logs
+  // Cache hourly logs
   Future<void> cacheHourlyLog({
     required String aquariumId,
     required int hourIndex,
@@ -77,7 +77,7 @@ class LocalStorageService {
     });
   }
 
-  // ✅ Cache daily/weekly averages
+  // Cache daily/weekly averages
   Future<void> cacheAverage({
     required String aquariumId,
     required int dayIndex,
@@ -98,7 +98,7 @@ class LocalStorageService {
     });
   }
 
-  // ✅ Readers
+  // Readers
   Future<Map<String, dynamic>?> getLatestSensors(String aquariumId) async {
     final data =
         await _isar.latestSensors
@@ -118,7 +118,7 @@ class LocalStorageService {
     };
   }
 
-  // ✅ Get latest sensor snapshot for ALL aquariums (dedup by newest timestamp)
+  // Get latest sensor snapshot for ALL aquariums (dedup by newest timestamp)
   Future<List<Map<String, dynamic>>> getAllLatestSensorsLatest() async {
     final all = await _isar.latestSensors.where().findAll();
     final Map<String, LatestSensor> newestByAquariumId = {};
@@ -191,9 +191,7 @@ class LocalStorageService {
         .toList();
   }
 
-  // -----------------
   // App Settings
-  // -----------------
   Future<String?> getThemeModeString() async {
     final s = await _isar.appSettings.where().findFirst();
     return s?.themeMode;
@@ -238,9 +236,7 @@ class LocalStorageService {
 
   Stream<void> watchSettingsLazy() => _isar.appSettings.watchLazy();
 
-  // -----------------
   // Chat Persistence
-  // -----------------
   Future<void> addChatMessage(ChatMessageIsar msg) async {
     await _isar.writeTxn(() async {
       await _isar.chatMessageIsars.put(msg);
@@ -261,9 +257,7 @@ class LocalStorageService {
     return _isar.chatMessageIsars.where().watch(fireImmediately: true);
   }
 
-  // -----------------
   // Scheduled Autofeed Cache
-  // -----------------
   Future<void> cacheFeedingSchedules(
     String aquariumId,
     List<FeedingScheduleCache> items,
@@ -301,9 +295,7 @@ class LocalStorageService {
         .watch(fireImmediately: true);
   }
 
-  // -----------------
   // One-time schedules cache (Firestore mirror)
-  // -----------------
   Future<void> cacheOneTimeSchedules(
     String aquariumId,
     List<OneTimeScheduleCache> items,

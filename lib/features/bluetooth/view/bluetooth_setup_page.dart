@@ -33,8 +33,6 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
     await ref.read(bluetoothSetupViewModelProvider.notifier).initialize();
   }
 
-  void _setupListeners() {}
-
   @override
   Widget build(BuildContext context) {
     final vm = ref.watch(bluetoothSetupViewModelProvider);

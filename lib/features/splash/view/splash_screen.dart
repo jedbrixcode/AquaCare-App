@@ -243,6 +243,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context: context,
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
+        bool isDark = Theme.of(dialogContext).brightness == Brightness.dark;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -252,18 +253,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             color: Colors.orange[700],
             size: 48,
           ),
-          title: const Text(
+          title: Text(
             'Limited Functionality',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color:
+                  isDark
+                      ? theme.darkTheme.textTheme.bodyMedium?.color
+                      : theme.lightTheme.textTheme.bodyMedium?.color,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
+              Text(
                 'Without battery optimization disabled, AquaCare may not function as expected.',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, height: 1.4),
+                style: TextStyle(
+                  fontSize: 14,
+                  height: 1.4,
+                  color:
+                      isDark
+                          ? theme.darkTheme.textTheme.bodyMedium?.color
+                          : theme.lightTheme.textTheme.bodyMedium?.color,
+                ),
               ),
               const SizedBox(height: 16),
               Container(
@@ -284,19 +299,31 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           size: 18,
                         ),
                         const SizedBox(width: 8),
-                        const Text(
+                        Text(
                           'What won\'t work:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
+                            color:
+                                isDark
+                                    ? theme
+                                        .lightTheme
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color
+                                    : theme
+                                        .darkTheme
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 8),
-                    _buildLimitationItem('Real-time notifications'),
-                    _buildLimitationItem('Background monitoring'),
-                    _buildLimitationItem('Scheduled alerts'),
+                    SizedBox(height: 8),
+                    _buildLimitationItem('Real-time notifications', isDark),
+                    _buildLimitationItem('Background monitoring', isDark),
+                    _buildLimitationItem('Scheduled alerts', isDark),
                   ],
                 ),
               ),
@@ -306,21 +333,37 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.of(dialogContext).pop();
-                // ✅ Re-show battery dialog and wait
+                // Re-show battery dialog and wait
                 _isDialogShowing = true;
                 await _showBatteryOptimizationDialog();
                 _isDialogShowing = false;
               },
-              child: const Text(
-                'Allow Permission',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color:
+                      isDark
+                          ? theme.lightTheme.colorScheme.primary
+                          : theme.darkTheme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Allow Permission',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
             TextButton(
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Continue Anyway',
-                style: TextStyle(color: Colors.grey[600]),
+                style: TextStyle(color: Colors.grey[400]),
               ),
             ),
           ],
@@ -329,14 +372,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
-  Widget _buildLimitationItem(String text) {
+  Widget _buildLimitationItem(String text, bool isDark) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 4),
       child: Row(
         children: [
           Icon(Icons.close, color: Colors.red[700], size: 14),
           const SizedBox(width: 6),
-          Text(text, style: const TextStyle(fontSize: 12)),
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              color:
+                  isDark
+                      ? theme.lightTheme.textTheme.bodyMedium?.color
+                      : theme.darkTheme.textTheme.bodyMedium?.color,
+            ),
+          ),
         ],
       ),
     );

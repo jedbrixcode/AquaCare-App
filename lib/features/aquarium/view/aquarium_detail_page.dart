@@ -1,4 +1,5 @@
 import 'package:aquacare_v5/features/aquarium/viewmodel/aquarium_dashboard_viewmodel.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -37,6 +38,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     final thresholdAsync = ref.watch(
       aquariumThresholdProvider(widget.aquariumId),
     );
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Watch OUR ViewModel for computed state
     final viewModelState = ref.watch(
@@ -44,7 +46,6 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     );
 
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     // Update ViewModel when sensor changes
     sensorAsync.whenData((sensor) {
@@ -89,7 +90,9 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: ResponsiveHelper.getScreenPadding(context),
+        padding: ResponsiveHelper.getScreenPadding(
+          context,
+        ).copyWith(top: ResponsiveHelper.getScreenPadding(context).top + 10),
         child:
             ResponsiveHelper.isMobile(context)
                 ? _buildMobileLayout(viewModelState, theme, isDark)
@@ -119,18 +122,24 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     bool isDark,
   ) {
     return Row(
-      spacing: ResponsiveHelper.getScreenPadding(context).top,
+      spacing: ResponsiveHelper.getScreenPadding(context).top + 3,
       children: [
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTemperatureCard(viewModelState, theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 12,
+              ),
               _buildAutoFeedCard(theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 12,
+              ),
               _buildHealthBar(viewModelState, theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 12,
+              ),
             ],
           ),
         ),
@@ -139,11 +148,17 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTurbidityCard(viewModelState, theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 12,
+              ),
               _buildPhCard(viewModelState, theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 14,
+              ),
               _buildScheduledAutofeedCard(theme, isDark),
-              SizedBox(height: ResponsiveHelper.getScreenPadding(context).top),
+              SizedBox(
+                height: ResponsiveHelper.getScreenPadding(context).top + 10,
+              ),
             ],
           ),
         ),
@@ -219,8 +234,8 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
           ),
       child: Container(
         padding: EdgeInsets.symmetric(
-          horizontal: ResponsiveHelper.horizontalPadding(context),
-          vertical: ResponsiveHelper.getScreenPadding(context).top,
+          horizontal: ResponsiveHelper.horizontalPadding(context) + 5,
+          vertical: ResponsiveHelper.getScreenPadding(context).top + 10,
         ),
         decoration: BoxDecoration(
           color: isDark ? theme.colorScheme.surface : Colors.blue[50],
@@ -245,7 +260,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       fontWeight: FontWeight.bold,
                       color:
                           isDark
-                              ? theme.colorScheme.onSurface
+                              ? theme.textTheme.bodyMedium?.color
                               : Colors.blue[700],
                     ),
                   ),
@@ -254,7 +269,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                     'Manage feeding schedules',
                     textAlign: TextAlign.right,
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getFontSize(context, 10),
+                      fontSize: ResponsiveHelper.getFontSize(context, 12),
                       color:
                           isDark
                               ? theme.textTheme.bodyMedium?.color
@@ -303,7 +318,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         percent: viewModelState.tempHealth,
         icon: FontAwesomeIcons.temperatureHigh,
         ringColor: tempColor,
-        color: isDark ? theme.colorScheme.onSurface : Colors.white,
+        color: isDark ? Colors.white : theme.colorScheme.onSurface,
         height: ResponsiveHelper.getCardHeight(context) + 100,
         theme: theme,
         isDark: isDark,
@@ -344,6 +359,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         rawValue: viewModelState.sensor.turbidity,
         theme: theme,
         isDark: isDark,
+        icon: FontAwesomeIcons.gear,
       ),
     );
   }
@@ -380,7 +396,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         percent: viewModelState.phHealth,
         icon: FontAwesomeIcons.vialCircleCheck,
         ringColor: phColor,
-        color: isDark ? theme.colorScheme.onSurface : Colors.white,
+        color: isDark ? Colors.white : theme.colorScheme.onSurface,
         height: ResponsiveHelper.getCardHeight(context) + 100,
         width: double.infinity,
         theme: theme,
@@ -422,23 +438,23 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                   Text(
                     'Auto Feeding',
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getFontSize(context, 15),
+                      fontSize: ResponsiveHelper.getFontSize(context, 20),
                       fontWeight: FontWeight.bold,
                       color:
                           isDark
-                              ? theme.colorScheme.onSurface
-                              : Colors.green[700],
+                              ? theme.textTheme.bodyMedium?.color
+                              : theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Configure feeding system',
                     style: TextStyle(
-                      fontSize: ResponsiveHelper.getFontSize(context, 10),
+                      fontSize: ResponsiveHelper.getFontSize(context, 12),
                       color:
                           isDark
                               ? theme.textTheme.bodyMedium?.color
-                              : Colors.green[600],
+                              : theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -485,7 +501,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             style: TextStyle(
               fontSize: ResponsiveHelper.getFontSize(context, 15),
               fontWeight: FontWeight.bold,
-              color: isDark ? theme.colorScheme.onSurface : barColor,
+              color: isDark ? theme.textTheme.bodyMedium?.color : barColor,
             ),
           ),
           const SizedBox(height: 8),
@@ -494,7 +510,8 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             child: LinearProgressIndicator(
               value: wqi / 100.0,
               minHeight: 18,
-              backgroundColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+              backgroundColor:
+                  isDark ? theme.colorScheme.onSurface : Colors.grey[300]!,
               color: barColor,
             ),
           ),
@@ -504,7 +521,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               Text(
                 "${wqi.toStringAsFixed(0)}%",
                 style: TextStyle(
-                  color: isDark ? theme.colorScheme.onSurface : barColor,
+                  color: isDark ? theme.textTheme.bodyMedium?.color : barColor,
                   fontSize: ResponsiveHelper.getFontSize(context, 14),
                   fontWeight: FontWeight.bold,
                 ),
@@ -569,10 +586,10 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             label.toUpperCase(),
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: ResponsiveHelper.getFontSize(context, 18),
+              fontSize: ResponsiveHelper.getFontSize(context, 25),
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
             ),
           ),
@@ -585,12 +602,13 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               icon,
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
               size: ResponsiveHelper.isMobile(context) ? 40 : 48,
             ),
             progressColor: ringColor ?? Colors.blue,
-            backgroundColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            backgroundColor:
+                isDark ? theme.colorScheme.onSurface : Colors.grey[500]!,
             circularStrokeCap: CircularStrokeCap.round,
           ),
           const SizedBox(height: 16),
@@ -601,7 +619,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               fontWeight: FontWeight.bold,
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
             ),
           ),
@@ -650,7 +668,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               fontSize: ResponsiveHelper.getFontSize(context, 28),
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
             ),
           ),
@@ -663,12 +681,13 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               icon,
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
               size: ResponsiveHelper.isMobile(context) ? 40 : 48,
             ),
             progressColor: ringColor ?? Colors.blue,
-            backgroundColor: isDark ? Colors.grey[800]! : Colors.grey[300]!,
+            backgroundColor:
+                isDark ? theme.colorScheme.onSurface : Colors.grey[300]!,
             circularStrokeCap: CircularStrokeCap.round,
           ),
           const SizedBox(height: 10),
@@ -679,7 +698,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
               fontWeight: FontWeight.bold,
               color:
                   isDark
-                      ? theme.colorScheme.onSurface
+                      ? Theme.of(context).textTheme.bodyMedium?.color
                       : ringColor ?? Colors.blue[700],
             ),
           ),
@@ -695,6 +714,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     required Color color,
     required ThemeData theme,
     required bool isDark,
+    required IconData icon,
   }) {
     return Container(
       padding: EdgeInsets.all(ResponsiveHelper.horizontalPadding(context)),
@@ -710,20 +730,33 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ✅ FIXED Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // Left side: text
               Text(
                 label.toUpperCase(),
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: ResponsiveHelper.getFontSize(context, 18),
-                  color: isDark ? theme.colorScheme.onSurface : color,
+                  fontSize: ResponsiveHelper.getFontSize(context, 22),
+                  color:
+                      isDark
+                          ? Theme.of(context).textTheme.bodyMedium?.color
+                          : color,
                 ),
+              ),
+              // Right side: icon
+              Icon(
+                icon,
+                color: isDark ? Theme.of(context).iconTheme.color : color,
+                size: ResponsiveHelper.getFontSize(context, 18),
               ),
             ],
           ),
           const SizedBox(height: 16),
+
+          // Progress bar section
           Stack(
             children: [
               ClipRRect(
@@ -731,7 +764,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                 child: LinearProgressIndicator(
                   value: percent,
                   backgroundColor:
-                      isDark ? Colors.grey[800]! : Colors.grey[300]!,
+                      isDark ? theme.colorScheme.onSurface : Colors.grey[300]!,
                   color: color,
                   minHeight: 20,
                 ),
@@ -744,7 +777,10 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 16),
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color:
+                          isDark
+                              ? Theme.of(context).textTheme.bodyMedium?.color
+                              : Colors.white,
                     ),
                   ),
                 ),
