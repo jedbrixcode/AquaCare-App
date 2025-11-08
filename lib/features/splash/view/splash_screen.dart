@@ -19,13 +19,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   bool _timerComplete = false;
   bool _isDialogShowing = false;
   Timer? _minimumDisplayTimer;
+  final Duration _minDisplayDuration = const Duration(seconds: 3);
+  DateTime? _timerStartedAt;
+  Duration? _remainingDisplay;
 
   @override
   void initState() {
     super.initState();
 
     // Start minimum display timer (3 seconds)
-    _minimumDisplayTimer = Timer(const Duration(seconds: 3), () {
+    _timerStartedAt = DateTime.now();
+    _minimumDisplayTimer = Timer(_minDisplayDuration, () {
       _timerComplete = true;
       _tryNavigate(); // ✅ Try to navigate when timer completes
     });
@@ -71,6 +75,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
       if (!status.isGranted && mounted) {
         _isDialogShowing = true; // ✅ Mark dialog as showing
+        _pauseSplashTimer(); // pause while dialog is shown
         await _showBatteryOptimizationDialog();
       }
     } catch (e) {
@@ -223,6 +228,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       await perms.openAppSettings();
     }
     _isDialogShowing = false;
+    _resumeSplashTimerIfNeeded();
     _tryNavigate();
   }
 
@@ -232,6 +238,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (mounted) {
       await _showSkipWarningDialog();
       _isDialogShowing = false;
+      _resumeSplashTimerIfNeeded();
       _tryNavigate();
     }
   }
@@ -304,26 +311,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
-                            color:
-                                isDark
-                                    ? theme
-                                        .lightTheme
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color
-                                    : theme
-                                        .darkTheme
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
+                            color: theme.lightTheme.textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
                     ),
                     SizedBox(height: 8),
-                    _buildLimitationItem('Real-time notifications', isDark),
-                    _buildLimitationItem('Background monitoring', isDark),
-                    _buildLimitationItem('Scheduled alerts', isDark),
+                    _buildLimitationItem('Real-time notifications'),
+                    _buildLimitationItem('Background monitoring'),
+                    _buildLimitationItem('Scheduled alerts'),
                   ],
                 ),
               ),
@@ -363,7 +359,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               onPressed: () => Navigator.of(dialogContext).pop(),
               child: Text(
                 'Continue Anyway',
-                style: TextStyle(color: Colors.grey[400]),
+                style: TextStyle(
+                  color:
+                      isDark
+                          ? theme.darkTheme.textTheme.bodyMedium?.color
+                          : theme.lightTheme.textTheme.bodyMedium?.color,
+                ),
               ),
             ),
           ],
@@ -372,8 +373,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     );
   }
 
-  Widget _buildLimitationItem(String text, bool isDark) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+  Widget _buildLimitationItem(String text) {
     return Padding(
       padding: const EdgeInsets.only(left: 8, bottom: 4),
       child: Row(
@@ -384,10 +384,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             text,
             style: TextStyle(
               fontSize: 12,
-              color:
-                  isDark
-                      ? theme.lightTheme.textTheme.bodyMedium?.color
-                      : theme.darkTheme.textTheme.bodyMedium?.color,
+              color: theme.lightTheme.textTheme.bodyMedium?.color,
             ),
           ),
         ],
@@ -401,6 +398,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context,
       MaterialPageRoute(builder: (_) => const AquariumDashboardPage()),
     );
+  }
+
+  void _pauseSplashTimer() {
+    if (_minimumDisplayTimer?.isActive ?? false) {
+      _minimumDisplayTimer?.cancel();
+      final started = _timerStartedAt;
+      if (started != null) {
+        final elapsed = DateTime.now().difference(started);
+        final remaining = _minDisplayDuration - elapsed;
+        _remainingDisplay = remaining.isNegative ? Duration.zero : remaining;
+      } else {
+        _remainingDisplay = _minDisplayDuration;
+      }
+    }
+  }
+
+  void _resumeSplashTimerIfNeeded() {
+    if (_timerComplete) return;
+    final remaining = _remainingDisplay;
+    if (remaining == null || remaining == Duration.zero) {
+      _timerComplete = true;
+      return;
+    }
+    _timerStartedAt = DateTime.now();
+    _minimumDisplayTimer = Timer(remaining, () {
+      _timerComplete = true;
+      _tryNavigate();
+    });
+    _remainingDisplay = null;
   }
 
   @override
@@ -419,6 +445,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
+              Image.asset('assets/icons/aquacare_logo.png', height: 205),
+              const SizedBox(height: 16),
               LoadingAnimationWidget.waveDots(color: Colors.white, size: 72),
               const SizedBox(height: 24),
               const Text(

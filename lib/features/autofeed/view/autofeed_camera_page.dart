@@ -236,7 +236,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
     messenger.showSnackBar(
       const SnackBar(
         content: Text('Camera offline. Using offline mode.'),
-        duration: Duration(days: 1),
+        duration: Duration(seconds: 3),
       ),
     );
   }

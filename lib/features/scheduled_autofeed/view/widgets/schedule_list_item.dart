@@ -111,31 +111,33 @@ class ScheduleListItem extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color:
-                              schedule.isEnabled
-                                  ? Colors.green[100]
-                                  : colorScheme.surfaceVariant,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          schedule.isEnabled ? 'Active' : 'Inactive',
-                          style: TextStyle(
-                            fontSize: 12,
+                      if (schedule.daily) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
                             color:
                                 schedule.isEnabled
-                                    ? Colors.green[700]
-                                    : colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
+                                    ? Colors.green[100]
+                                    : colorScheme.surfaceVariant,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            schedule.isEnabled ? 'Active' : 'Inactive',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color:
+                                  schedule.isEnabled
+                                      ? Colors.green[700]
+                                      : colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -150,7 +152,8 @@ class ScheduleListItem extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Switch.adaptive(value: schedule.isEnabled, onChanged: onToggle),
+            if (schedule.daily)
+              Switch.adaptive(value: schedule.isEnabled, onChanged: onToggle),
           ],
         ),
       ),

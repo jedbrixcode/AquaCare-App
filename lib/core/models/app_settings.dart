@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'app_settings.g.dart';
 
-@collection
+@Collection()
 class AppSettings {
   Id id = Isar.autoIncrement;
 

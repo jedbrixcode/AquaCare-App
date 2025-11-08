@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'one_time_schedule_cache.g.dart';
 
-@collection
+@Collection()
 class OneTimeScheduleCache {
   Id id = Isar.autoIncrement;
   late String aquariumId;

@@ -20,6 +20,15 @@ class TurbidityPage extends ConsumerStatefulWidget {
 class _TurbidityPageState extends ConsumerState<TurbidityPage> {
   double? _minTurbidityEditing;
   double? _maxTurbidityEditing;
+  final TextEditingController _minController = TextEditingController();
+  final TextEditingController _maxController = TextEditingController();
+
+  @override
+  void dispose() {
+    _minController.dispose();
+    _maxController.dispose();
+    super.dispose();
+  }
 
   Color getTurbidityColor(double? turbidityValue) {
     switch (turbidityValue) {
@@ -255,10 +264,12 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             ),
                             _buildNumberInput(
                               value: _minTurbidityEditing ?? range.min,
+                              controller: _minController,
                               onChanged:
                                   (value) => setState(
                                     () => _minTurbidityEditing = value,
                                   ),
+                              step: 1,
                             ),
                           ],
                         ),
@@ -278,10 +289,12 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             ),
                             _buildNumberInput(
                               value: _maxTurbidityEditing ?? range.max,
+                              controller: _maxController,
                               onChanged:
                                   (value) => setState(
                                     () => _maxTurbidityEditing = value,
                                   ),
+                              step: 1,
                             ),
                           ],
                         ),
@@ -349,20 +362,32 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
 
   Widget _buildNumberInput({
     required double value,
+    required TextEditingController controller,
     required Function(double) onChanged,
+    double step = 1.0,
   }) {
+    controller.value = TextEditingValue(
+      text: value.toStringAsFixed(0),
+      selection: TextSelection.collapsed(
+        offset: value.toStringAsFixed(0).length,
+      ),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          onPressed: () => onChanged(value + 1),
+          onPressed: () => onChanged(value + step),
           icon: const Icon(Icons.arrow_drop_up, size: 40),
         ),
         SizedBox(
           width: 70,
           child: TextField(
+            controller: controller,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: false,
+            ),
             textAlign: TextAlign.center,
-            controller: TextEditingController(text: value.toStringAsFixed(0)),
             onChanged: (text) {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
@@ -375,7 +400,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
         ),
         IconButton(
           onPressed: () {
-            if (value > 0) onChanged(value - 1);
+            if (value > 0) onChanged(value - step);
           },
           icon: const Icon(Icons.arrow_drop_down, size: 40),
         ),

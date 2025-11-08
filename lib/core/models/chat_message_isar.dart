@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'chat_message_isar.g.dart';
 
-@collection
+@Collection()
 class ChatMessageIsar {
   Id id = Isar.autoIncrement;
   late String messageId;

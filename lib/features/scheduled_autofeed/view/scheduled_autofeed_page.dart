@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
-import 'package:aquacare_v5/utils/theme.dart';
+
 import '../viewmodel/scheduled_autofeed_viewmodel.dart';
 import '../models/feeding_schedule_model.dart';
 import 'widgets/schedule_list_item.dart';
+import '../../scheduled_autofeed/viewmodel/one_time_schedule_viewmodel.dart';
+import '../../scheduled_autofeed/models/one_time_schedule_model.dart';
 
 class ScheduledAutofeedPage extends ConsumerWidget {
   final String aquariumId;
@@ -21,21 +23,19 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // themeMode from provider not used directly; rely on current Theme.of(context)
     // Selective watches minimize rebuilds
-    final isLoading = ref.watch(
-      scheduledAutofeedViewModelProvider(aquariumId).select((s) => s.isLoading),
+    final schedProvider = scheduledAutofeedViewModelProvider(aquariumId);
+    final isLoading = ref.watch(schedProvider.select((s) => s.isLoading));
+    final errorMessage = ref.watch(schedProvider.select((s) => s.errorMessage));
+    final schedules = ref.watch(schedProvider.select((s) => s.schedules));
+    final viewModel = ref.read(schedProvider.notifier);
+
+    // One-time schedules from Firestore (status-aware), alarm-app style
+    final intAquariumId = int.tryParse(aquariumId) ?? 0;
+    final oneTimeState = ref.watch(
+      oneTimeScheduleViewModelProvider(intAquariumId),
     );
-    final errorMessage = ref.watch(
-      scheduledAutofeedViewModelProvider(
-        aquariumId,
-      ).select((s) => s.errorMessage),
-    );
-    // Status derives from Firebase switches; master switch removed
-    final schedules = ref.watch(
-      scheduledAutofeedViewModelProvider(aquariumId).select((s) => s.schedules),
-    );
-    final viewModel = ref.read(
-      scheduledAutofeedViewModelProvider(aquariumId).notifier,
-    );
+
+    final dailySchedules = schedules.where((s) => s.daily).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -55,73 +55,33 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: ResponsiveHelper.getScreenPadding(context),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          await viewModel.loadData();
+          ref.invalidate(oneTimeScheduleViewModelProvider(intAquariumId));
+        },
+        child: ListView(
+          padding: ResponsiveHelper.getScreenPadding(context),
           children: [
-            // Schedules Header
-            const SizedBox(height: 10),
-            Text(
-              'Feeding Schedules',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.getFontSize(context, 24),
-                fontWeight: FontWeight.bold,
-                color:
-                    isDark
-                        ? Theme.of(context).textTheme.displayLarge?.color
-                        : Theme.of(context).textTheme.displayLarge?.color,
-              ),
-            ),
-            const SizedBox(height: 16),
-
             // Error Message
             if (errorMessage != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: Colors.red[50],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red[200]!),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red[600]),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        errorMessage,
-                        style: TextStyle(color: Colors.red[700]),
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => viewModel.clearError(),
-                      icon: Icon(Icons.close, color: Colors.red[600]),
-                    ),
-                  ],
-                ),
-              ),
+              _errorBanner(context, errorMessage, () => viewModel.clearError()),
 
-            // Loading Indicator
+            // Daily section
+            _sectionHeader(context, 'Daily Schedules'),
             if (isLoading)
-              const Center(
-                child: Padding(
-                  padding: EdgeInsets.all(32.0),
-                  child: CircularProgressIndicator(),
-                ),
-              ),
-
-            // Schedules List
-            if (!isLoading && schedules.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (dailySchedules.isEmpty)
               _buildEmptyState(context, viewModel)
-            else if (!isLoading)
+            else
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemBuilder: (context, index) {
-                  final schedule = schedules[index];
+                  final schedule = dailySchedules[index];
                   return ScheduleListItem(
                     schedule: schedule,
                     onToggle:
@@ -142,7 +102,33 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   );
                 },
                 separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemCount: schedules.length,
+                itemCount: dailySchedules.length,
+              ),
+
+            const SizedBox(height: 24),
+
+            // One-time section (no toggles, status shown from Firestore)
+            _sectionHeader(context, 'One-time Schedules'),
+            if (oneTimeState.isLoading && oneTimeState.schedules.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(24.0),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (oneTimeState.errorMessage != null &&
+                oneTimeState.schedules.isEmpty)
+              _errorBanner(context, oneTimeState.errorMessage!, null)
+            else if (oneTimeState.schedules.isEmpty)
+              _emptyOneTime(context)
+            else
+              ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemBuilder: (context, index) {
+                  final s = oneTimeState.schedules[index];
+                  return _oneTimeCard(context, s, ref);
+                },
+                separatorBuilder: (_, __) => const SizedBox(height: 12),
+                itemCount: oneTimeState.schedules.length,
               ),
 
             const SizedBox(height: 32),
@@ -156,6 +142,51 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           Icons.add,
           color: Theme.of(context).colorScheme.onSecondary,
         ),
+      ),
+    );
+  }
+
+  Widget _sectionHeader(BuildContext context, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10, bottom: 12),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: ResponsiveHelper.getFontSize(context, 20),
+          fontWeight: FontWeight.bold,
+          color: Theme.of(context).textTheme.displayLarge?.color,
+        ),
+      ),
+    );
+  }
+
+  Widget _errorBanner(
+    BuildContext context,
+    String errorMessage,
+    VoidCallback? onClose,
+  ) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.red[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.error_outline, color: Colors.red[600]),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(errorMessage, style: TextStyle(color: Colors.red[700])),
+          ),
+          if (onClose != null)
+            IconButton(
+              onPressed: onClose,
+              icon: Icon(Icons.close, color: Colors.red[600]),
+            ),
+        ],
       ),
     );
   }
@@ -221,15 +252,132 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     );
   }
 
-  void _showAddScheduleDialog(
+  Widget _emptyOneTime(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Center(
+        child: Text(
+          'No one-time feedings',
+          style: TextStyle(
+            fontSize: ResponsiveHelper.getFontSize(context, 14),
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _oneTimeCard(
     BuildContext context,
-    ScheduledAutofeedViewModel viewModel,
+    OneTimeSchedule schedule,
+    WidgetRef ref,
   ) {
-    _showScheduleDialog(
-      context: context,
-      viewModel: viewModel,
-      title: 'Add Feeding Schedule',
-      schedule: null,
+    Color statusColor;
+    switch (schedule.status) {
+      case 'pending':
+        statusColor = Colors.orange;
+        break;
+      case 'running':
+        statusColor = Colors.blue;
+        break;
+      case 'done':
+        statusColor = Colors.green;
+        break;
+      case 'cancelled':
+        statusColor = Colors.grey;
+        break;
+      default:
+        statusColor = Theme.of(context).colorScheme.secondary;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Theme.of(context).dividerColor, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.alarm, color: statusColor),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      schedule.scheduleTime,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        'One-time',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.orange[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        schedule.status,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: statusColor,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  '${schedule.cycle} cycle${schedule.cycle > 1 ? 's' : ''} • ${schedule.food}',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getFontSize(context, 16),
+                    color: Theme.of(context).textTheme.bodySmall?.color,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -433,7 +581,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                                         : null,
                           ),
                           const SizedBox(height: 16),
-                          if (!isDaily)
+                          if (isDaily)
                             SwitchListTile.adaptive(
                               value: isEnabled,
                               onChanged:

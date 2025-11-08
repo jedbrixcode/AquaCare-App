@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'hourly_log.g.dart';
 
-@collection
+@Collection()
 class HourlyLog {
   Id id = Isar.autoIncrement;
   late String aquariumId;

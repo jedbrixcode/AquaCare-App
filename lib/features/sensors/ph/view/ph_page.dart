@@ -20,6 +20,15 @@ class PhPage extends ConsumerStatefulWidget {
 class _PhPageState extends ConsumerState<PhPage> {
   double? _minPhEditing;
   double? _maxPhEditing;
+  final TextEditingController _minController = TextEditingController();
+  final TextEditingController _maxController = TextEditingController();
+
+  @override
+  void dispose() {
+    _minController.dispose();
+    _maxController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -196,9 +205,11 @@ class _PhPageState extends ConsumerState<PhPage> {
                             ),
                             _buildNumberInput(
                               value: _minPhEditing ?? range.min,
+                              controller: _minController,
                               onChanged:
                                   (value) =>
                                       setState(() => _minPhEditing = value),
+                              step: 0.1,
                             ),
                           ],
                         ),
@@ -218,9 +229,11 @@ class _PhPageState extends ConsumerState<PhPage> {
                             ),
                             _buildNumberInput(
                               value: _maxPhEditing ?? range.max,
+                              controller: _maxController,
                               onChanged:
                                   (value) =>
                                       setState(() => _maxPhEditing = value),
+                              step: 0.1,
                             ),
                           ],
                         ),
@@ -286,20 +299,35 @@ class _PhPageState extends ConsumerState<PhPage> {
 
   Widget _buildNumberInput({
     required double value,
+    required TextEditingController controller,
     required Function(double) onChanged,
+    double step = 1.0,
   }) {
+    controller.value = TextEditingValue(
+      text: value.toStringAsFixed(step < 1 ? 1 : 0),
+      selection: TextSelection.collapsed(
+        offset: value.toStringAsFixed(step < 1 ? 1 : 0).length,
+      ),
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          onPressed: () => onChanged(value + 0.1),
+          onPressed:
+              () => onChanged(
+                double.parse((value + step).toStringAsFixed(step < 1 ? 1 : 0)),
+              ),
           icon: const Icon(Icons.arrow_drop_up, size: 40),
         ),
         SizedBox(
           width: 70,
           child: TextField(
+            controller: controller,
             textAlign: TextAlign.center,
-            controller: TextEditingController(text: value.toStringAsFixed(1)),
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+              signed: false,
+            ),
             onChanged: (text) {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
@@ -312,7 +340,11 @@ class _PhPageState extends ConsumerState<PhPage> {
         ),
         IconButton(
           onPressed: () {
-            if (value > 0) onChanged(value - 0.1);
+            if (value > 0) {
+              onChanged(
+                double.parse((value - step).toStringAsFixed(step < 1 ? 1 : 0)),
+              );
+            }
           },
           icon: const Icon(Icons.arrow_drop_down, size: 40),
         ),

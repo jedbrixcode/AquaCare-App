@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/utils/theme.dart' as theme;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/sensors/temperature/viewmodel/temperature_viewmodel.dart';
@@ -33,6 +34,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
     );
     final vm = ref.watch(temperatureViewModelProvider);
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: Colors.blue,
@@ -44,7 +46,10 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
         ),
       ),
       body: Padding(
-        padding: ResponsiveHelper.getScreenPadding(context),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.horizontalPadding(context),
+          vertical: ResponsiveHelper.verticalPadding(context),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -206,6 +211,8 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     offset: max.toStringAsFixed(1).length,
                   ),
                 );
+                final bool isDark =
+                    Theme.of(context).brightness == Brightness.dark;
                 return Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -219,11 +226,14 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                       setState(() => _maxTempEditing = value);
                     }),
                     const SizedBox(width: 20),
-                    const Text(
+                    Text(
                       '°C',
                       style: TextStyle(
                         fontSize: 20,
-                        color: Colors.black,
+                        color:
+                            isDark
+                                ? Theme.of(context).textTheme.bodyMedium?.color
+                                : Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -250,7 +260,13 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                           temperatureThresholdProvider(widget.aquariumId),
                         );
                       },
-                      child: const Text('SET'),
+                      child: Text(
+                        'SET',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: ResponsiveHelper.getFontSize(context, 16),
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -264,8 +280,11 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
             // Set Default Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.grey[300],
-                minimumSize: const Size(double.infinity, 50),
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                minimumSize: Size(
+                  ResponsiveHelper.getCardWidth(context),
+                  ResponsiveHelper.getCardHeight(context) / 3.5,
+                ),
               ),
               onPressed: () async {
                 const int defaultMinTemp = 26;
@@ -282,9 +301,12 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
 
             const Spacer(),
 
-            const Text(
-              'Note: Default aquarium temperature for fishes are 26-28°C.',
-              style: TextStyle(color: Colors.black, fontSize: 14),
+            Container(
+              color: isDark ? Colors.grey[800] : Colors.grey[200],
+              child: Text(
+                'Note: Default aquarium temperature for fishes are 26-28°C.',
+                style: TextStyle(color: Colors.black, fontSize: 14),
+              ),
             ),
             const SizedBox(height: 30),
           ],
@@ -298,6 +320,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
     TextEditingController controller,
     Function(double) onChanged,
   ) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -309,6 +332,13 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
           width: 70,
           height: 50,
           child: TextField(
+            cursorColor: isDark ? Colors.white : Colors.black,
+            style: TextStyle(
+              color:
+                  isDark
+                      ? Theme.of(context).textTheme.bodyMedium?.color
+                      : Theme.of(context).textTheme.bodyMedium?.color,
+            ),
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,

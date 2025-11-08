@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'average_log.g.dart';
 
-@collection
+@Collection()
 class AverageLog {
   Id id = Isar.autoIncrement;
   late String aquariumId;

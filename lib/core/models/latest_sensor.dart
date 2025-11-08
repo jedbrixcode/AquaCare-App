@@ -2,7 +2,7 @@ import 'package:isar/isar.dart';
 
 part 'latest_sensor.g.dart';
 
-@collection
+@Collection()
 class LatestSensor {
   Id id = Isar.autoIncrement;
   late String aquariumId;
