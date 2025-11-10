@@ -1,3 +1,6 @@
+import 'package:aquacare_v5/main.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
@@ -11,8 +14,8 @@ import '../models/feeding_schedule_cache.dart';
 import '../models/one_time_schedule_cache.dart';
 
 class LocalStorageService {
-  LocalStorageService._();
-  static final LocalStorageService instance = LocalStorageService._();
+  LocalStorageService._private();
+  static final LocalStorageService instance = LocalStorageService._private();
 
   late Isar _isar;
 

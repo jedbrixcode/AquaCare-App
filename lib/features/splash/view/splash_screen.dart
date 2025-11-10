@@ -1,11 +1,13 @@
 import 'dart:async';
+import 'package:aquacare_v5/core/navigation/route_observer.dart';
+import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart' as perms;
 import 'package:loading_animation_widget/loading_animation_widget.dart';
 import '../../aquarium/view/aquarium_dashboard_page.dart';
 import '../viewmodel/splash_viewmodel.dart';
-import '../../../utils/theme.dart' as theme;
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -14,7 +16,8 @@ class SplashScreen extends ConsumerStatefulWidget {
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends ConsumerState<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen>
+    with WidgetsBindingObserver {
   bool _initComplete = false;
   bool _timerComplete = false;
   bool _isDialogShowing = false;
@@ -26,6 +29,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
 
     // Start minimum display timer (3 seconds)
     _timerStartedAt = DateTime.now();
@@ -90,7 +94,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext dialogContext) {
-        bool isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final theme = Theme.of(dialogContext);
+        final isDark = theme.brightness == Brightness.dark;
         return WillPopScope(
           onWillPop: () async => false,
           child: AlertDialog(
@@ -109,8 +114,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                       fontWeight: FontWeight.bold,
                       color:
                           isDark
-                              ? theme.darkTheme.textTheme.bodyMedium?.color
-                              : theme.lightTheme.textTheme.bodyMedium?.color,
+                              ? theme.textTheme.bodyMedium?.color
+                              : theme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ),
@@ -127,18 +132,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                     height: 1.4,
                     color:
                         isDark
-                            ? theme.darkTheme.textTheme.bodyMedium?.color
-                            : theme.lightTheme.textTheme.bodyMedium?.color,
+                            ? theme.textTheme.bodyMedium?.color
+                            : theme.textTheme.bodyMedium?.color,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color:
-                        isDark
-                            ? theme.darkTheme.colorScheme.surface
-                            : Colors.blue[50],
+                    color: isDark ? theme.colorScheme.surface : Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue[200]!),
                   ),
@@ -156,16 +158,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                           style: TextStyle(
                             color:
                                 isDark
-                                    ? theme
-                                        .darkTheme
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color
-                                    : theme
-                                        .lightTheme
-                                        .textTheme
-                                        .bodyMedium
-                                        ?.color,
+                                    ? theme.textTheme.bodyMedium?.color
+                                    : theme.textTheme.bodyMedium?.color,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
                           ),
@@ -189,9 +183,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
                   foregroundColor: isDark ? Colors.white : Colors.black,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: ResponsiveHelper.horizontalPadding(context) / 2,
+                    vertical: ResponsiveHelper.verticalPadding(context) / 2,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -201,7 +195,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   'Allow',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 13,
+                    fontSize: ResponsiveHelper.getFontSize(context, 13),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -211,6 +205,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         );
       },
     );
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && _isDialogShowing) {
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop(); // close dialog
+      }
+      _isDialogShowing = false;
+      _resumeSplashTimerIfNeeded();
+      _tryNavigate();
+    }
   }
 
   Future<void> _handleAllowPermission(BuildContext dialogContext) async {
@@ -244,13 +250,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _showSkipWarningDialog() async {
-    if (!mounted) return;
+    final context = globalNavigatorKey.currentContext;
+    if (context == null) return;
 
     await showDialog(
       context: context,
       barrierDismissible: true,
       builder: (BuildContext dialogContext) {
-        bool isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final theme = Theme.of(dialogContext);
+        final isDark = theme.brightness == Brightness.dark;
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -268,8 +276,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               fontWeight: FontWeight.bold,
               color:
                   isDark
-                      ? theme.darkTheme.textTheme.bodyMedium?.color
-                      : theme.lightTheme.textTheme.bodyMedium?.color,
+                      ? theme.textTheme.bodyMedium?.color
+                      : theme.textTheme.bodyMedium?.color,
             ),
           ),
           content: Column(
@@ -283,13 +291,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                   height: 1.4,
                   color:
                       isDark
-                          ? theme.darkTheme.textTheme.bodyMedium?.color
-                          : theme.lightTheme.textTheme.bodyMedium?.color,
+                          ? theme.textTheme.bodyMedium?.color
+                          : theme.textTheme.bodyMedium?.color,
                 ),
               ),
-              const SizedBox(height: 16),
+              SizedBox(height: ResponsiveHelper.verticalPadding(context) / 2),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(
+                  ResponsiveHelper.verticalPadding(context),
+                ),
                 decoration: BoxDecoration(
                   color:
                       isDark
@@ -306,20 +316,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                         Icon(
                           Icons.cancel_outlined,
                           color: Colors.red[700],
-                          size: 18,
+                          size: ResponsiveHelper.getFontSize(context, 18),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) / 2,
+                        ),
                         Text(
                           'What won\'t work:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                            color: theme.lightTheme.textTheme.bodyMedium?.color,
+                            fontSize: ResponsiveHelper.getFontSize(context, 13),
+                            color:
+                                isDark
+                                    ? lightTheme.textTheme.bodyMedium?.color
+                                    : darkTheme.textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
                     ),
-                    SizedBox(height: 8),
+                    SizedBox(
+                      height: ResponsiveHelper.verticalPadding(context) / 2,
+                    ),
                     _buildLimitationItem('Real-time notifications'),
                     _buildLimitationItem('Background monitoring'),
                     _buildLimitationItem('Scheduled alerts'),
@@ -331,20 +349,27 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           actions: [
             TextButton(
               onPressed: () async {
+                // Step 1: Handle permission safely
                 await _handleAllowPermission(dialogContext);
 
-                // 2. Close the dialog
-                if (Navigator.canPop(dialogContext)) {
-                  Navigator.of(dialogContext).pop();
+                // Step 2: Pop dialog (if still active)
+                if (globalNavigatorKey.currentState?.canPop() ?? false) {
+                  globalNavigatorKey.currentState?.pop();
                 }
 
-                // 3. Wait a bit to ensure dialog is gone
-                await Future.delayed(const Duration(milliseconds: 100));
+                // Step 3: Wait a bit to ensure dialog is closed
+                await Future.delayed(const Duration(milliseconds: 200));
 
-                // 4. Set the flag and show the battery dialog
+                // Step 4: Check if widget is still mounted (avoid calling after dispose)
+                if (!mounted) return;
+
+                // Step 5: Mark dialog state
                 _isDialogShowing = true;
 
-                // Use a safe context here (e.g., parent context passed down or scaffold context)
+                // Step 6: Use global navigator context or parent safe context
+                final safeContext =
+                    globalNavigatorKey.currentContext ?? context;
+
                 await _showBatteryOptimizationDialog();
 
                 _isDialogShowing = false;
@@ -357,8 +382,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 decoration: BoxDecoration(
                   color:
                       isDark
-                          ? theme.lightTheme.colorScheme.primary
-                          : theme.darkTheme.colorScheme.primary,
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -377,8 +402,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 style: TextStyle(
                   color:
                       isDark
-                          ? theme.darkTheme.textTheme.bodyMedium?.color
-                          : theme.lightTheme.textTheme.bodyMedium?.color,
+                          ? theme.textTheme.bodyMedium?.color
+                          : theme.textTheme.bodyMedium?.color,
                 ),
               ),
             ),
@@ -389,17 +414,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Widget _buildLimitationItem(String text) {
+    final theme = Theme.of(context);
+    bool isDark = theme.brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 4),
+      padding: EdgeInsets.only(
+        left: ResponsiveHelper.horizontalPadding(context) / 2,
+        bottom: ResponsiveHelper.verticalPadding(context) / 2,
+      ),
       child: Row(
         children: [
           Icon(Icons.close, color: Colors.red[700], size: 14),
-          const SizedBox(width: 6),
+          SizedBox(width: ResponsiveHelper.horizontalPadding(context) / 2),
           Text(
             text,
             style: TextStyle(
-              fontSize: 12,
-              color: theme.lightTheme.textTheme.bodyMedium?.color,
+              fontSize: ResponsiveHelper.getFontSize(context, 12),
+              color:
+                  isDark
+                      ? lightTheme.textTheme.bodyMedium?.color
+                      : darkTheme.textTheme.bodyMedium?.color,
             ),
           ),
         ],
@@ -446,6 +479,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _minimumDisplayTimer?.cancel();
     super.dispose();
   }
@@ -460,7 +494,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('assets/icons/aquacare_logo.png', height: 205),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset(
+                  'assets/icons/aquacare_logo.png',
+                  height: 205,
+                ),
+              ),
               const SizedBox(height: 16),
               LoadingAnimationWidget.waveDots(color: Colors.white, size: 72),
               const SizedBox(height: 24),

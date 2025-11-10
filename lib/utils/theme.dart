@@ -93,10 +93,10 @@ final darkTheme = ThemeData.dark(useMaterial3: false).copyWith(
 /// ----------------------------
 class ThemeController extends StateNotifier<ThemeMode> {
   ThemeController() : super(ThemeMode.system) {
-    _load();
+    _loadTheme();
   }
 
-  Future<void> _load() async {
+  Future<void> _loadTheme() async {
     final stored = await LocalStorageService.instance.getThemeModeString();
     if (stored == 'light') state = ThemeMode.light;
     if (stored == 'dark') state = ThemeMode.dark;

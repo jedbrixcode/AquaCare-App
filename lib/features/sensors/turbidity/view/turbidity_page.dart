@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import '../viewmodel/turbidity_viewmodel.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 
 class TurbidityPage extends ConsumerStatefulWidget {
   final String aquariumId;
@@ -77,13 +78,30 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
     );
     final vm = ref.watch(turbidityViewModelProvider);
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.background,
+      backgroundColor: isDark ? darkTheme.colorScheme.background : Colors.white,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        title: Text('Water Turbidity • ${widget.aquariumName}'),
+        backgroundColor:
+            isDark
+                ? darkTheme.appBarTheme.backgroundColor
+                : lightTheme.appBarTheme.backgroundColor,
+        title: Text(
+          'Water Turbidity • ${widget.aquariumName}',
+          style: TextStyle(
+            color:
+                isDark
+                    ? darkTheme.appBarTheme.titleTextStyle?.color
+                    : lightTheme.appBarTheme.titleTextStyle?.color,
+            fontSize: ResponsiveHelper.getFontSize(context, 24),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         titleTextStyle: TextStyle(
-          color: Theme.of(context).colorScheme.onPrimary,
+          color:
+              isDark
+                  ? darkTheme.appBarTheme.titleTextStyle?.color
+                  : Colors.white,
           fontSize: ResponsiveHelper.getFontSize(context, 24),
           fontWeight: FontWeight.bold,
         ),
@@ -100,7 +118,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                 context,
               ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                color: isDark ? darkTheme.colorScheme.primary : Colors.blue,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -109,8 +127,9 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                   Text(
                     'NOTIFICATION',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onPrimary,
-                      fontSize: ResponsiveHelper.getFontSize(context, 16),
+                      color: Colors.white,
+                      fontSize: ResponsiveHelper.getFontSize(context, 24),
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                   notifAsync.when(
@@ -126,13 +145,22 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                               turbidityNotificationProvider(widget.aquariumId),
                             );
                           },
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeColor:
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : Colors.blue,
                           activeTrackColor:
-                              Theme.of(context).colorScheme.onSecondary,
+                              isDark
+                                  ? darkTheme.colorScheme.onSecondary
+                                  : Colors.blue,
                           inactiveThumbColor:
-                              Theme.of(context).colorScheme.primary,
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : Colors.blue,
                           inactiveTrackColor:
-                              Theme.of(context).colorScheme.onSecondary,
+                              isDark
+                                  ? darkTheme.colorScheme.onSecondary
+                                  : Colors.blue,
                         ),
                     loading:
                         () => const SizedBox(
@@ -145,7 +173,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                 ],
               ),
             ),
-            SizedBox(height: ResponsiveHelper.verticalPadding(context)),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
 
             // Current Turbidity Display
             rangeAsync.when(
@@ -158,9 +186,11 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                     return Column(
                       children: [
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 10,
-                            horizontal: 70,
+                          padding: EdgeInsets.symmetric(
+                            vertical: ResponsiveHelper.verticalPadding(context),
+                            horizontal:
+                                ResponsiveHelper.horizontalPadding(context) +
+                                24,
                           ),
                           decoration: BoxDecoration(
                             color: color,
@@ -168,27 +198,38 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           ),
                           child: Text(
                             'CURRENT TURBIDITY: ${turbidity.toStringAsFixed(1)} NTU',
-                            style: const TextStyle(
-                              fontSize: 17,
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                22,
+                              ),
+                              fontWeight: FontWeight.bold,
                               color: Colors.white,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        SizedBox(
+                          height: ResponsiveHelper.verticalPadding(context) + 8,
+                        ),
                         Container(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 8,
-                            horizontal: 20,
+                          padding: EdgeInsets.symmetric(
+                            vertical: ResponsiveHelper.verticalPadding(context),
+                            horizontal: ResponsiveHelper.horizontalPadding(
+                              context,
+                            ),
                           ),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(10),
                             border: Border.all(color: color, width: 1),
                           ),
                           child: Text(
                             description,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                18,
+                              ),
                               fontWeight: FontWeight.bold,
                               color: color,
                             ),
@@ -199,68 +240,86 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                   },
                   loading:
                       () => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        padding: EdgeInsets.symmetric(
+                          vertical: ResponsiveHelper.verticalPadding(context),
+                          horizontal:
+                              ResponsiveHelper.horizontalPadding(context) + 24,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[500],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT TURBIDITY: Loading...',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                   error:
                       (e, _) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        padding: EdgeInsets.symmetric(
+                          vertical: ResponsiveHelper.verticalPadding(context),
+                          horizontal:
+                              ResponsiveHelper.horizontalPadding(context) + 24,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[700],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT TURBIDITY: Error',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                 );
               },
               loading:
                   () => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveHelper.verticalPadding(context),
+                      horizontal:
+                          ResponsiveHelper.horizontalPadding(context) + 24,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[500],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Loading thresholds...',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
               error:
                   (e, _) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveHelper.verticalPadding(context),
+                      horizontal:
+                          ResponsiveHelper.horizontalPadding(context) + 24,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Error loading thresholds',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
+            Divider(color: Colors.grey[300], thickness: 1),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 5),
 
             // Threshold Controls
             rangeAsync.when(
@@ -272,9 +331,15 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                       children: [
                         Column(
                           children: [
-                            const Text(
+                            Text(
                               'MIN NTU',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getFontSize(
+                                  context,
+                                  18,
+                                ),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             _buildNumberInput(
                               value: _minTurbidityEditing ?? range.min,
@@ -287,19 +352,24 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             ),
                           ],
                         ),
-                        const Text(
+                        Text(
                           'NTU',
                           style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.black,
+                            fontSize: ResponsiveHelper.getFontSize(context, 20),
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                         Column(
                           children: [
-                            const Text(
+                            Text(
                               'MAX NTU',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getFontSize(
+                                  context,
+                                  18,
+                                ),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             _buildNumberInput(
                               value: _maxTurbidityEditing ?? range.max,
@@ -312,7 +382,10 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 20),
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) + 24,
+                        ),
                         ElevatedButton(
                           onPressed: () async {
                             final newMin = _minTurbidityEditing ?? range.min;
@@ -330,15 +403,32 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                               turbidityThresholdProvider(widget.aquariumId),
                             );
                           },
-                          child: const Text('SET'),
+                          child: Text(
+                            'SET',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                18,
+                              ),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: ResponsiveHelper.verticalPadding(context) + 8,
+                    ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        minimumSize: const Size(double.infinity, 50),
+                        backgroundColor:
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : lightTheme.colorScheme.primary,
+                        minimumSize: Size(
+                          ResponsiveHelper.getCardWidth(context) / 1,
+                          ResponsiveHelper.getCardHeight(context) / 5,
+                        ),
                       ),
                       onPressed: () async {
                         const double defaultMinTurbidity = 3;
@@ -352,22 +442,58 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           turbidityThresholdProvider(widget.aquariumId),
                         );
                       },
-                      child: const Text('SET DEFAULT'),
+                      child: Text(
+                        'SET DEFAULT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: ResponsiveHelper.getFontSize(context, 18),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 );
               },
-              loading: () => const Center(child: CircularProgressIndicator()),
+              loading:
+                  () => Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color:
+                          isDark
+                              ? darkTheme.colorScheme.primary
+                              : lightTheme.colorScheme.primary,
+                    ),
+                  ),
               error:
-                  (e, _) =>
-                      const Center(child: Text('Error loading thresholds')),
+                  (e, _) => Center(
+                    child: Text(
+                      'Error loading thresholds',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
             ),
-            const Spacer(),
-            const Text(
-              'Note: NTU (Nephelometric Turbidity Units) measures water clarity.',
-              style: TextStyle(color: Colors.black, fontSize: 14),
+            Spacer(),
+            Container(
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(bottom: 12),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Note: NTU (Nephelometric Turbidity Units) measures water clarity.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getFontSize(context, 12),
+                  color: Colors.white,
+                ),
+              ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 12),
           ],
         ),
       ),
@@ -386,6 +512,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
         offset: value.toStringAsFixed(0).length,
       ),
     );
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -396,6 +523,11 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
         SizedBox(
           width: 70,
           child: TextField(
+            cursorColor:
+                isDark
+                    ? darkTheme.textTheme.bodyMedium?.color
+                    : lightTheme.textTheme.bodyMedium?.color,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
@@ -406,9 +538,21 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
             },
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               contentPadding: EdgeInsets.symmetric(vertical: 5),
-              border: OutlineInputBorder(),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
+                ),
+              ),
+              filled: true, // ✅ Enable background color
+              fillColor:
+                  isDark
+                      ? Colors.blueGrey[700] // dark mode background
+                      : Colors.blueGrey[100], // light mode background
             ),
           ),
         ),

@@ -1,9 +1,8 @@
-import 'package:aquacare_v5/utils/theme.dart' as theme;
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/sensors/temperature/viewmodel/temperature_viewmodel.dart';
-import 'package:aquacare_v5/utils/responsive_helper.dart';
 
 class TemperaturePage extends ConsumerStatefulWidget {
   final String aquariumId;
@@ -66,9 +65,16 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'NOTIFICATION',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(
+                      color:
+                          isDark
+                              ? Theme.of(context).textTheme.bodyMedium?.color
+                              : Theme.of(context).textTheme.bodyMedium?.color,
+                      fontSize: ResponsiveHelper.getFontSize(context, 24),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   notifAsync.when(
                     data:
@@ -101,9 +107,9 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                         ),
 
                     loading:
-                        () => const SizedBox(
-                          height: 24,
-                          width: 24,
+                        () => SizedBox(
+                          height: ResponsiveHelper.getCardHeight(context) / 10,
+                          width: ResponsiveHelper.getCardWidth(context) / 10,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
 
@@ -112,7 +118,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 ],
               ),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 16),
 
             // Temperature Display
             rangeAsync.when(
@@ -130,9 +136,9 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                       color = Colors.green[300]!;
                     }
                     return Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 70,
+                      padding: EdgeInsets.symmetric(
+                        vertical: ResponsiveHelper.verticalPadding(context),
+                        horizontal: ResponsiveHelper.horizontalPadding(context),
                       ),
                       decoration: BoxDecoration(
                         color: color,
@@ -140,8 +146,8 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                       ),
                       child: Text(
                         'CURRENT TEMPERATURE: ${temp.toStringAsFixed(0)}°C',
-                        style: const TextStyle(
-                          fontSize: 18,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getFontSize(context, 18),
                           color: Colors.white,
                         ),
                       ),
@@ -149,69 +155,85 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                   },
                   loading:
                       () => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        padding: EdgeInsets.symmetric(
+                          vertical: ResponsiveHelper.verticalPadding(context),
+                          horizontal: ResponsiveHelper.horizontalPadding(
+                            context,
+                          ),
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[500],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT TEMPERATURE: Loading...',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                   error:
                       (e, _) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        padding: EdgeInsets.symmetric(
+                          vertical: ResponsiveHelper.verticalPadding(context),
+                          horizontal: ResponsiveHelper.horizontalPadding(
+                            context,
+                          ),
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[700],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT TEMPERATURE: Error',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                 );
               },
               loading:
                   () => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveHelper.verticalPadding(context),
+                      horizontal: ResponsiveHelper.horizontalPadding(context),
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[500],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Loading thresholds...',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
               error:
                   (e, _) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    padding: EdgeInsets.symmetric(
+                      vertical: ResponsiveHelper.verticalPadding(context),
+                      horizontal: ResponsiveHelper.horizontalPadding(context),
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Error loading thresholds',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
             ),
-            const SizedBox(height: 10),
-
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
+            Divider(color: Colors.grey[300], thickness: 1),
             // Temperature Selector + Set
             rangeAsync.when(
               data: (range) {
@@ -238,24 +260,32 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                       setState(() => _minTempEditing = value);
                     }),
                     const SizedBox(width: 10),
-                    const Text(' - '),
-                    const SizedBox(width: 10),
+                    Text(
+                      ' - ',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                      ),
+                    ),
+                    SizedBox(
+                      width: ResponsiveHelper.horizontalPadding(context) + 16,
+                    ),
                     _temperatureSelector(max, _maxController, (value) {
                       setState(() => _maxTempEditing = value);
                     }),
-                    const SizedBox(width: 20),
+                    SizedBox(
+                      width: ResponsiveHelper.horizontalPadding(context) + 16,
+                    ),
                     Text(
                       '°C',
                       style: TextStyle(
-                        fontSize: 20,
-                        color:
-                            isDark
-                                ? Theme.of(context).textTheme.bodyMedium?.color
-                                : Colors.black,
+                        fontSize: ResponsiveHelper.getFontSize(context, 20),
+                        color: isDark ? Colors.white : Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(width: 20),
+                    SizedBox(
+                      width: ResponsiveHelper.horizontalPadding(context) + 16,
+                    ),
                     ElevatedButton(
                       onPressed: () async {
                         // Always parse latest on-screen text to save even without keyboard confirm
@@ -289,12 +319,13 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                   ],
                 );
               },
-              loading: () => const SizedBox.shrink(),
-              error: (e, _) => const SizedBox.shrink(),
+              loading: () => SizedBox.shrink(),
+              error: (e, _) => SizedBox.shrink(),
             ),
 
-            const SizedBox(height: 5),
-
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) / 12),
+            Divider(color: Colors.grey[300], thickness: 1),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context)),
             // Set Default Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -317,10 +348,16 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 );
                 ref.invalidate(temperatureThresholdProvider(widget.aquariumId));
               },
-              child: const Text('SET TO DEFAULT TEMPERATURE'),
+              child: Text(
+                'SET TO DEFAULT TEMPERATURE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: ResponsiveHelper.getFontSize(context, 16),
+                ),
+              ),
             ),
 
-            const Spacer(),
+            Spacer(),
 
             Container(
               padding: ResponsiveHelper.getScreenPadding(
@@ -356,19 +393,20 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
       children: [
         IconButton(
           onPressed: () => onChanged(value + 1),
-          icon: const Icon(Icons.arrow_drop_up, size: 40),
+          icon: Icon(
+            Icons.arrow_drop_up,
+            size: ResponsiveHelper.getFontSize(context, 40),
+          ),
         ),
         SizedBox(
-          width: 70,
-          height: 50,
+          width: ResponsiveHelper.getCardWidth(context) / 5,
+          height: ResponsiveHelper.getCardHeight(context) / 3.5,
           child: TextField(
-            cursorColor: isDark ? Colors.white : Colors.black,
-            style: TextStyle(
-              color:
-                  isDark
-                      ? Theme.of(context).textTheme.bodyMedium?.color
-                      : Theme.of(context).textTheme.bodyMedium?.color,
-            ),
+            cursorColor:
+                isDark
+                    ? darkTheme.textTheme.bodyMedium?.color
+                    : lightTheme.textTheme.bodyMedium?.color,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black),
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(
               decimal: true,
@@ -379,9 +417,21 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
             },
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               contentPadding: EdgeInsets.symmetric(vertical: 5),
-              border: OutlineInputBorder(),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
+                ),
+              ),
+              filled: true, // ✅ Enable background color
+              fillColor:
+                  isDark
+                      ? Colors.blueGrey[700] // dark mode background
+                      : Colors.blueGrey[100], // light mode background
             ),
           ),
         ),
