@@ -209,6 +209,13 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
               );
               if (confirm == true) {
                 ref.read(chatViewModelProvider.notifier).clearChatHistory();
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Chat history deleted successfully.'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
               }
             },
           ),

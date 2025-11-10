@@ -78,33 +78,40 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
     final vm = ref.watch(turbidityViewModelProvider);
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.background,
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).colorScheme.primary,
         title: Text('Water Turbidity • ${widget.aquariumName}'),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimary,
+          fontSize: ResponsiveHelper.getFontSize(context, 24),
           fontWeight: FontWeight.bold,
         ),
       ),
       body: Padding(
-        padding: ResponsiveHelper.getScreenPadding(context),
+        padding: ResponsiveHelper.getScreenPadding(
+          context,
+        ).copyWith(top: 12, bottom: 12),
         child: Column(
           children: [
             // Notification Toggle
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'NOTIFICATION',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onPrimary,
+                      fontSize: ResponsiveHelper.getFontSize(context, 16),
+                    ),
                   ),
                   notifAsync.when(
                     data:
@@ -119,6 +126,13 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                               turbidityNotificationProvider(widget.aquariumId),
                             );
                           },
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeTrackColor:
+                              Theme.of(context).colorScheme.onSecondary,
+                          inactiveThumbColor:
+                              Theme.of(context).colorScheme.primary,
+                          inactiveTrackColor:
+                              Theme.of(context).colorScheme.onSecondary,
                         ),
                     loading:
                         () => const SizedBox(
@@ -131,7 +145,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context)),
 
             // Current Turbidity Display
             rangeAsync.when(

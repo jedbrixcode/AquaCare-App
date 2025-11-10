@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/theme.dart';
@@ -9,6 +10,7 @@ class SettingsPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -34,10 +36,18 @@ class SettingsPage extends ConsumerWidget {
         ),
         child: ListView(
           children: [
-            const ListTile(title: Text('Theme')),
+            ListTile(
+              title: Text(
+                'Theme',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.getFontSize(context, 20),
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
             RadioListTile<ThemeMode>(
               title: Text(
-                'System',
+                'System Settings',
                 style: TextStyle(
                   color: Theme.of(context).textTheme.bodyMedium?.color,
                 ),
@@ -74,8 +84,9 @@ class SettingsPage extends ConsumerWidget {
                   (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
               activeColor: Theme.of(context).textTheme.bodyMedium?.color,
             ),
-            const Divider(),
+            const Divider(color: Colors.grey, thickness: 1),
             _GlobalNotificationsTile(),
+            const Divider(color: Colors.grey, thickness: 1),
           ],
         ),
       ),
@@ -106,6 +117,10 @@ class _GlobalNotificationsTileState
           const SnackBar(content: Text('Notification preference updated')),
         );
       },
+      activeColor: Theme.of(context).colorScheme.primary,
+      activeTrackColor: Theme.of(context).colorScheme.onSecondary,
+      inactiveThumbColor: Theme.of(context).colorScheme.primary,
+      inactiveTrackColor: Theme.of(context).colorScheme.onSecondary,
     );
   }
 }

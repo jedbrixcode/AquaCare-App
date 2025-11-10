@@ -291,7 +291,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red[50],
+                  color:
+                      isDark
+                          ? Colors.red[50]
+                          : const Color.fromARGB(255, 112, 91, 94),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.red[200]!),
                 ),
@@ -328,10 +331,22 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           actions: [
             TextButton(
               onPressed: () async {
-                Navigator.of(dialogContext).pop();
-                // Re-show battery dialog and wait
+                await _handleAllowPermission(dialogContext);
+
+                // 2. Close the dialog
+                if (Navigator.canPop(dialogContext)) {
+                  Navigator.of(dialogContext).pop();
+                }
+
+                // 3. Wait a bit to ensure dialog is gone
+                await Future.delayed(const Duration(milliseconds: 100));
+
+                // 4. Set the flag and show the battery dialog
                 _isDialogShowing = true;
+
+                // Use a safe context here (e.g., parent context passed down or scaffold context)
                 await _showBatteryOptimizationDialog();
+
                 _isDialogShowing = false;
               },
               child: Container(

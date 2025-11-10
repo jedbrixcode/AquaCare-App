@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/chat/repository/chat_repository.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
@@ -125,9 +126,12 @@ class ChatViewModel extends StateNotifier<ChatState> {
     state = state.copyWith(clearAttachment: true);
   }
 
-  void clearChatHistory() {
+  Future<void> clearChatHistory() async {
     state = state.copyWith(messages: []);
-    LocalStorageService.instance.clearChatMessages();
+    await LocalStorageService.instance.clearChatMessages();
+
+    final databaseRef = FirebaseDatabase.instance.ref();
+    await databaseRef.child('chats').remove();
   }
 
   Future<void> send() async {

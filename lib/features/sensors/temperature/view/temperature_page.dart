@@ -1,4 +1,5 @@
 import 'package:aquacare_v5/utils/theme.dart' as theme;
+import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/sensors/temperature/viewmodel/temperature_viewmodel.dart';
@@ -37,11 +38,11 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         title: Text('Temperature • ${widget.aquariumName}'),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+          fontSize: ResponsiveHelper.getFontSize(context, 24),
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -55,9 +56,11 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
           children: [
             // Notification Toggle
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -82,13 +85,28 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                               ),
                             );
                           },
+
+                          // ✅ COLORS WHEN SWITCH IS ON
+                          activeColor:
+                              Theme.of(context).colorScheme.primary, // thumb
+                          activeTrackColor:
+                              Theme.of(
+                                context,
+                              ).colorScheme.onSecondary, // track
+                          // ✅ COLORS WHEN SWITCH IS OFF
+                          inactiveThumbColor:
+                              Theme.of(context).colorScheme.primary,
+                          inactiveTrackColor:
+                              Theme.of(context).colorScheme.onSecondary,
                         ),
+
                     loading:
                         () => const SizedBox(
                           height: 24,
                           width: 24,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         ),
+
                     error: (e, _) => const Icon(Icons.error, color: Colors.red),
                   ),
                 ],
@@ -280,6 +298,9 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
             // Set Default Button
             ElevatedButton(
               style: ElevatedButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 minimumSize: Size(
                   ResponsiveHelper.getCardWidth(context),
@@ -302,10 +323,19 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
             const Spacer(),
 
             Container(
-              color: isDark ? Colors.grey[800] : Colors.grey[200],
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: Text(
                 'Note: Default aquarium temperature for fishes are 26-28°C.',
-                style: TextStyle(color: Colors.black, fontSize: 14),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: ResponsiveHelper.getFontSize(context, 14),
+                ),
               ),
             ),
             const SizedBox(height: 30),

@@ -200,7 +200,9 @@ class AquariumDashboardPage extends ConsumerWidget {
                 }
 
                 return Padding(
-                  padding: ResponsiveHelper.getScreenPadding(context),
+                  padding: ResponsiveHelper.getScreenPadding(
+                    context,
+                  ).copyWith(top: 12, bottom: 12, left: 12, right: 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -829,44 +831,60 @@ class AquariumDashboardPage extends ConsumerWidget {
                   ],
                 ),
                 const SizedBox(height: 16),
-                _buildSensorRow(
-                  context,
-                  'Temperature',
-                  '${s.sensor.temperature.toStringAsFixed(1)}°C',
-                  Icons.thermostat,
-                ),
-                const SizedBox(height: 8),
-                _buildSensorRow(
-                  context,
-                  'pH',
-                  s.sensor.ph.toStringAsFixed(2),
-                  Icons.water_drop,
-                ),
-                const SizedBox(height: 8),
-                _buildSensorRow(
-                  context,
-                  'Turbidity',
-                  '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
-                  Icons.water_rounded,
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.dashboard,
-                      size: 20,
-                      color: Colors.white.withOpacity(0.87),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Tap to view dashboard',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.87),
-                        fontWeight: FontWeight.w500,
+                Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.primary,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: ResponsiveHelper.getScreenPadding(
+                    context,
+                  ).copyWith(top: 12, bottom: 12, left: 12, right: 12),
+                  child: Column(
+                    children: [
+                      _buildSensorRow(
+                        context,
+                        'Temperature',
+                        '${s.sensor.temperature.toStringAsFixed(1)}°C',
+                        Icons.thermostat,
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      _buildSensorRow(
+                        context,
+                        'pH',
+                        s.sensor.ph.toStringAsFixed(2),
+                        Icons.water_drop,
+                      ),
+                      const SizedBox(height: 8),
+                      _buildSensorRow(
+                        context,
+                        'Turbidity',
+                        '${s.sensor.turbidity.toStringAsFixed(1)} NTU',
+                        Icons.water_rounded,
+                      ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.dashboard,
+                            size: ResponsiveHelper.getFontSize(context, 20),
+                            color: Colors.white.withOpacity(0.87),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Tap to view dashboard',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                12,
+                              ),
+                              color: Colors.white.withOpacity(0.87),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
