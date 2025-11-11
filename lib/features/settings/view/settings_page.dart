@@ -112,7 +112,7 @@ class _GlobalNotificationsTileState
       value: settings.globalNotificationsEnabled,
       onChanged: (enabled) async {
         await controller.toggleGlobalNotifications(enabled);
-        if (!mounted) return;
+        if (!context.mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Notification preference updated')),
         );

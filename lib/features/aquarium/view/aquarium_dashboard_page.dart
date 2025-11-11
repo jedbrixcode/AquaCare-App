@@ -1,4 +1,5 @@
 import 'package:aquacare_v5/features/aquarium/repository/aquarium_repository.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/aquarium_dashboard_viewmodel.dart';
@@ -338,13 +339,23 @@ class AquariumDashboardPage extends ConsumerWidget {
   }
 
   void _showAquariumOptionsDialog(BuildContext context, AquariumSummary s) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          backgroundColor:
+              isDark
+                  ? darkTheme.colorScheme.background
+                  : lightTheme.colorScheme.background,
           title: Text(
             '${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'} Options',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              color:
+                  isDark
+                      ? darkTheme.textTheme.displayLarge?.color
+                      : lightTheme.textTheme.displayLarge?.color,
+            ),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -352,12 +363,18 @@ class AquariumDashboardPage extends ConsumerWidget {
               ListTile(
                 leading: Icon(
                   Icons.wifi,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
                 title: Text(
                   'Change WiFi Settings',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 onTap: () {
@@ -368,12 +385,18 @@ class AquariumDashboardPage extends ConsumerWidget {
               ListTile(
                 leading: Icon(
                   Icons.edit,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
                 title: Text(
                   'Edit Name',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 onTap: () {
@@ -384,12 +407,18 @@ class AquariumDashboardPage extends ConsumerWidget {
               ListTile(
                 leading: Icon(
                   Icons.notifications,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
                 title: Text(
                   'Notification Settings',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 onTap: () {
@@ -416,6 +445,7 @@ class AquariumDashboardPage extends ConsumerWidget {
   }
 
   void _showEditAquariumDialog(BuildContext context, AquariumSummary s) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final TextEditingController nameController = TextEditingController(
       text: s.name,
     );
@@ -424,25 +454,57 @@ class AquariumDashboardPage extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color:
+                  isDark
+                      ? darkTheme.colorScheme.primary
+                      : lightTheme.colorScheme.primary,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          backgroundColor:
+              isDark
+                  ? darkTheme.colorScheme.background
+                  : lightTheme.colorScheme.background,
           title: Text(
             'Edit Aquarium Name',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              color:
+                  isDark
+                      ? darkTheme.textTheme.displayLarge?.color
+                      : lightTheme.textTheme.displayLarge?.color,
+            ),
           ),
           content: TextField(
             controller: nameController,
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              color:
+                  isDark
+                      ? darkTheme.textTheme.bodyLarge?.color
+                      : lightTheme.textTheme.bodyLarge?.color,
+            ),
             decoration: InputDecoration(
               labelText: 'Aquarium Name',
               hintText: 'Enter new name',
               labelStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.colorScheme.onSurface,
               ),
               hintStyle: TextStyle(
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
               ),
               border: OutlineInputBorder(
                 borderSide: BorderSide(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
                 ),
               ),
             ),
@@ -453,7 +515,10 @@ class AquariumDashboardPage extends ConsumerWidget {
               child: Text(
                 'Cancel',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
               ),
             ),
@@ -471,6 +536,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                       excludeId: s.aquariumId,
                     );
                     if (nameExists) {
+                      if (!context.mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
@@ -487,6 +553,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                       s.aquariumId,
                       nameController.text.trim(),
                     );
+                    if (!context.mounted) return;
                     Navigator.of(context).pop();
 
                     // Refresh the provider to show updated name
@@ -503,6 +570,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                       ),
                     );
                   } catch (e) {
+                    if (!context.mounted) return;
                     Navigator.of(context).pop();
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
@@ -540,11 +608,29 @@ class AquariumDashboardPage extends ConsumerWidget {
                 bool turbidityNotif = notif.turbidity;
                 return StatefulBuilder(
                   builder: (context, setState) {
+                    bool isDark =
+                        Theme.of(context).brightness == Brightness.dark;
                     return AlertDialog(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(
+                          color:
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.primary,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      backgroundColor:
+                          isDark
+                              ? darkTheme.colorScheme.background
+                              : lightTheme.colorScheme.background,
                       title: Text(
                         'Notification Settings',
                         style: TextStyle(
-                          color: Theme.of(context).colorScheme.onSurface,
+                          color:
+                              isDark
+                                  ? darkTheme.textTheme.displayLarge?.color
+                                  : lightTheme.textTheme.displayLarge?.color,
                         ),
                       ),
                       content: Column(
@@ -554,32 +640,89 @@ class AquariumDashboardPage extends ConsumerWidget {
                             title: Text(
                               'Temperature Alerts',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
                               ),
                             ),
                             value: tempNotif,
                             onChanged: (v) => setState(() => tempNotif = v),
+                            activeColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            activeTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
+                            inactiveThumbColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            inactiveTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
                           ),
                           SwitchListTile(
                             title: Text(
                               'pH Level Alerts',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
                               ),
                             ),
                             value: phNotif,
                             onChanged: (v) => setState(() => phNotif = v),
+                            activeColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            activeTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
+                            inactiveThumbColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            inactiveTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
                           ),
                           SwitchListTile(
                             title: Text(
                               'Turbidity Alerts',
                               style: TextStyle(
-                                color: Theme.of(context).colorScheme.onSurface,
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
                               ),
                             ),
                             value: turbidityNotif,
                             onChanged:
                                 (v) => setState(() => turbidityNotif = v),
+                            activeColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            activeTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
+                            inactiveThumbColor:
+                                isDark
+                                    ? darkTheme.colorScheme.primary
+                                    : lightTheme.colorScheme.background,
+                            inactiveTrackColor:
+                                isDark
+                                    ? lightTheme.colorScheme.primary
+                                    : darkTheme.colorScheme.background,
                           ),
                         ],
                       ),
@@ -589,7 +732,10 @@ class AquariumDashboardPage extends ConsumerWidget {
                           child: Text(
                             'Cancel',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onSurface,
+                              color:
+                                  isDark
+                                      ? darkTheme.textTheme.bodyLarge?.color
+                                      : lightTheme.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ),
@@ -622,7 +768,10 @@ class AquariumDashboardPage extends ConsumerWidget {
                           child: Text(
                             'Save',
                             style: TextStyle(
-                              color: Theme.of(context).colorScheme.onError,
+                              color:
+                                  isDark
+                                      ? darkTheme.textTheme.bodyLarge?.color
+                                      : lightTheme.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ),
@@ -657,22 +806,54 @@ class AquariumDashboardPage extends ConsumerWidget {
   }
 
   void _confirmBleReconfigure(BuildContext context) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder:
           (context) => AlertDialog(
+            backgroundColor:
+                isDark
+                    ? darkTheme.colorScheme.background
+                    : lightTheme.colorScheme.background,
+            shape: RoundedRectangleBorder(
+              side: BorderSide(
+                color:
+                    isDark
+                        ? darkTheme.colorScheme.primary
+                        : lightTheme.colorScheme.primary,
+              ),
+              borderRadius: BorderRadius.circular(16),
+            ),
             title: Text(
               'Reconfigure TankPi',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              style: TextStyle(
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
+              ),
             ),
             content: Text(
               'Wi‑Fi credentials changed. TankPi must be reconfigured via Bluetooth. Continue?',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+              style: TextStyle(
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
+              ),
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
+                  ),
+                ),
               ),
               ElevatedButton(
                 onPressed: () {
@@ -684,14 +865,32 @@ class AquariumDashboardPage extends ConsumerWidget {
                     ),
                   );
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
+                    SnackBar(
                       content: Text(
                         'Please complete Bluetooth setup to reconnect TankPi',
+                        style: TextStyle(
+                          color:
+                              isDark
+                                  ? lightTheme.textTheme.bodyLarge?.color
+                                  : darkTheme.textTheme.bodyLarge?.color,
+                        ),
                       ),
+                      backgroundColor:
+                          isDark
+                              ? darkTheme.colorScheme.background
+                              : lightTheme.colorScheme.background,
                     ),
                   );
                 },
-                child: const Text('Continue'),
+                child: Text(
+                  'Continue',
+                  style: TextStyle(
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
+                  ),
+                ),
               ),
             ],
           ),
@@ -699,17 +898,28 @@ class AquariumDashboardPage extends ConsumerWidget {
   }
 
   void _showDeleteConfirmationDialog(BuildContext context, AquariumSummary s) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text(
             'Delete Aquarium',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              color:
+                  isDark
+                      ? darkTheme.textTheme.bodyLarge?.color
+                      : lightTheme.textTheme.bodyLarge?.color,
+            ),
           ),
           content: Text(
             'Are you sure you want to delete "${s.name.isNotEmpty ? s.name : 'Aquarium ${s.aquariumId}'}"? This action cannot be undone.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            style: TextStyle(
+              color:
+                  isDark
+                      ? darkTheme.textTheme.bodyLarge?.color
+                      : lightTheme.textTheme.bodyLarge?.color,
+            ),
           ),
           actions: [
             TextButton(
@@ -749,13 +959,19 @@ class AquariumDashboardPage extends ConsumerWidget {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error deleting aquarium: $e'),
-                      backgroundColor: Theme.of(context).colorScheme.error,
+                      backgroundColor:
+                          isDark
+                              ? darkTheme.colorScheme.error
+                              : lightTheme.colorScheme.error,
                     ),
                   );
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(context).colorScheme.error,
+                backgroundColor:
+                    isDark
+                        ? darkTheme.colorScheme.error
+                        : lightTheme.colorScheme.error,
               ),
               child: const Text(
                 'Delete',

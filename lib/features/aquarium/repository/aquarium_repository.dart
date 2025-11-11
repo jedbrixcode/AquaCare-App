@@ -4,6 +4,7 @@ import 'package:aquacare_v5/core/models/sensor_model.dart';
 import 'package:aquacare_v5/core/models/threshold_model.dart';
 import 'package:aquacare_v5/core/models/notification_model.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
+import 'package:flutter/material.dart' hide Threshold;
 import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
@@ -115,12 +116,14 @@ class AquariumRepository {
             );
             return sensor;
           } catch (e) {
-            print('Error processing sensor data for aquarium $aquariumId: $e');
+            debugPrint(
+              'Error processing sensor data for aquarium $aquariumId: $e',
+            );
             return Sensor(temperature: 0, turbidity: 0, ph: 0);
           }
         })
         .handleError((error) {
-          print(
+          debugPrint(
             'Firebase error in sensorStream for aquarium $aquariumId: $error',
           );
           return Sensor(temperature: 0, turbidity: 0, ph: 0);
@@ -184,7 +187,7 @@ class AquariumRepository {
                       }
                     }
                   } catch (e) {
-                    print('Error processing aquarium $key: $e');
+                    debugPrint('Error processing aquarium $key: $e');
                   }
                 });
                 return result;
@@ -216,7 +219,7 @@ class AquariumRepository {
                       }
                     }
                   } catch (e) {
-                    print('Error processing aquarium item: $e');
+                    debugPrint('Error processing aquarium item: $e');
                   }
                 }
                 return result;
@@ -224,12 +227,12 @@ class AquariumRepository {
 
               return result;
             } catch (e) {
-              print('Error in getAllAquariumsSummary: $e');
+              debugPrint('Error in getAllAquariumsSummary: $e');
               return <AquariumSummary>[];
             }
           })
           .handleError((error) {
-            print('Firebase error in getAllAquariumsSummary: $error');
+            debugPrint('Firebase error in getAllAquariumsSummary: $error');
             return <AquariumSummary>[];
           });
     }
@@ -367,7 +370,7 @@ class AquariumRepository {
 
       return nextId;
     } catch (e) {
-      print('Error creating aquarium: $e');
+      debugPrint('Error creating aquarium: $e');
       rethrow;
     }
   }
@@ -378,7 +381,7 @@ class AquariumRepository {
       if (db == null) throw Exception('Offline mode: cannot rename aquarium');
       await db.child('aquariums/$aquariumId/name').set(newName);
     } catch (e) {
-      print('Error updating aquarium name: $e');
+      debugPrint('Error updating aquarium name: $e');
       rethrow;
     }
   }
@@ -389,7 +392,7 @@ class AquariumRepository {
       if (db == null) throw Exception('Offline mode: cannot delete aquarium');
       await db.child('aquariums/$aquariumId').remove();
     } catch (e) {
-      print('Error deleting aquarium: $e');
+      debugPrint('Error deleting aquarium: $e');
       rethrow;
     }
   }
@@ -409,7 +412,7 @@ class AquariumRepository {
         'ph': ph,
       });
     } catch (e) {
-      print('Error updating notification settings: $e');
+      debugPrint('Error updating notification settings: $e');
       rethrow;
     }
   }
@@ -431,7 +434,7 @@ class AquariumRepository {
         }
       }
     } catch (e) {
-      print('Error toggling all notifications: $e');
+      debugPrint('Error toggling all notifications: $e');
       rethrow;
     }
   }
@@ -466,7 +469,7 @@ class AquariumRepository {
 
       return false;
     } catch (e) {
-      print('Error checking aquarium name: $e');
+      debugPrint('Error checking aquarium name: $e');
       return false;
     }
   }
@@ -478,7 +481,7 @@ class AquariumRepository {
       if (db == null) return;
       await db.child('aquariums/$aquariumId/auto_feed').set(isActive);
     } catch (e) {
-      print('Error updating auto-feed status: $e');
+      debugPrint('Error updating auto-feed status: $e');
       rethrow;
     }
   }
@@ -493,7 +496,7 @@ class AquariumRepository {
         'status': 'active',
       });
     } catch (e) {
-      print('Error triggering manual feeding: $e');
+      debugPrint('Error triggering manual feeding: $e');
       rethrow;
     }
   }
@@ -507,7 +510,7 @@ class AquariumRepository {
         'status': 'inactive',
       });
     } catch (e) {
-      print('Error stopping manual feeding: $e');
+      debugPrint('Error stopping manual feeding: $e');
       rethrow;
     }
   }
@@ -522,7 +525,7 @@ class AquariumRepository {
         'status': 'completed',
       });
     } catch (e) {
-      print('Error triggering rotation feeding: $e');
+      debugPrint('Error triggering rotation feeding: $e');
       rethrow;
     }
   }
@@ -538,7 +541,7 @@ class AquariumRepository {
           return data == true;
         })
         .handleError((error) {
-          print('Error getting auto-feed status: $error');
+          debugPrint('Error getting auto-feed status: $error');
           return false;
         });
   }
@@ -555,7 +558,7 @@ class AquariumRepository {
           return data == true;
         })
         .handleError((error) {
-          print('Error getting auto-light status: $error');
+          debugPrint('Error getting auto-light status: $error');
           return false;
         });
   }
@@ -566,7 +569,7 @@ class AquariumRepository {
       if (db == null) return;
       await db.child('aquariums/$aquariumId/auto_light').set(isActive);
     } catch (e) {
-      print('Error updating auto-light status: $e');
+      debugPrint('Error updating auto-light status: $e');
       rethrow;
     }
   }
@@ -586,7 +589,7 @@ class AquariumRepository {
           return <String, dynamic>{};
         })
         .handleError((error) {
-          print('Error getting feeding status: $error');
+          debugPrint('Error getting feeding status: $error');
           return <String, dynamic>{};
         });
   }

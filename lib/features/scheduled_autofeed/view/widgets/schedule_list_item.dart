@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import '../../models/feeding_schedule_model.dart';
@@ -30,6 +31,7 @@ class ScheduleListItem extends StatelessWidget {
       return '$hour12:$mm $period';
     }
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 20),
@@ -75,7 +77,10 @@ class ScheduleListItem extends StatelessWidget {
                       Icon(
                         Icons.access_time,
                         size: 18,
-                        color: colorScheme.primary,
+                        color:
+                            isDark
+                                ? darkTheme.textTheme.bodySmall?.color
+                                : lightTheme.textTheme.bodySmall?.color,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -83,7 +88,10 @@ class ScheduleListItem extends StatelessWidget {
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getFontSize(context, 18),
                           fontWeight: FontWeight.bold,
-                          color: colorScheme.primary,
+                          color:
+                              isDark
+                                  ? darkTheme.textTheme.bodySmall?.color
+                                  : lightTheme.textTheme.bodySmall?.color,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -107,7 +115,7 @@ class ScheduleListItem extends StatelessWidget {
                                 schedule.daily
                                     ? Colors.blue[700]
                                     : Colors.orange[700],
-                            fontWeight: FontWeight.w600,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -122,18 +130,18 @@ class ScheduleListItem extends StatelessWidget {
                             color:
                                 schedule.isEnabled
                                     ? Colors.green[100]
-                                    : colorScheme.surfaceVariant,
+                                    : Colors.grey[300],
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
-                            schedule.isEnabled ? 'Active' : 'Inactive',
+                            schedule.isEnabled ? 'ACTIVE' : 'INACTIVE',
                             style: TextStyle(
                               fontSize: 12,
                               color:
                                   schedule.isEnabled
                                       ? Colors.green[700]
                                       : colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -142,7 +150,7 @@ class ScheduleListItem extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${schedule.cycles} cycle${schedule.cycles > 1 ? 's' : ''} • ${schedule.foodType}',
+                    '${schedule.cycles} Cycle${schedule.cycles > 1 ? 's' : ''} — ${schedule.foodType[0].toUpperCase()}${schedule.foodType.substring(1).toLowerCase()}',
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 16),
                       color: Theme.of(context).textTheme.bodySmall?.color,

@@ -48,7 +48,12 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
 
   ScheduledAutofeedViewModel(this._repository, this.aquariumId)
     : super(const ScheduledAutofeedState()) {
+    // Kick off initial load and subscribe to realtime updates (RTDB + Firestore)
     loadData();
+    // Ensure we actually listen to backend-written updates instead of relying on local state
+    // to keep UI in sync with Firestore/RTDB.
+    // ignore: discarded_futures
+    initialize();
   }
 
   // Initialize realtime subscriptions and optional cache prefill
@@ -132,18 +137,16 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
     state = state.copyWith(isLoading: true, errorMessage: null);
 
     try {
-      final newSchedule = await _repository.addFeedingSchedule(
+      await _repository.addFeedingSchedule(
         aquariumId: aquariumId,
         time: time,
         cycles: cycles,
         foodType: foodType,
         isEnabled: isEnabled,
       );
-
-      final updatedSchedules = [...state.schedules, newSchedule];
-      state = state.copyWith(schedules: updatedSchedules, isLoading: false);
-      // Cache after successful write (stub)
-      _repository.cacheSchedules(aquariumId, updatedSchedules).ignore();
+      // After backend writes into Firebase/Firestore, reload from source of truth
+      await loadData();
+      state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -199,12 +202,9 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
           isEnabled: isEnabled,
         );
       }
-
-      final updated = existing.copyWith(cycles: cycles, isEnabled: isEnabled);
-      final updatedSchedules =
-          state.schedules.map((s) => s.id == scheduleId ? updated : s).toList();
-      state = state.copyWith(schedules: updatedSchedules, isLoading: false);
-      _repository.cacheSchedules(aquariumId, updatedSchedules).ignore();
+      // Reload from Firebase/Firestore to reflect backend-updated values
+      await loadData();
+      state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -219,13 +219,9 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
         aquariumId: aquariumId,
         scheduleId: existing.time, // backend expects time in URL
       );
-
-      final updatedSchedules =
-          state.schedules
-              .where((schedule) => schedule.id != scheduleId)
-              .toList();
-      state = state.copyWith(schedules: updatedSchedules, isLoading: false);
-      _repository.cacheSchedules(aquariumId, updatedSchedules).ignore();
+      // Reload from Firebase/Firestore after deletion
+      await loadData();
+      state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }
@@ -241,15 +237,9 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
         scheduleId: existing.time, // backend expects time in URL
         isEnabled: isEnabled,
       );
-      final updatedSchedules =
-          state.schedules
-              .map(
-                (s) =>
-                    s.id == scheduleId ? s.copyWith(isEnabled: isEnabled) : s,
-              )
-              .toList();
-      state = state.copyWith(schedules: updatedSchedules, isLoading: false);
-      _repository.cacheSchedules(aquariumId, updatedSchedules).ignore();
+      // Reload to ensure UI reflects backend/RTDB state
+      await loadData();
+      state = state.copyWith(isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, errorMessage: e.toString());
     }

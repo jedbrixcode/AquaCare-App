@@ -1,5 +1,6 @@
 /// Water Quality Index (WQI) Calculator for Aquarium Health
 /// Based on the logic from calc.dart reference file
+library;
 
 class Parameter {
   final String name;

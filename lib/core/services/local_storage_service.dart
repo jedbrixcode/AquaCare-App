@@ -1,6 +1,3 @@
-import 'package:aquacare_v5/main.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:async';
@@ -27,15 +24,33 @@ class LocalStorageService {
       return;
     }
     final dir = await getApplicationDocumentsDirectory();
-    _isar = await Isar.open([
-      LatestSensorSchema,
-      HourlyLogSchema,
-      AverageLogSchema,
-      AppSettingsSchema,
-      ChatMessageIsarSchema,
-      FeedingScheduleCacheSchema,
-      OneTimeScheduleCacheSchema,
-    ], directory: dir.path);
+
+    int retries = 0;
+    const maxRetries = 10;
+    const retryDelay = Duration(milliseconds: 100);
+    while (retries < maxRetries) {
+      try {
+        _isar = await Isar.open([
+          LatestSensorSchema,
+          HourlyLogSchema,
+          AverageLogSchema,
+          AppSettingsSchema,
+          ChatMessageIsarSchema,
+          FeedingScheduleCacheSchema,
+          OneTimeScheduleCacheSchema,
+        ], directory: dir.path);
+        return; // ✅ Successfully opened
+      } catch (e) {
+        if (e.toString().contains('MdbxError (11)') &&
+            retries < maxRetries - 1) {
+          retries++;
+          await Future.delayed(retryDelay);
+        } else {
+          rethrow;
+        }
+      }
+    }
+    throw Exception('Failed to open Isar database after $maxRetries retries');
   }
 
   // Cache latest sensor values per aquarium

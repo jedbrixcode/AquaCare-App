@@ -207,6 +207,7 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
                       ],
                     ),
               );
+              if (!context.mounted) return;
               if (confirm == true) {
                 ref.read(chatViewModelProvider.notifier).clearChatHistory();
 

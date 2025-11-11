@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../repository/autofeed_repository.dart';
 
@@ -87,7 +88,7 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
     if (validFoods.contains(normalized)) {
       state = state.copyWith(food: normalized);
     } else {
-      print('Invalid food type: $f');
+      debugPrint('Invalid food type: $f');
     }
   }
 

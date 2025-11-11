@@ -45,8 +45,6 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
       viewmodel.aquariumDetailViewModelProvider(widget.aquariumId),
     );
 
-    final theme = Theme.of(context);
-
     // Update ViewModel when sensor changes
     sensorAsync.whenData((sensor) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -79,13 +77,26 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     });
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor:
+          isDark
+              ? darkTheme.colorScheme.background
+              : lightTheme.colorScheme.background,
       appBar: AppBar(
+        backgroundColor:
+            isDark
+                ? darkTheme.appBarTheme.backgroundColor
+                : lightTheme.appBarTheme.backgroundColor,
         title: Text("${widget.aquariumName} Dashboard"),
-        titleTextStyle: theme.appBarTheme.titleTextStyle?.copyWith(
-          fontSize: ResponsiveHelper.getFontSize(context, 25),
-        ),
-        backgroundColor: theme.appBarTheme.backgroundColor,
+        titleTextStyle:
+            isDark
+                ? darkTheme.appBarTheme.titleTextStyle?.copyWith(
+                  color: darkTheme.appBarTheme.titleTextStyle?.color,
+                  fontSize: ResponsiveHelper.getFontSize(context, 25),
+                  fontWeight: FontWeight.bold,
+                )
+                : lightTheme.appBarTheme.titleTextStyle?.copyWith(
+                  color: lightTheme.appBarTheme.titleTextStyle?.color,
+                ),
         toolbarHeight: ResponsiveHelper.isMobile(context) ? 70 : 100,
         centerTitle: true,
       ),
@@ -95,8 +106,12 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         ).copyWith(top: ResponsiveHelper.getScreenPadding(context).top + 10),
         child:
             ResponsiveHelper.isMobile(context)
-                ? _buildMobileLayout(viewModelState, theme, isDark)
-                : _buildDesktopLayout(viewModelState, theme, isDark),
+                ? _buildMobileLayout(viewModelState, Theme.of(context), isDark)
+                : _buildDesktopLayout(
+                  viewModelState,
+                  Theme.of(context),
+                  isDark,
+                ),
       ),
     );
   }
@@ -129,17 +144,11 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTemperatureCard(viewModelState, theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 12,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 12)),
               _buildAutoFeedCard(theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 12,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 12)),
               _buildHealthBar(viewModelState, theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 12,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 12)),
             ],
           ),
         ),
@@ -148,17 +157,11 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildTurbidityCard(viewModelState, theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 12,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 12)),
               _buildPhCard(viewModelState, theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 14,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 14)),
               _buildScheduledAutofeedCard(theme, isDark),
-              SizedBox(
-                height: ResponsiveHelper.getScreenPadding(context).top + 10,
-              ),
+              SizedBox(height: ResponsiveHelper.getFontSize(context, 10)),
             ],
           ),
         ),
@@ -195,9 +198,9 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     return Column(
       children: [
         _buildTemperatureCard(viewModelState, theme, isDark),
-        const SizedBox(height: 20),
+        SizedBox(height: ResponsiveHelper.verticalPadding(context)),
         _buildAutoFeedCard(theme, isDark),
-        const SizedBox(height: 20),
+        SizedBox(height: ResponsiveHelper.verticalPadding(context)),
         _buildHealthBar(viewModelState, theme, isDark),
       ],
     );
@@ -211,9 +214,9 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
     return Column(
       children: [
         _buildTurbidityCard(viewModelState, theme, isDark),
-        const SizedBox(height: 20),
+        SizedBox(height: ResponsiveHelper.verticalPadding(context)),
         _buildPhCard(viewModelState, theme, isDark),
-        const SizedBox(height: 20),
+        SizedBox(height: ResponsiveHelper.verticalPadding(context)),
         _buildScheduledAutofeedCard(theme, isDark),
       ],
     );
@@ -235,13 +238,13 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: ResponsiveHelper.horizontalPadding(context) + 5,
-          vertical: ResponsiveHelper.getScreenPadding(context).top + 10,
+          vertical: ResponsiveHelper.verticalPadding(context) + 8,
         ),
         decoration: BoxDecoration(
-          color: isDark ? theme.colorScheme.surface : Colors.blue[50],
+          color: isDark ? darkTheme.colorScheme.surface : Colors.blue[50],
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isDark ? theme.colorScheme.primary : Colors.blue[200]!,
+            color: isDark ? darkTheme.colorScheme.primary : Colors.blue[200]!,
             width: 1,
           ),
         ),
@@ -260,7 +263,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       fontWeight: FontWeight.bold,
                       color:
                           isDark
-                              ? theme.textTheme.bodyMedium?.color
+                              ? darkTheme.textTheme.bodyMedium?.color
                               : Colors.blue[700],
                     ),
                   ),
@@ -272,7 +275,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       fontSize: ResponsiveHelper.getFontSize(context, 12),
                       color:
                           isDark
-                              ? theme.textTheme.bodyMedium?.color
+                              ? darkTheme.textTheme.bodyMedium?.color
                               : Colors.blue[600],
                     ),
                   ),
@@ -314,7 +317,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
       },
       child: _bigCircleCard(
         label: "Temperature",
-        value: "${viewModelState.sensor.temperature.toStringAsFixed(1)}°C",
+        value: "${viewModelState.sensor.temperature.toStringAsFixed(0)}°C",
         percent: viewModelState.tempHealth,
         icon: FontAwesomeIcons.temperatureHigh,
         ringColor: tempColor,
@@ -396,7 +399,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
         percent: viewModelState.phHealth,
         icon: FontAwesomeIcons.vialCircleCheck,
         ringColor: phColor,
-        color: isDark ? Colors.white : theme.colorScheme.onSurface,
+        color: isDark ? Colors.white : darkTheme.colorScheme.onSurface,
         height: ResponsiveHelper.getCardHeight(context) + 100,
         width: double.infinity,
         theme: theme,
@@ -442,8 +445,8 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       fontWeight: FontWeight.bold,
                       color:
                           isDark
-                              ? theme.textTheme.bodyMedium?.color
-                              : theme.textTheme.bodyMedium?.color,
+                              ? darkTheme.textTheme.bodyMedium?.color
+                              : lightTheme.textTheme.bodyMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -453,8 +456,8 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       fontSize: ResponsiveHelper.getFontSize(context, 12),
                       color:
                           isDark
-                              ? theme.textTheme.bodyMedium?.color
-                              : theme.textTheme.bodyMedium?.color,
+                              ? darkTheme.textTheme.bodyMedium?.color
+                              : lightTheme.textTheme.bodyMedium?.color,
                     ),
                   ),
                 ],
@@ -608,7 +611,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
             ),
             progressColor: ringColor ?? Colors.blue,
             backgroundColor:
-                isDark ? theme.colorScheme.onSurface : Colors.grey[500]!,
+                isDark ? theme.colorScheme.onSurface : Colors.grey[300]!,
             circularStrokeCap: CircularStrokeCap.round,
           ),
           const SizedBox(height: 16),
@@ -780,7 +783,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                       color:
                           isDark
                               ? Theme.of(context).textTheme.bodyMedium?.color
-                              : Colors.white,
+                              : color,
                     ),
                   ),
                 ),

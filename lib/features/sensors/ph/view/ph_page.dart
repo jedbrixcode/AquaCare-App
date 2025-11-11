@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
@@ -37,34 +38,47 @@ class _PhPageState extends ConsumerState<PhPage> {
     final notifAsync = ref.watch(phNotificationProvider(widget.aquariumId));
     final vm = ref.watch(phViewModelProvider);
 
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: Colors.blue,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
         title: Text('pH Level • ${widget.aquariumName}'),
-        titleTextStyle: const TextStyle(
-          color: Colors.white,
-          fontSize: 24,
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+          fontSize: ResponsiveHelper.getFontSize(context, 24),
           fontWeight: FontWeight.bold,
         ),
       ),
       body: Padding(
-        padding: ResponsiveHelper.getScreenPadding(context),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.horizontalPadding(context),
+          vertical: ResponsiveHelper.verticalPadding(context),
+        ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Notification Toggle
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
-                color: Colors.grey[800],
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
+                  Text(
                     'NOTIFICATION',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
+                    style: TextStyle(
+                      color:
+                          isDark
+                              ? darkTheme.textTheme.bodyMedium?.color
+                              : lightTheme.textTheme.bodyMedium?.color,
+                      fontSize: ResponsiveHelper.getFontSize(context, 24),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   notifAsync.when(
                     data:
@@ -79,37 +93,48 @@ class _PhPageState extends ConsumerState<PhPage> {
                               phNotificationProvider(widget.aquariumId),
                             );
                           },
+                          // Align switch colors to temperature page
+                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeTrackColor:
+                              Theme.of(context).colorScheme.onSecondary,
+                          inactiveThumbColor:
+                              Theme.of(context).colorScheme.primary,
+                          inactiveTrackColor:
+                              Theme.of(context).colorScheme.onSecondary,
                         ),
                     loading:
-                        () => const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                        () => SizedBox(
+                          height: ResponsiveHelper.getCardHeight(context) / 10,
+                          width: ResponsiveHelper.getCardWidth(context) / 10,
+                          child: const CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
                         ),
                     error: (e, _) => const Icon(Icons.error, color: Colors.red),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 14),
 
             // Current pH Display
             rangeAsync.when(
               data: (range) {
                 return phAsync.when(
                   data: (ph) {
-                    Color color;
+                    final Color color;
                     if (ph > range.max) {
-                      color = Colors.red;
+                      color = Colors.red[500]!;
                     } else if (ph < range.min) {
-                      color = Colors.blue;
+                      color = Colors.blue[500]!;
                     } else {
-                      color = Colors.green;
+                      color = Colors.green[300]!;
                     }
                     return Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 10,
-                        horizontal: 70,
+                      width: double.infinity,
+                      height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.verticalPadding(context) + 4,
                       ),
                       decoration: BoxDecoration(
                         color: color,
@@ -117,8 +142,9 @@ class _PhPageState extends ConsumerState<PhPage> {
                       ),
                       child: Text(
                         'CURRENT pH: ${ph.toStringAsFixed(1)}',
-                        style: const TextStyle(
-                          fontSize: 18,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: ResponsiveHelper.getFontSize(context, 18),
                           color: Colors.white,
                         ),
                       ),
@@ -126,68 +152,90 @@ class _PhPageState extends ConsumerState<PhPage> {
                   },
                   loading:
                       () => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        width: double.infinity,
+                        height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                        padding: EdgeInsets.all(
+                          ResponsiveHelper.verticalPadding(context) + 4,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[500],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT pH: Loading...',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                   error:
                       (e, _) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 10,
-                          horizontal: 70,
+                        width: double.infinity,
+                        height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                        padding: EdgeInsets.all(
+                          ResponsiveHelper.verticalPadding(context) + 4,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[700],
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        child: const Text(
+                        child: Text(
                           'CURRENT pH: Error',
-                          style: TextStyle(fontSize: 18, color: Colors.white),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                 );
               },
               loading:
                   () => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    width: double.infinity,
+                    height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.verticalPadding(context) + 4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[500],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Loading thresholds...',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
               error:
                   (e, _) => Container(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 10,
-                      horizontal: 70,
+                    width: double.infinity,
+                    height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.verticalPadding(context) + 4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Text(
+                    child: Text(
                       'Error loading thresholds',
-                      style: TextStyle(fontSize: 18, color: Colors.white),
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        color: Colors.white,
+                      ),
                     ),
                   ),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
+            Divider(color: Colors.grey[300], thickness: 1),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
 
             // Threshold Controls
             rangeAsync.when(
@@ -195,13 +243,19 @@ class _PhPageState extends ConsumerState<PhPage> {
                 return Column(
                   children: [
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Column(
                           children: [
-                            const Text(
+                            Text(
                               'MIN pH',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getFontSize(
+                                  context,
+                                  16,
+                                ),
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                             _buildNumberInput(
                               value: _minPhEditing ?? range.min,
@@ -213,19 +267,43 @@ class _PhPageState extends ConsumerState<PhPage> {
                             ),
                           ],
                         ),
-                        const Text(
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) + 16,
+                        ),
+                        Text(
                           'pH',
                           style: TextStyle(
-                            fontSize: 20,
-                            color: Colors.black,
+                            fontSize: ResponsiveHelper.getFontSize(context, 20),
+                            color:
+                                isDark
+                                    ? darkTheme.textTheme.bodyLarge?.color
+                                    : lightTheme.textTheme.bodyLarge?.color,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) + 16,
+                        ),
                         Column(
                           children: [
-                            const Text(
+                            Text(
                               'MAX pH',
-                              style: TextStyle(fontSize: 16),
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getFontSize(
+                                  context,
+                                  16,
+                                ),
+                                fontWeight: FontWeight.bold,
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyMedium?.color
+                                        : lightTheme
+                                            .textTheme
+                                            .bodyMedium
+                                            ?.color,
+                              ),
                             ),
                             _buildNumberInput(
                               value: _maxPhEditing ?? range.max,
@@ -237,7 +315,10 @@ class _PhPageState extends ConsumerState<PhPage> {
                             ),
                           ],
                         ),
-                        const SizedBox(width: 20),
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) + 16,
+                        ),
                         ElevatedButton(
                           onPressed: () async {
                             final newMin = _minPhEditing ?? range.min;
@@ -255,15 +336,34 @@ class _PhPageState extends ConsumerState<PhPage> {
                               phThresholdProvider(widget.aquariumId),
                             );
                           },
-                          child: const Text('SET'),
+                          child: Text(
+                            'SET',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                16,
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: ResponsiveHelper.verticalPadding(context) / 12,
+                    ),
+                    Divider(color: Colors.grey[300], thickness: 1),
+                    SizedBox(height: ResponsiveHelper.verticalPadding(context)),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey[300],
-                        minimumSize: const Size(double.infinity, 50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
+                        minimumSize: Size(
+                          ResponsiveHelper.getCardWidth(context) + 32,
+                          ResponsiveHelper.getCardHeight(context) / 3.5,
+                        ),
                       ),
                       onPressed: () async {
                         const double defaultMinPh = 6.5;
@@ -275,7 +375,13 @@ class _PhPageState extends ConsumerState<PhPage> {
                         );
                         ref.invalidate(phThresholdProvider(widget.aquariumId));
                       },
-                      child: const Text('SET DEFAULT'),
+                      child: Text(
+                        'SET DEFAULT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: ResponsiveHelper.getFontSize(context, 16),
+                        ),
+                      ),
                     ),
                   ],
                 );
@@ -285,12 +391,24 @@ class _PhPageState extends ConsumerState<PhPage> {
                   (e, _) =>
                       const Center(child: Text('Error loading thresholds')),
             ),
-            const Spacer(),
-            const Text(
-              'Note: Default aquarium pH for fishes are 6.5-7.5.',
-              style: TextStyle(color: Colors.black, fontSize: 14),
+            Spacer(),
+            Container(
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 40, right: 40),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primary,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'Note: Default aquarium pH for fishes are 6.5-7.5.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: ResponsiveHelper.getFontSize(context, 14),
+                ),
+              ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
           ],
         ),
       ),
@@ -303,6 +421,7 @@ class _PhPageState extends ConsumerState<PhPage> {
     required Function(double) onChanged,
     double step = 1.0,
   }) {
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
     controller.value = TextEditingValue(
       text: value.toStringAsFixed(step < 1 ? 1 : 0),
       selection: TextSelection.collapsed(
@@ -310,9 +429,9 @@ class _PhPageState extends ConsumerState<PhPage> {
       ),
     );
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          padding: EdgeInsets.zero,
           onPressed:
               () => onChanged(
                 double.parse((value + step).toStringAsFixed(step < 1 ? 1 : 0)),
@@ -320,7 +439,8 @@ class _PhPageState extends ConsumerState<PhPage> {
           icon: const Icon(Icons.arrow_drop_up, size: 40),
         ),
         SizedBox(
-          width: 70,
+          width: ResponsiveHelper.getCardWidth(context) / 5,
+          height: ResponsiveHelper.getCardHeight(context) / 3.5,
           child: TextField(
             controller: controller,
             textAlign: TextAlign.center,
@@ -332,13 +452,20 @@ class _PhPageState extends ConsumerState<PhPage> {
               final parsed = double.tryParse(text);
               if (parsed != null) onChanged(parsed);
             },
-            decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 5),
-              border: OutlineInputBorder(),
+            decoration: InputDecoration(
+              contentPadding: const EdgeInsets.symmetric(vertical: 5),
+              border: OutlineInputBorder(
+                borderSide: BorderSide(
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              filled: true,
+              fillColor: isDark ? Colors.blueGrey[700] : Colors.blueGrey[100],
             ),
           ),
         ),
         IconButton(
+          padding: EdgeInsets.zero,
           onPressed: () {
             if (value > 0) {
               onChanged(

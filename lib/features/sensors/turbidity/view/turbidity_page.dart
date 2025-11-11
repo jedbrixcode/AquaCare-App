@@ -147,20 +147,20 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           },
                           activeColor:
                               isDark
-                                  ? darkTheme.colorScheme.primary
-                                  : Colors.blue,
+                                  ? darkTheme.colorScheme.background
+                                  : lightTheme.colorScheme.secondary,
                           activeTrackColor:
                               isDark
-                                  ? darkTheme.colorScheme.onSecondary
-                                  : Colors.blue,
+                                  ? lightTheme.colorScheme.background
+                                  : lightTheme.colorScheme.secondary,
                           inactiveThumbColor:
                               isDark
-                                  ? darkTheme.colorScheme.primary
-                                  : Colors.blue,
+                                  ? darkTheme.colorScheme.background
+                                  : lightTheme.colorScheme.secondary,
                           inactiveTrackColor:
                               isDark
-                                  ? darkTheme.colorScheme.onSecondary
-                                  : Colors.blue,
+                                  ? lightTheme.colorScheme.background
+                                  : lightTheme.colorScheme.secondary,
                         ),
                     loading:
                         () => const SizedBox(
@@ -333,6 +333,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           children: [
                             Text(
                               'MIN NTU',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getFontSize(
                                   context,
@@ -354,6 +355,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         ),
                         Text(
                           'NTU',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getFontSize(context, 20),
                             fontWeight: FontWeight.bold,
@@ -363,6 +365,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           children: [
                             Text(
                               'MAX NTU',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.getFontSize(
                                   context,
@@ -384,7 +387,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         ),
                         SizedBox(
                           width:
-                              ResponsiveHelper.horizontalPadding(context) + 24,
+                              ResponsiveHelper.horizontalPadding(context) / 1,
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -416,6 +419,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         ),
                       ],
                     ),
+                    Divider(color: Colors.grey[300], thickness: 1),
                     SizedBox(
                       height: ResponsiveHelper.verticalPadding(context) + 8,
                     ),
@@ -479,7 +483,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
             Container(
               padding: ResponsiveHelper.getScreenPadding(
                 context,
-              ).copyWith(bottom: 12),
+              ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
@@ -488,12 +492,12 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                 'Note: NTU (Nephelometric Turbidity Units) measures water clarity.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: ResponsiveHelper.getFontSize(context, 12),
                   color: Colors.white,
+                  fontSize: ResponsiveHelper.getFontSize(context, 14),
                 ),
               ),
             ),
-            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 12),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 10),
           ],
         ),
       ),

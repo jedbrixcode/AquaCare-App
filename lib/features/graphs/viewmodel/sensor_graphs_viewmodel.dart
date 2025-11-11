@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/graphs/repository/graphs_repository.dart';
 import 'package:aquacare_v5/core/models/sensor_log_point.dart';
@@ -83,7 +84,7 @@ class SensorGraphsViewModel extends StateNotifier<SensorGraphsState> {
 
   void setAquarium(String id) {
     state = state.copyWith(aquariumId: id);
-    print('Selected aquarium: ${state.aquariumId}');
+    debugPrint('Selected aquarium: ${state.aquariumId}');
     if (state.range == GraphRange.hourly) {
       loadDaily();
     } else {

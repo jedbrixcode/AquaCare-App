@@ -140,7 +140,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isDark ? theme.colorScheme.surface : Colors.blue[50],
+                    color:
+                        isDark
+                            ? const Color.fromARGB(255, 97, 120, 136)
+                            : Colors.blue[50],
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: Colors.blue[200]!),
                   ),
@@ -148,7 +151,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.blue[700],
+                        color: isDark ? Colors.blue[200] : Colors.blue[700],
                         size: 20,
                       ),
                       const SizedBox(width: 8),
@@ -181,7 +184,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ElevatedButton(
                 onPressed: () => _handleAllowPermission(dialogContext),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
+                  backgroundColor:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
                   foregroundColor: isDark ? Colors.white : Colors.black,
                   padding: EdgeInsets.symmetric(
                     horizontal: ResponsiveHelper.horizontalPadding(context) / 2,
@@ -194,7 +200,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 child: Text(
                   'Allow',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: isDark ? Colors.white70 : Colors.white,
                     fontSize: ResponsiveHelper.getFontSize(context, 13),
                     fontWeight: FontWeight.w500,
                   ),
@@ -291,8 +297,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   height: 1.4,
                   color:
                       isDark
-                          ? theme.textTheme.bodyMedium?.color
-                          : theme.textTheme.bodyMedium?.color,
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                 ),
               ),
               SizedBox(height: ResponsiveHelper.verticalPadding(context) / 2),
@@ -303,8 +309,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 decoration: BoxDecoration(
                   color:
                       isDark
-                          ? Colors.red[50]
-                          : const Color.fromARGB(255, 112, 91, 94),
+                          ? const Color.fromARGB(255, 112, 91, 94)
+                          : Colors.red[50],
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: Colors.red[200]!),
                 ),
@@ -329,8 +335,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                             fontSize: ResponsiveHelper.getFontSize(context, 13),
                             color:
                                 isDark
-                                    ? lightTheme.textTheme.bodyMedium?.color
-                                    : darkTheme.textTheme.bodyMedium?.color,
+                                    ? darkTheme.textTheme.bodyMedium?.color
+                                    : lightTheme.textTheme.bodyMedium?.color,
                           ),
                         ),
                       ],
@@ -366,10 +372,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 // Step 5: Mark dialog state
                 _isDialogShowing = true;
 
-                // Step 6: Use global navigator context or parent safe context
-                final safeContext =
-                    globalNavigatorKey.currentContext ?? context;
-
                 await _showBatteryOptimizationDialog();
 
                 _isDialogShowing = false;
@@ -382,15 +384,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 decoration: BoxDecoration(
                   color:
                       isDark
-                          ? theme.colorScheme.primary
-                          : theme.colorScheme.primary,
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
                   'Allow Permission',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                    color: isDark ? Colors.white70 : Colors.white,
+                    fontSize: ResponsiveHelper.getFontSize(context, 13),
                   ),
                 ),
               ),
@@ -402,8 +405,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 style: TextStyle(
                   color:
                       isDark
-                          ? theme.textTheme.bodyMedium?.color
-                          : theme.textTheme.bodyMedium?.color,
+                          ? darkTheme.textTheme.bodyMedium?.color
+                          : lightTheme.textTheme.bodyMedium?.color,
                 ),
               ),
             ),
@@ -431,8 +434,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               fontSize: ResponsiveHelper.getFontSize(context, 12),
               color:
                   isDark
-                      ? lightTheme.textTheme.bodyMedium?.color
-                      : darkTheme.textTheme.bodyMedium?.color,
+                      ? darkTheme.textTheme.bodyMedium?.color
+                      : lightTheme.textTheme.bodyMedium?.color,
             ),
           ),
         ],
@@ -495,7 +498,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(20),
                 child: Image.asset(
                   'assets/icons/aquacare_logo.png',
                   height: 205,

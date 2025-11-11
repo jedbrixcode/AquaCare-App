@@ -33,8 +33,9 @@ class SplashViewModel extends StateNotifier<AsyncValue<void>> {
 
       // App can still start even offline (Firebase can retry later)
       state = const AsyncValue.data(null);
-    } catch (e, st) {
-      debugPrint('❌ App initialization failed: $e');
+    } catch (e) {
+      debugPrint('App initialization failed: $e');
+      debugPrint('Stack trace: ${StackTrace.current}');
       state = const AsyncValue.data(null);
     }
   }

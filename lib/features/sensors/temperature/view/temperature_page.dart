@@ -36,8 +36,12 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
 
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor:
+            isDark
+                ? darkTheme.appBarTheme.backgroundColor
+                : lightTheme.appBarTheme.backgroundColor,
         title: Text('Temperature • ${widget.aquariumName}'),
         titleTextStyle: TextStyle(
           color: Theme.of(context).appBarTheme.titleTextStyle?.color,
@@ -70,8 +74,8 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     style: TextStyle(
                       color:
                           isDark
-                              ? Theme.of(context).textTheme.bodyMedium?.color
-                              : Theme.of(context).textTheme.bodyMedium?.color,
+                              ? darkTheme.textTheme.bodyMedium?.color
+                              : lightTheme.textTheme.bodyMedium?.color,
                       fontSize: ResponsiveHelper.getFontSize(context, 24),
                       fontWeight: FontWeight.bold,
                     ),
@@ -118,7 +122,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 ],
               ),
             ),
-            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 16),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 14),
 
             // Temperature Display
             rangeAsync.when(
@@ -128,38 +132,39 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 return tempAsync.when(
                   data: (temp) {
                     final Color color;
-                    if (temp > max) {
-                      color = Colors.red[500]!;
-                    } else if (temp < min) {
-                      color = Colors.blue[500]!;
+                    if (temp > max || temp < min) {
+                      color = const Color.fromRGBO(244, 67, 54, 1)!;
                     } else {
-                      color = Colors.green[300]!;
+                      color = const Color.fromRGBO(76, 175, 80, 1)!;
                     }
                     return Container(
-                      padding: EdgeInsets.symmetric(
-                        vertical: ResponsiveHelper.verticalPadding(context),
-                        horizontal: ResponsiveHelper.horizontalPadding(context),
+                      width: double.infinity,
+                      height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.verticalPadding(context) + 4,
                       ),
                       decoration: BoxDecoration(
                         color: color,
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: Text(
-                        'CURRENT TEMPERATURE: ${temp.toStringAsFixed(0)}°C',
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.getFontSize(context, 18),
-                          color: Colors.white,
+                      child: Center(
+                        child: Text(
+                          'CURRENT TEMPERATURE: ${temp.toStringAsFixed(0)}°C',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 18),
+                            color: Colors.white,
+                          ),
                         ),
                       ),
                     );
                   },
                   loading:
                       () => Container(
-                        padding: EdgeInsets.symmetric(
-                          vertical: ResponsiveHelper.verticalPadding(context),
-                          horizontal: ResponsiveHelper.horizontalPadding(
-                            context,
-                          ),
+                        width: double.infinity,
+                        height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                        padding: EdgeInsets.all(
+                          ResponsiveHelper.verticalPadding(context) + 4,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[500],
@@ -167,6 +172,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                         ),
                         child: Text(
                           'CURRENT TEMPERATURE: Loading...',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getFontSize(context, 18),
                             color: Colors.white,
@@ -175,11 +181,10 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                       ),
                   error:
                       (e, _) => Container(
-                        padding: EdgeInsets.symmetric(
-                          vertical: ResponsiveHelper.verticalPadding(context),
-                          horizontal: ResponsiveHelper.horizontalPadding(
-                            context,
-                          ),
+                        width: double.infinity,
+                        height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                        padding: EdgeInsets.all(
+                          ResponsiveHelper.verticalPadding(context) + 4,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.grey[700],
@@ -187,6 +192,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                         ),
                         child: Text(
                           'CURRENT TEMPERATURE: Error',
+                          textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getFontSize(context, 18),
                             color: Colors.white,
@@ -197,9 +203,10 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               },
               loading:
                   () => Container(
-                    padding: EdgeInsets.symmetric(
-                      vertical: ResponsiveHelper.verticalPadding(context),
-                      horizontal: ResponsiveHelper.horizontalPadding(context),
+                    width: double.infinity,
+                    height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.verticalPadding(context) + 4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[500],
@@ -207,6 +214,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     ),
                     child: Text(
                       'Loading thresholds...',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getFontSize(context, 18),
                         color: Colors.white,
@@ -215,9 +223,10 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                   ),
               error:
                   (e, _) => Container(
-                    padding: EdgeInsets.symmetric(
-                      vertical: ResponsiveHelper.verticalPadding(context),
-                      horizontal: ResponsiveHelper.horizontalPadding(context),
+                    width: double.infinity,
+                    height: ResponsiveHelper.getCardHeight(context) / 3.5,
+                    padding: EdgeInsets.all(
+                      ResponsiveHelper.verticalPadding(context) + 4,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[700],
@@ -225,6 +234,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     ),
                     child: Text(
                       'Error loading thresholds',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: ResponsiveHelper.getFontSize(context, 18),
                         color: Colors.white,
@@ -259,26 +269,28 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     _temperatureSelector(min, _minController, (value) {
                       setState(() => _minTempEditing = value);
                     }),
-                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: ResponsiveHelper.horizontalPadding(context),
+                    ),
                     Text(
                       ' - ',
                       style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 18),
+                        fontSize: ResponsiveHelper.getFontSize(context, 35),
                       ),
                     ),
                     SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context) + 16,
+                      width: ResponsiveHelper.horizontalPadding(context),
                     ),
                     _temperatureSelector(max, _maxController, (value) {
                       setState(() => _maxTempEditing = value);
                     }),
                     SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context) + 16,
+                      width: ResponsiveHelper.horizontalPadding(context) + 12,
                     ),
                     Text(
                       '°C',
                       style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 20),
+                        fontSize: ResponsiveHelper.getFontSize(context, 35),
                         color: isDark ? Colors.white : Colors.black,
                         fontWeight: FontWeight.bold,
                       ),
@@ -334,7 +346,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 ),
                 backgroundColor: Theme.of(context).colorScheme.primary,
                 minimumSize: Size(
-                  ResponsiveHelper.getCardWidth(context),
+                  ResponsiveHelper.getCardWidth(context) + 32,
                   ResponsiveHelper.getCardHeight(context) / 3.5,
                 ),
               ),
@@ -375,7 +387,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 8),
           ],
         ),
       ),
@@ -389,9 +401,9 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
   ) {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Column(
-      mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
+          padding: EdgeInsets.zero,
           onPressed: () => onChanged(value + 1),
           icon: Icon(
             Icons.arrow_drop_up,
@@ -412,13 +424,26 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               decimal: true,
               signed: false,
             ),
+            textInputAction: TextInputAction.done,
             textAlign: TextAlign.center,
-            onChanged: (text) {
+            onSubmitted: (text) {
+              // ✅ Called when user presses done
               final parsed = double.tryParse(text);
-              if (parsed != null) onChanged(parsed);
+              if (parsed != null) {
+                onChanged(parsed);
+              }
+              FocusScope.of(context).unfocus(); // ✅ Dismiss keyboard
+            },
+            onTapOutside: (event) {
+              // ✅ Called when user clicks away
+              final parsed = double.tryParse(controller.text);
+              if (parsed != null) {
+                onChanged(parsed);
+              }
+              FocusScope.of(context).unfocus();
             },
             decoration: InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 5),
+              contentPadding: EdgeInsets.symmetric(vertical: 5, horizontal: 5),
               border: OutlineInputBorder(
                 borderSide: BorderSide(
                   color:
@@ -427,7 +452,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                           : lightTheme.colorScheme.primary,
                 ),
               ),
-              filled: true, // ✅ Enable background color
+              filled: true, // Enable background color
               fillColor:
                   isDark
                       ? Colors.blueGrey[700] // dark mode background
@@ -436,6 +461,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
           ),
         ),
         IconButton(
+          padding: EdgeInsets.zero,
           onPressed: () {
             if (value > 0) onChanged(value - 1);
           },

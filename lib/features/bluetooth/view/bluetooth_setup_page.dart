@@ -38,14 +38,17 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
     final vm = ref.watch(bluetoothSetupViewModelProvider);
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
-      backgroundColor: isDark ? darkTheme.colorScheme.surface : Colors.white,
+      backgroundColor: isDark ? darkTheme.colorScheme.background : Colors.white,
       appBar: AppBar(
         backgroundColor:
-            isDark ? darkTheme.colorScheme.primary : Colors.blue[600],
+            isDark ? darkTheme.appBarTheme.backgroundColor : Colors.blue[600],
         title: Text(
           'TankPi Setup',
           style: TextStyle(
-            color: isDark ? darkTheme.colorScheme.onSurface : Colors.black,
+            color:
+                isDark
+                    ? darkTheme.textTheme.displayLarge?.color
+                    : lightTheme.textTheme.displayLarge?.color,
             fontSize: 24,
             fontWeight: FontWeight.bold,
           ),
@@ -67,7 +70,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                 border: Border.all(
                   color:
                       isDark
-                          ? darkTheme.colorScheme.primary
+                          ? darkTheme.appBarTheme.foregroundColor!
                           : Colors.blue[200]!,
                   width: 1,
                 ),
@@ -77,13 +80,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                 children: [
                   Row(
                     children: [
-                      Icon(
-                        Icons.bluetooth,
-                        color:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : Colors.blue[600],
-                      ),
+                      Icon(Icons.bluetooth, color: Colors.blue[600]),
                       const SizedBox(width: 8),
                       Text(
                         'Status',
@@ -92,7 +89,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                           fontWeight: FontWeight.bold,
                           color:
                               isDark
-                                  ? darkTheme.colorScheme.onSurface
+                                  ? darkTheme.textTheme.bodyLarge?.color
                                   : Colors.blue[700],
                         ),
                       ),
@@ -105,7 +102,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                       fontSize: 14,
                       color:
                           isDark
-                              ? darkTheme.colorScheme.onSurface
+                              ? darkTheme.textTheme.bodyLarge?.color
                               : Colors.blue[600],
                     ),
                   ),
@@ -137,9 +134,13 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor:
-                      isDark ? darkTheme.colorScheme.primary : Colors.blue[600],
+                      isDark
+                          ? darkTheme.appBarTheme.backgroundColor
+                          : Colors.blue[600],
                   foregroundColor:
-                      isDark ? darkTheme.colorScheme.onSurface : Colors.white,
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -276,6 +277,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
         .read(bluetoothSetupViewModelProvider.notifier)
         .connect(device);
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Connected to ${device.platformName}'),
@@ -283,6 +285,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
         ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to connect to the Aquacare device'),
@@ -294,6 +297,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
 
   void _sendWifiConfiguration() async {
     if (_ssidController.text.isEmpty || _passwordController.text.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please fill in SSID and Password'),
@@ -312,6 +316,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
 
     final sending = ref.read(bluetoothSetupViewModelProvider).sendingState;
     if (sending is AsyncData) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -326,6 +331,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
       _ssidController.clear();
       _passwordController.clear();
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to send WiFi configuration'),

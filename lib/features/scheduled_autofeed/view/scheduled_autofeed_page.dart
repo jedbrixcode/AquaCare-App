@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
+import 'package:aquacare_v5/utils/theme.dart';
 
 import '../viewmodel/scheduled_autofeed_viewmodel.dart';
 import '../models/feeding_schedule_model.dart';
@@ -20,7 +21,6 @@ class ScheduledAutofeedPage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     // themeMode from provider not used directly; rely on current Theme.of(context)
     // Selective watches minimize rebuilds
     final schedProvider = scheduledAutofeedViewModelProvider(aquariumId);
@@ -37,23 +37,25 @@ class ScheduledAutofeedPage extends ConsumerWidget {
 
     final dailySchedules = schedules.where((s) => s.daily).toList();
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        title: Text(
-          'Scheduled Autofeeding - $aquariumName',
-          style: TextStyle(
-            color:
-                isDark
-                    ? Theme.of(context).textTheme.displayLarge?.color
-                    : Theme.of(context).colorScheme.onPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        backgroundColor:
+            isDark
+                ? darkTheme.appBarTheme.backgroundColor
+                : lightTheme.appBarTheme.backgroundColor,
+        title: Text('Scheduled Autofeeding - $aquariumName'),
+        titleTextStyle: TextStyle(
+          color:
+              isDark
+                  ? darkTheme.appBarTheme.titleTextStyle?.color
+                  : lightTheme.appBarTheme.titleTextStyle?.color,
+          fontSize: ResponsiveHelper.getFontSize(context, 24),
+          fontWeight: FontWeight.bold,
         ),
-        elevation: 0,
         centerTitle: true,
+        elevation: 0,
       ),
       body: RefreshIndicator(
         onRefresh: () async {
@@ -61,7 +63,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
           ref.invalidate(oneTimeScheduleViewModelProvider(intAquariumId));
         },
         child: ListView(
-          padding: ResponsiveHelper.getScreenPadding(context),
+          padding: EdgeInsets.symmetric(
+            horizontal: ResponsiveHelper.horizontalPadding(context),
+            vertical: ResponsiveHelper.verticalPadding(context),
+          ),
           children: [
             // Error Message
             if (errorMessage != null)
@@ -70,9 +75,18 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             // Daily section
             _sectionHeader(context, 'Daily Schedules'),
             if (isLoading)
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Center(child: CircularProgressIndicator()),
+              Padding(
+                padding: ResponsiveHelper.getScreenPadding(
+                  context,
+                ).copyWith(top: 24, bottom: 24),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color:
+                        isDark
+                            ? darkTheme.colorScheme.primary
+                            : lightTheme.colorScheme.primary,
+                  ),
+                ),
               )
             else if (dailySchedules.isEmpty)
               _buildEmptyState(context, viewModel)
@@ -105,14 +119,23 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 itemCount: dailySchedules.length,
               ),
 
-            const SizedBox(height: 24),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context)),
 
             // One-time section (no toggles, status shown from Firestore)
             _sectionHeader(context, 'One-time Schedules'),
             if (oneTimeState.isLoading && oneTimeState.schedules.isEmpty)
-              const Padding(
-                padding: EdgeInsets.all(24.0),
-                child: Center(child: CircularProgressIndicator()),
+              Padding(
+                padding: ResponsiveHelper.getScreenPadding(
+                  context,
+                ).copyWith(top: 24, bottom: 24),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color:
+                        isDark
+                            ? darkTheme.colorScheme.primary
+                            : lightTheme.colorScheme.primary,
+                  ),
+                ),
               )
             else if (oneTimeState.errorMessage != null &&
                 oneTimeState.schedules.isEmpty)
@@ -131,30 +154,43 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 itemCount: oneTimeState.schedules.length,
               ),
 
-            const SizedBox(height: 32),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context)),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        backgroundColor:
+            isDark
+                ? darkTheme.colorScheme.primary
+                : lightTheme.colorScheme.primary,
         onPressed: () => _showAddChoiceDialog(context, viewModel),
         child: Icon(
           Icons.add,
-          color: Theme.of(context).colorScheme.onSecondary,
+          color:
+              isDark
+                  ? darkTheme.colorScheme.onSecondary
+                  : lightTheme.colorScheme.onSecondary,
         ),
       ),
     );
   }
 
   Widget _sectionHeader(BuildContext context, String title) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Padding(
-      padding: const EdgeInsets.only(top: 10, bottom: 12),
+      padding: EdgeInsets.only(
+        top: 10,
+        bottom: ResponsiveHelper.verticalPadding(context),
+      ),
       child: Text(
         title,
         style: TextStyle(
           fontSize: ResponsiveHelper.getFontSize(context, 20),
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).textTheme.displayLarge?.color,
+          color:
+              isDark
+                  ? darkTheme.textTheme.displayLarge?.color
+                  : lightTheme.textTheme.displayLarge?.color,
         ),
       ),
     );
@@ -167,8 +203,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
   ) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      margin: const EdgeInsets.only(bottom: 16),
+      padding: EdgeInsets.all(ResponsiveHelper.horizontalPadding(context)),
+      margin: EdgeInsets.only(
+        bottom: ResponsiveHelper.verticalPadding(context),
+      ),
       decoration: BoxDecoration(
         color: Colors.red[50],
         borderRadius: BorderRadius.circular(8),
@@ -260,14 +298,50 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!),
       ),
-      child: Center(
-        child: Text(
-          'No one-time feedings',
-          style: TextStyle(
-            fontSize: ResponsiveHelper.getFontSize(context, 14),
-            color: Theme.of(context).colorScheme.onSurface,
+      child: Column(
+        children: [
+          Icon(Icons.schedule_outlined, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No One-time Feeding Schedules',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getFontSize(context, 18),
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
           ),
-        ),
+          const SizedBox(height: 8),
+          Text(
+            'Add a one-time schedule to enable automatic feeding',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getFontSize(context, 14),
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed:
+                () => _showAddChoiceDialog(
+                  context,
+                  ScheduledAutofeedViewModel(aquariumId),
+                ),
+            icon: Icon(
+              Icons.add,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+            label: Text(
+              'Add First One-time Schedule',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.background,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -294,90 +368,390 @@ class ScheduledAutofeedPage extends ConsumerWidget {
       default:
         statusColor = Theme.of(context).colorScheme.secondary;
     }
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.alarm, color: statusColor),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      schedule.scheduleTime,
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 18),
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        'One-time',
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onLongPress: () async {
+        await _showEditOneTimeDialog(context, ref, schedule);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 20),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: statusColor, width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.alarm, color: statusColor),
+            const SizedBox(width: 9),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        _formatScheduleDateOnly(schedule.scheduleTime),
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.orange[700],
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        schedule.status,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: statusColor,
+                          fontSize: ResponsiveHelper.getFontSize(context, 18),
                           fontWeight: FontWeight.w500,
+                          color:
+                              isDark
+                                  ? darkTheme.textTheme.bodyLarge?.color
+                                  : lightTheme.textTheme.bodyLarge?.color,
                         ),
                       ),
+                      SizedBox(
+                        width: ResponsiveHelper.horizontalPadding(context),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange[50],
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          'One-time',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.orange[700],
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: statusColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          schedule.status.toUpperCase(),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: statusColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    '${schedule.cycle} Cycle${schedule.cycle > 1 ? 's' : ''} — ${schedule.food[0].toUpperCase()}${schedule.food.substring(1).toLowerCase()}',
+                    style: TextStyle(
+                      fontSize: ResponsiveHelper.getFontSize(context, 16),
+                      color: Theme.of(context).textTheme.bodySmall?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showEditOneTimeDialog(
+    BuildContext context,
+    WidgetRef ref,
+    OneTimeSchedule schedule,
+  ) async {
+    final formKey = GlobalKey<FormState>();
+    DateTime base = schedule.scheduledAtLocal ?? DateTime.now();
+    DateTime selectedDate = DateTime(base.year, base.month, base.day);
+    TimeOfDay selectedTime = TimeOfDay(hour: base.hour, minute: base.minute);
+    final cyclesController = TextEditingController(
+      text: schedule.cycle.toString(),
+    );
+    String selectedFood =
+        schedule.food.toLowerCase() == 'flakes' ? 'flakes' : 'pellet';
+
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    await showDialog(
+      context: context,
+      builder:
+          (ctx) => StatefulBuilder(
+            builder:
+                (ctx, setState) => AlertDialog(
+                  title: Text(
+                    'Edit One-time Feeding',
+                    style: TextStyle(
+                      color:
+                          isDark
+                              ? darkTheme.textTheme.bodyLarge?.color
+                              : lightTheme.textTheme.bodyLarge?.color,
+                    ),
+                  ),
+                  content: Form(
+                    key: formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Date picker
+                          ListTile(
+                            leading: const Icon(Icons.calendar_today),
+                            title: Text(
+                              '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                            ),
+                            onTap: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: selectedDate,
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(
+                                  const Duration(days: 365),
+                                ),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedDate = picked);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 8),
+                          // Time picker AM/PM
+                          ListTile(
+                            leading: const Icon(Icons.access_time),
+                            title: Text(_formatDisplay(selectedTime)),
+                            onTap: () async {
+                              final picked = await showTimePicker(
+                                context: context,
+                                initialTime: selectedTime,
+                                builder:
+                                    (context, child) => MediaQuery(
+                                      data: MediaQuery.of(
+                                        context,
+                                      ).copyWith(alwaysUse24HourFormat: false),
+                                      child: child ?? const SizedBox.shrink(),
+                                    ),
+                              );
+                              if (picked != null) {
+                                setState(() => selectedTime = picked);
+                              }
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          TextFormField(
+                            controller: cyclesController,
+                            decoration: InputDecoration(
+                              labelText: 'Cycles',
+                              prefixIcon: const Icon(Icons.repeat),
+
+                              // Label color
+                              labelStyle: TextStyle(
+                                color: Colors.grey.shade600,
+                              ),
+                              floatingLabelStyle: const TextStyle(
+                                color: Colors.blue,
+                              ),
+
+                              // Borders
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade400,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade400,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Colors.blue,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              errorBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Colors.red,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderSide: const BorderSide(
+                                  color: Colors.redAccent,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            keyboardType: TextInputType.number,
+                            validator: (v) {
+                              final parsed = int.tryParse((v ?? '').trim());
+                              if (parsed == null || parsed < 1 || parsed > 10) {
+                                return 'Enter a number between 1 and 10';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            value: selectedFood,
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'pellet',
+                                child: Text('Pellets'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'flakes',
+                                child: Text('Flakes'),
+                              ),
+                            ],
+                            onChanged:
+                                (v) => setState(
+                                  () => selectedFood = (v ?? 'pellet'),
+                                ),
+                            decoration: const InputDecoration(
+                              labelText: 'Food Type',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.restaurant),
+                            ),
+                            validator:
+                                (v) =>
+                                    (v == null ||
+                                            (v != 'pellet' && v != 'flakes'))
+                                        ? 'Select food'
+                                        : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  actions: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // 🗑️ Left-aligned Delete
+                        TextButton(
+                          onPressed: () async {
+                            final vm = ref.read(
+                              scheduledAutofeedViewModelProvider(
+                                aquariumId,
+                              ).notifier,
+                            );
+                            await vm.deleteOneTimeTask(
+                              scheduleDateTime:
+                                  schedule.scheduledAtLocal ?? DateTime.now(),
+                              documentId: schedule.id,
+                            );
+                            if (!context.mounted) return;
+                            Navigator.of(ctx).pop();
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('One-time schedule deleted'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            const SizedBox(width: 8),
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color:
+                                      isDark
+                                          ? darkTheme.textTheme.bodyLarge?.color
+                                          : lightTheme
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: () async {
+                                if (!formKey.currentState!.validate()) return;
+                                final newCycles = int.parse(
+                                  cyclesController.text.trim(),
+                                );
+                                final newDt = DateTime(
+                                  selectedDate.year,
+                                  selectedDate.month,
+                                  selectedDate.day,
+                                  selectedTime.hour,
+                                  selectedTime.minute,
+                                  0,
+                                );
+
+                                final vm = ref.read(
+                                  scheduledAutofeedViewModelProvider(
+                                    aquariumId,
+                                  ).notifier,
+                                );
+
+                                // Delete old entry
+                                await vm.deleteOneTimeTask(
+                                  scheduleDateTime:
+                                      schedule.scheduledAtLocal ?? newDt,
+                                  documentId: schedule.id,
+                                );
+
+                                // Add updated entry
+                                await vm.addOneTimeTask(
+                                  scheduleDateTime: newDt,
+                                  cycles: newCycles,
+                                  food: selectedFood,
+                                );
+
+                                if (!context.mounted) return;
+                                Navigator.of(ctx).pop();
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('One-time schedule updated'),
+                                  ),
+                                );
+                              },
+                              child: Text(
+                                'Update',
+                                style: TextStyle(
+                                  color:
+                                      isDark
+                                          ? darkTheme.textTheme.bodyLarge?.color
+                                          : lightTheme
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  '${schedule.cycle} cycle${schedule.cycle > 1 ? 's' : ''} • ${schedule.food}',
-                  style: TextStyle(
-                    fontSize: ResponsiveHelper.getFontSize(context, 16),
-                    color: Theme.of(context).textTheme.bodySmall?.color,
-                  ),
-                ),
-              ],
-            ),
           ),
-        ],
-      ),
     );
   }
 
@@ -473,16 +847,19 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     final cyclesController = TextEditingController(
       text: (schedule?.cycles ?? 1).toString(),
     );
-    final bool isDaily = schedule?.daily ?? true;
     bool isEnabled = schedule?.isEnabled ?? true;
 
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     showDialog(
       context: context,
       builder:
           (context) => StatefulBuilder(
             builder:
                 (context, setState) => AlertDialog(
-                  title: Text(title),
+                  backgroundColor:
+                      isDark
+                          ? darkTheme.colorScheme.surface
+                          : lightTheme.colorScheme.surface,
                   content: SingleChildScrollView(
                     child: Form(
                       key: formKey,
@@ -493,7 +870,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             onTap: () async {
                               final initial =
                                   _parseTimeOfDayDisplay(timeController.text) ??
-                                  const TimeOfDay(hour: 8, minute: 0);
+                                  const TimeOfDay(hour: 12, minute: 0);
                               final picked = await showTimePicker(
                                 context: context,
                                 initialTime: initial,
@@ -530,11 +907,92 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                           const SizedBox(height: 16),
                           TextFormField(
                             controller: cyclesController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Number of Cycles',
                               hintText: '1',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.repeat),
+                              prefixIcon: const Icon(Icons.repeat),
+
+                              // Default border
+                              border: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      isDark
+                                          ? darkTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.grey.shade400
+                                          : lightTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.grey.shade400,
+                                ),
+                              ),
+
+                              // When not focused
+                              labelStyle: TextStyle(
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      isDark
+                                          ? darkTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.grey.shade400
+                                          : lightTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.grey.shade400,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+
+                              // When focused
+                              focusedBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color:
+                                      isDark
+                                          ? darkTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.blue
+                                          : lightTheme
+                                                  .textTheme
+                                                  .bodyLarge
+                                                  ?.color ??
+                                              Colors.blue,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+
+                              // When there’s an error
+                              errorBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.red,
+                                  width: 1.5,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+
+                              // When focused and there’s an error
+                              focusedErrorBorder: OutlineInputBorder(
+                                borderSide: BorderSide(
+                                  color: Colors.redAccent,
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) {
@@ -545,20 +1003,50 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                               return null;
                             },
                           ),
-                          const SizedBox(height: 16),
+                          SizedBox(
+                            height: ResponsiveHelper.verticalPadding(context),
+                          ),
                           DropdownButtonFormField<String>(
                             value:
                                 (schedule?.foodType.toLowerCase() == 'flakes')
                                     ? 'flakes'
                                     : 'pellet',
-                            items: const [
+                            items: [
                               DropdownMenuItem(
                                 value: 'pellet',
-                                child: Text('Pellets'),
+                                child: Text(
+                                  'Pellets',
+                                  style: TextStyle(
+                                    color:
+                                        isDark
+                                            ? darkTheme
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color
+                                            : lightTheme
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                  ),
+                                ),
                               ),
                               DropdownMenuItem(
                                 value: 'flakes',
-                                child: Text('Flakes'),
+                                child: Text(
+                                  'Flakes',
+                                  style: TextStyle(
+                                    color:
+                                        isDark
+                                            ? darkTheme
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color
+                                            : lightTheme
+                                                .textTheme
+                                                .bodyLarge
+                                                ?.color,
+                                  ),
+                                ),
                               ),
                             ],
                             onChanged: (val) {},
@@ -566,9 +1054,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                               labelText: 'Food Type',
                               border: const OutlineInputBorder(),
                               prefixIcon: const Icon(Icons.restaurant),
-                              filled: true,
-                              fillColor: Theme.of(context).colorScheme.surface,
-                              labelStyle: TextStyle(color: Colors.white),
+                              filled: false,
+                              labelStyle: TextStyle(
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
                             ),
                             style: TextStyle(
                               color: Theme.of(context).colorScheme.onSurface,
@@ -581,70 +1073,86 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                                         : null,
                           ),
                           const SizedBox(height: 16),
-                          if (isDaily)
-                            SwitchListTile.adaptive(
-                              value: isEnabled,
-                              onChanged:
-                                  (value) => setState(() => isEnabled = value),
-                              title: const Text('Enabled'),
-                              contentPadding: EdgeInsets.zero,
-                            ),
                         ],
                       ),
                     ),
                   ),
                   actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel'),
-                    ),
-                    if (schedule != null && (schedule.daily))
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: TextButton.icon(
-                          onPressed: () {
-                            viewModel.deleteSchedule(schedule.id);
-                            Navigator.of(context).pop();
-                          },
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          label: const Text(
-                            'Delete',
-                            style: TextStyle(color: Colors.red),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Left-aligned Delete (only shown if daily schedule)
+                        if (schedule != null && schedule.daily)
+                          TextButton.icon(
+                            onPressed: () {
+                              viewModel.deleteSchedule(schedule.id);
+                              Navigator.of(context).pop();
+                            },
+                            label: const Text(
+                              'Delete',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ),
+
+                        // Right-aligned Cancel + Add/Update
+                        Row(
+                          children: [
+                            TextButton(
+                              onPressed: () => Navigator.of(context).pop(),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color:
+                                      isDark
+                                          ? darkTheme.textTheme.bodyLarge?.color
+                                          : lightTheme
+                                              .textTheme
+                                              .bodyLarge
+                                              ?.color,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FilledButton(
+                              onPressed: () {
+                                if (!formKey.currentState!.validate()) return;
+
+                                final time = _format24FromDisplay(
+                                  timeController.text.trim(),
+                                );
+                                final cycles = int.parse(
+                                  cyclesController.text.trim(),
+                                );
+                                final foodType =
+                                    (schedule?.foodType.toLowerCase() ==
+                                            'flakes')
+                                        ? 'flakes'
+                                        : 'pellet';
+
+                                if (schedule != null) {
+                                  viewModel.updateSchedule(
+                                    scheduleId: schedule.id,
+                                    time: time,
+                                    cycles: cycles,
+                                    foodType: foodType,
+                                    isEnabled: isEnabled,
+                                  );
+                                } else {
+                                  viewModel.addSchedule(
+                                    time: time,
+                                    cycles: cycles,
+                                    foodType: foodType,
+                                    isEnabled: true,
+                                  );
+                                }
+
+                                Navigator.of(context).pop();
+                              },
+                              child: Text(schedule != null ? 'Update' : 'Add'),
+                            ),
+                          ],
                         ),
-                      ),
-                    FilledButton(
-                      onPressed: () {
-                        if (!formKey.currentState!.validate()) return;
-                        final time = _format24FromDisplay(
-                          timeController.text.trim(),
-                        );
-                        final cycles = int.parse(cyclesController.text.trim());
-                        final foodType =
-                            (schedule?.foodType.toLowerCase() == 'flakes')
-                                ? 'flakes'
-                                : 'pellet';
-
-                        if (schedule != null) {
-                          viewModel.updateSchedule(
-                            scheduleId: schedule.id,
-                            time: time,
-                            cycles: cycles,
-                            foodType: foodType,
-                            isEnabled: isEnabled,
-                          );
-                        } else {
-                          viewModel.addSchedule(
-                            time: time,
-                            cycles: cycles,
-                            foodType: foodType,
-                            isEnabled: true,
-                          );
-                        }
-
-                        Navigator.of(context).pop();
-                      },
-                      child: Text(schedule != null ? 'Update' : 'Add'),
+                      ],
                     ),
                   ],
                 ),
@@ -887,4 +1395,22 @@ String _format24FromDisplay(String display) {
 String _formatDisplayFrom24(String hhmm) {
   final t = _parseTimeOfDay(hhmm) ?? const TimeOfDay(hour: 8, minute: 0);
   return _formatDisplay(t);
+}
+
+String _formatScheduleDateOnly(String dateTimeString) {
+  try {
+    final dateTime = DateTime.parse(dateTimeString);
+    final mm = dateTime.month.toString().padLeft(2, '0');
+    final dd = dateTime.day.toString().padLeft(2, '0');
+    final yyyy = dateTime.year.toString();
+    // Convert 24-hour to 12-hour format
+    int hour = dateTime.hour;
+    final minute2 = dateTime.minute.toString().padLeft(2, '0');
+    final period = hour >= 12 ? 'PM' : 'AM';
+    hour = hour % 12 == 0 ? 12 : hour % 12;
+
+    return '$mm-$dd-$yyyy at $hour:$minute2 $period';
+  } catch (_) {
+    return dateTimeString;
+  }
 }

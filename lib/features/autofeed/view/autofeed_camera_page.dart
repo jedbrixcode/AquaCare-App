@@ -12,7 +12,6 @@ import '../viewmodel/autofeed_viewmodel.dart';
 import 'widgets/camera_feed_widget.dart';
 import 'widgets/manual_feeding_widget.dart';
 import 'widgets/rotation_feeding_widget.dart';
-import 'package:aquacare_v5/utils/theme.dart';
 
 class CameraPage extends ConsumerStatefulWidget {
   final String aquariumId;
@@ -231,6 +230,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
   }
 
   void _showOfflineSnackbar() {
+    if (!mounted) return;
     final messenger = ScaffoldMessenger.of(context);
     messenger.clearSnackBars();
     messenger.showSnackBar(
@@ -267,6 +267,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
   void _handleRotationFeeding() async {
     final vm = ref.read(autoFeedViewModelProvider(_cameraUrl));
     if (!vm.isConnected) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -283,6 +284,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
         .sendRotation(widget.aquariumId);
 
     if (success) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -292,6 +294,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
         ),
       );
     } else {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -357,24 +360,22 @@ class _CameraPageState extends ConsumerState<CameraPage>
     super.build(context);
     final vm = ref.watch(autoFeedViewModelProvider(_cameraUrl));
 
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    // Theme is applied via Theme.of(context); local isDark not used directly
     return Scaffold(
-      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text(
-          '${widget.aquariumName} - Auto Feed',
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        title: Text('${widget.aquariumName} - Auto Feed'),
+        titleTextStyle: TextStyle(
+          color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+          fontSize: ResponsiveHelper.getFontSize(context, 24),
+          fontWeight: FontWeight.bold,
         ),
-        backgroundColor: Colors.blue[600],
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(
-          ResponsiveHelper.getScreenPadding(context).left,
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.horizontalPadding(context),
+          vertical: ResponsiveHelper.verticalPadding(context),
         ),
         child: Column(
           children: [
@@ -388,11 +389,12 @@ class _CameraPageState extends ConsumerState<CameraPage>
             const SizedBox(height: 12),
             // Row with feeding mode switch and camera toggle switch
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 12, bottom: 12, left: 18, right: 18),
               decoration: BoxDecoration(
-                color: Colors.blue[50],
+                color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!, width: 1),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -400,9 +402,12 @@ class _CameraPageState extends ConsumerState<CameraPage>
                   // Rotation | Hold feeding switch
                   Row(
                     children: [
-                      const Text(
+                      Text(
                         'Rotation',
-                        style: TextStyle(fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Switch.adaptive(
@@ -415,19 +420,43 @@ class _CameraPageState extends ConsumerState<CameraPage>
                                   ).notifier,
                                 )
                                 .setManualMode(value),
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeTrackColor:
+                            Theme.of(context).colorScheme.onSecondary,
+                        inactiveThumbColor:
+                            Theme.of(context).colorScheme.primary,
+                        inactiveTrackColor:
+                            Theme.of(context).colorScheme.onSecondary,
                       ),
                       const SizedBox(width: 8),
-                      const Text('Hold'),
+                      Text(
+                        'Hold',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
                     ],
                   ),
                   // Camera feed switch
                   Row(
                     children: [
-                      const Text('Camera'),
+                      Text(
+                        'Camera',
+                        style: TextStyle(
+                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Switch.adaptive(
                         value: isCameraActive,
                         onChanged: _handleCameraToggle,
+                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeTrackColor:
+                            Theme.of(context).colorScheme.onSecondary,
+                        inactiveThumbColor:
+                            Theme.of(context).colorScheme.primary,
+                        inactiveTrackColor:
+                            Theme.of(context).colorScheme.onSecondary,
                       ),
                     ],
                   ),
@@ -437,11 +466,12 @@ class _CameraPageState extends ConsumerState<CameraPage>
             const SizedBox(height: 24),
             const SizedBox(height: 24),
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: ResponsiveHelper.getScreenPadding(
+                context,
+              ).copyWith(top: 20, bottom: 20, left: 20, right: 20),
               decoration: BoxDecoration(
-                color: isDark ? darkTheme.colorScheme.surface : Colors.blue[50],
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.blue[200]!, width: 1),
               ),
               child:
                   vm.isManualMode
