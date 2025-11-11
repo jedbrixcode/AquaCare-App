@@ -63,7 +63,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 context,
               ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                color: Theme.of(context).colorScheme.secondary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
@@ -72,10 +72,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                   Text(
                     'NOTIFICATION',
                     style: TextStyle(
-                      color:
-                          isDark
-                              ? darkTheme.textTheme.bodyMedium?.color
-                              : lightTheme.textTheme.bodyMedium?.color,
+                      color: Colors.white,
                       fontSize: ResponsiveHelper.getFontSize(context, 24),
                       fontWeight: FontWeight.bold,
                     ),
@@ -96,18 +93,22 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                             );
                           },
 
-                          // ✅ COLORS WHEN SWITCH IS ON
                           activeColor:
-                              Theme.of(context).colorScheme.primary, // thumb
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           activeTrackColor:
-                              Theme.of(
-                                context,
-                              ).colorScheme.onSecondary, // track
-                          // ✅ COLORS WHEN SWITCH IS OFF
+                              isDark
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                           inactiveThumbColor:
-                              Theme.of(context).colorScheme.primary,
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           inactiveTrackColor:
-                              Theme.of(context).colorScheme.onSecondary,
+                              isDark
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                         ),
 
                     loading:
@@ -133,9 +134,9 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                   data: (temp) {
                     final Color color;
                     if (temp > max || temp < min) {
-                      color = const Color.fromRGBO(244, 67, 54, 1)!;
+                      color = const Color.fromRGBO(244, 67, 54, 1);
                     } else {
-                      color = const Color.fromRGBO(76, 175, 80, 1)!;
+                      color = const Color.fromRGBO(76, 175, 80, 1);
                     }
                     return Container(
                       width: double.infinity,
@@ -249,6 +250,8 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
               data: (range) {
                 final min = _minTempEditing ?? range.min;
                 final max = _maxTempEditing ?? range.max;
+
+                // Update controllers with formatted values
                 _minController.value = TextEditingValue(
                   text: min.toStringAsFixed(1),
                   selection: TextSelection.collapsed(
@@ -261,72 +264,160 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                     offset: max.toStringAsFixed(1).length,
                   ),
                 );
+
                 final bool isDark =
                     Theme.of(context).brightness == Brightness.dark;
-                return Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+
+                return Column(
                   children: [
-                    _temperatureSelector(min, _minController, (value) {
-                      setState(() => _minTempEditing = value);
-                    }),
-                    SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context),
-                    ),
-                    Text(
-                      ' - ',
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 35),
-                      ),
-                    ),
-                    SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context),
-                    ),
-                    _temperatureSelector(max, _maxController, (value) {
-                      setState(() => _maxTempEditing = value);
-                    }),
-                    SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context) + 12,
-                    ),
-                    Text(
-                      '°C',
-                      style: TextStyle(
-                        fontSize: ResponsiveHelper.getFontSize(context, 35),
-                        color: isDark ? Colors.white : Colors.black,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(
-                      width: ResponsiveHelper.horizontalPadding(context) + 16,
-                    ),
-                    ElevatedButton(
-                      onPressed: () async {
-                        // Always parse latest on-screen text to save even without keyboard confirm
-                        final parsedMin = double.tryParse(_minController.text);
-                        final parsedMax = double.tryParse(_maxController.text);
-                        final newMin =
-                            parsedMin ?? _minTempEditing ?? range.min;
-                        final newMax =
-                            parsedMax ?? _maxTempEditing ?? range.max;
-                        await vm.setTemperatureRange(
-                          aquariumId: widget.aquariumId,
-                          min: newMin,
-                          max: newMax,
-                        );
-                        setState(() {
-                          _minTempEditing = null;
-                          _maxTempEditing = null;
-                        });
-                        ref.invalidate(
-                          temperatureThresholdProvider(widget.aquariumId),
-                        );
-                      },
-                      child: Text(
-                        'SET',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: ResponsiveHelper.getFontSize(context, 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Row(
+                          children: [
+                            // MIN Temperature
+                            Column(
+                              children: [
+                                Text(
+                                  'MIN TEMP',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getFontSize(
+                                      context,
+                                      18,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                _temperatureSelector(
+                                  min,
+                                  _minController,
+                                  (value) =>
+                                      setState(() => _minTempEditing = value),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              width: ResponsiveHelper.horizontalPadding(
+                                context,
+                              ),
+                            ),
+                            Text(
+                              '—',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.getFontSize(
+                                  context,
+                                  20,
+                                ),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            SizedBox(
+                              width: ResponsiveHelper.horizontalPadding(
+                                context,
+                              ),
+                            ),
+                            // MAX Temperature
+                            Column(
+                              children: [
+                                Text(
+                                  'MAX TEMP',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getFontSize(
+                                      context,
+                                      18,
+                                    ),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                _temperatureSelector(
+                                  max,
+                                  _maxController,
+                                  (value) =>
+                                      setState(() => _maxTempEditing = value),
+                                ),
+                              ],
+                            ),
+                            SizedBox(
+                              width:
+                                  ResponsiveHelper.horizontalPadding(context) /
+                                  14,
+                            ),
+                            Row(
+                              children: [
+                                SizedBox(
+                                  width: ResponsiveHelper.horizontalPadding(
+                                    context,
+                                  ),
+                                ),
+                                Text(
+                                  '°C',
+                                  style: TextStyle(
+                                    fontSize: ResponsiveHelper.getFontSize(
+                                      context,
+                                      35,
+                                    ),
+                                    color: isDark ? Colors.white : Colors.black,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(
+                                  width:
+                                      ResponsiveHelper.horizontalPadding(
+                                        context,
+                                      ) +
+                                      16,
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
+                        // SET button
+                        ElevatedButton(
+                          onPressed: () async {
+                            // Always parse latest on-screen text to save even without keyboard confirm
+                            final parsedMin = double.tryParse(
+                              _minController.text,
+                            );
+                            final parsedMax = double.tryParse(
+                              _maxController.text,
+                            );
+
+                            final newMin =
+                                parsedMin ?? _minTempEditing ?? range.min;
+                            final newMax =
+                                parsedMax ?? _maxTempEditing ?? range.max;
+
+                            await vm.setTemperatureRange(
+                              aquariumId: widget.aquariumId,
+                              min: newMin,
+                              max: newMax,
+                            );
+
+                            setState(() {
+                              _minTempEditing = null;
+                              _maxTempEditing = null;
+                            });
+
+                            ref.invalidate(
+                              temperatureThresholdProvider(widget.aquariumId),
+                            );
+                          },
+                          child: Text(
+                            'SET',
+                            style: TextStyle(
+                              fontSize: ResponsiveHelper.getFontSize(
+                                context,
+                                18,
+                              ),
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 );
@@ -364,7 +455,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                 'SET TO DEFAULT TEMPERATURE',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: ResponsiveHelper.getFontSize(context, 16),
+                  fontSize: ResponsiveHelper.getFontSize(context, 18),
                 ),
               ),
             ),

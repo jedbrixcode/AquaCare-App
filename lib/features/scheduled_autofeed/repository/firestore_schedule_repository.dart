@@ -53,17 +53,24 @@ class FirestoreScheduleRepository {
     numericSub = numericQuery.snapshots().listen(
       (snap) async {
         if (snap.docs.isNotEmpty) {
-          controller.add(mapSnapshotToSchedules(snap));
+          final items = mapSnapshotToSchedules(snap);
+          controller.add(items);
+          // persist to local for offline-first
+          unawaited(cacheSchedules(aquariumId, items));
           await stringSub?.cancel();
         } else {
           stringSub ??= stringQuery.snapshots().listen((snap2) {
-            controller.add(mapSnapshotToSchedules(snap2));
+            final items = mapSnapshotToSchedules(snap2);
+            controller.add(items);
+            unawaited(cacheSchedules(aquariumId, items));
           });
         }
       },
       onError: (e) async {
         stringSub ??= stringQuery.snapshots().listen((snap2) {
-          controller.add(mapSnapshotToSchedules(snap2));
+          final items = mapSnapshotToSchedules(snap2);
+          controller.add(items);
+          unawaited(cacheSchedules(aquariumId, items));
         });
       },
     );

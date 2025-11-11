@@ -4,6 +4,7 @@ import 'package:aquacare_v5/core/models/sensor_model.dart';
 import 'package:aquacare_v5/core/models/threshold_model.dart';
 import 'package:aquacare_v5/core/models/notification_model.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
+import 'package:aquacare_v5/core/services/connectivity_service.dart';
 import 'package:flutter/material.dart' hide Threshold;
 import 'dart:async';
 import 'package:rxdart/rxdart.dart';
@@ -150,13 +151,14 @@ class AquariumRepository {
       }),
     );
 
-    final db = _dbRef();
-    Stream<List<AquariumSummary>> live$;
-    if (db == null) {
-      // Offline: no live Firebase stream
-      live$ = const Stream.empty();
-    } else {
-      live$ = db
+    // Live stream that (re)attaches when connectivity changes and when Firebase becomes available
+    final online$ = ConnectivityService.instance.onlineStream.startWith(true);
+    final live$ = online$.switchMap((_) {
+      final db = _dbRef();
+      if (db == null) {
+        return const Stream<List<AquariumSummary>>.empty();
+      }
+      return db
           .child('aquariums')
           .onValue
           .map((event) {
@@ -235,7 +237,7 @@ class AquariumRepository {
             debugPrint('Firebase error in getAllAquariumsSummary: $error');
             return <AquariumSummary>[];
           });
-    }
+    });
 
     // Emit cached first, then live; also update when local cache changes
     final cacheWatch$ = LocalStorageService.instance

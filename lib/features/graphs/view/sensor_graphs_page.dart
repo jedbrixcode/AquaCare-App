@@ -1,3 +1,4 @@
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../viewmodel/sensor_graphs_viewmodel.dart';
@@ -345,8 +346,7 @@ class SensorGraphsPage extends ConsumerWidget {
           lineTouchData: LineTouchData(
             enabled: true,
             touchTooltipData: LineTouchTooltipData(
-              getTooltipColor:
-                  (touchedSpot) => Colors.blueGrey.withOpacity(0.8),
+              getTooltipColor: (touchedSpot) => darkTheme.colorScheme.secondary,
             ),
             getTouchedSpotIndicator: (barData, spotIndexes) {
               return spotIndexes.map((index) {

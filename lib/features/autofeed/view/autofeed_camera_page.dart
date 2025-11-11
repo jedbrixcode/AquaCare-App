@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:aquacare_v5/core/config/backend_config.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
@@ -100,31 +101,26 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   @override
   void didPush() {
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, true);
+    // Use guarded handler to avoid uncaught exceptions when camera backend is offline
+    _handleCameraToggle(true);
   }
 
   @override
   void didPop() {
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, false);
+    // Guarded toggle off; ignore failures
+    _handleCameraToggle(false);
     ref.read(autoFeedViewModelProvider(_cameraUrl).notifier).disconnect();
   }
 
   @override
   void didPushNext() {
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, false);
+    // When navigating away, turn camera off safely
+    _handleCameraToggle(false);
   }
 
   @override
   void didPopNext() {
-    ref
-        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-        .toggleCamera(widget.aquariumId, true);
+    _handleCameraToggle(true);
   }
 
   void _initializeWebView() {
@@ -194,6 +190,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   void _handleCameraToggle(bool value) async {
     try {
+      if (!mounted) return;
       setState(() {
         isCameraActive = value;
         _isWebViewLoading = value;
@@ -213,6 +210,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
         );
       }
     } on SocketException catch (_) {
+      if (!mounted) return;
       setState(() {
         isCameraActive = false;
         _isWebViewLoading = false;
@@ -220,6 +218,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
       });
       _showOfflineSnackbar();
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         isCameraActive = false;
         _isWebViewLoading = false;
@@ -235,30 +234,32 @@ class _CameraPageState extends ConsumerState<CameraPage>
     messenger.clearSnackBars();
     messenger.showSnackBar(
       const SnackBar(
-        content: Text('Camera offline. Using offline mode.'),
+        content: Text(
+          style: TextStyle(color: Colors.white),
+          'Camera offline. Using offline mode.',
+        ),
         duration: Duration(seconds: 3),
+        backgroundColor: Colors.orange,
       ),
     );
   }
 
   void _handleManualFeeding(bool isStarting) async {
-    final vm = ref.read(autoFeedViewModelProvider(_cameraUrl));
-    if (!vm.isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Autofeed is offline. Please check TankPi connection.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     if (isStarting) {
-      ref
+      final ok = await ref
           .read(autoFeedViewModelProvider(_cameraUrl).notifier)
           .startManual(widget.aquariumId);
+      if (!ok) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Feeder offline. Cannot start manual feeding.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } else {
-      ref
+      await ref
           .read(autoFeedViewModelProvider(_cameraUrl).notifier)
           .stopManual(widget.aquariumId);
     }
@@ -266,19 +267,6 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   void _handleRotationFeeding() async {
     final vm = ref.read(autoFeedViewModelProvider(_cameraUrl));
-    if (!vm.isConnected) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Failed to send rotation feeding command. Check connection.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     final success = await ref
         .read(autoFeedViewModelProvider(_cameraUrl).notifier)
         .sendRotation(widget.aquariumId);
@@ -297,9 +285,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Failed to send rotation feeding command. Check TankPi connection.',
-          ),
+          content: Text('Feeder offline. Cannot dispense food.'),
           backgroundColor: Colors.red,
         ),
       );
@@ -360,13 +346,19 @@ class _CameraPageState extends ConsumerState<CameraPage>
     super.build(context);
     final vm = ref.watch(autoFeedViewModelProvider(_cameraUrl));
 
-    // Theme is applied via Theme.of(context); local isDark not used directly
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        backgroundColor:
+            isDark
+                ? darkTheme.appBarTheme.backgroundColor
+                : lightTheme.appBarTheme.backgroundColor,
         title: Text('${widget.aquariumName} - Auto Feed'),
         titleTextStyle: TextStyle(
-          color: Theme.of(context).appBarTheme.titleTextStyle?.color,
+          color:
+              isDark
+                  ? darkTheme.appBarTheme.titleTextStyle?.color
+                  : lightTheme.appBarTheme.titleTextStyle?.color,
           fontSize: ResponsiveHelper.getFontSize(context, 24),
           fontWeight: FontWeight.bold,
         ),
@@ -393,7 +385,17 @@ class _CameraPageState extends ConsumerState<CameraPage>
                 context,
               ).copyWith(top: 12, bottom: 12, left: 18, right: 18),
               decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primary,
+                color:
+                    isDark
+                        ? darkTheme.colorScheme.primary.withOpacity(0.6)
+                        : lightTheme.colorScheme.primary.withOpacity(0.6),
+                border: Border.all(
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.secondary
+                          : lightTheme.colorScheme.secondary,
+                  width: 1,
+                ),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(
@@ -406,7 +408,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
                         'Rotation',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
+                          color: Colors.white,
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -420,58 +422,78 @@ class _CameraPageState extends ConsumerState<CameraPage>
                                   ).notifier,
                                 )
                                 .setManualMode(value),
-                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeColor:
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : lightTheme.colorScheme.background,
                         activeTrackColor:
-                            Theme.of(context).colorScheme.onSecondary,
+                            isDark
+                                ? lightTheme.colorScheme.primary
+                                : darkTheme.colorScheme.background,
                         inactiveThumbColor:
-                            Theme.of(context).colorScheme.primary,
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : lightTheme.colorScheme.background,
                         inactiveTrackColor:
-                            Theme.of(context).colorScheme.onSecondary,
+                            isDark
+                                ? lightTheme.colorScheme.primary
+                                : darkTheme.colorScheme.background,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        'Hold',
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
+                      Text('Hold', style: TextStyle(color: Colors.white)),
                     ],
                   ),
                   // Camera feed switch
                   Row(
                     children: [
-                      Text(
-                        'Camera',
-                        style: TextStyle(
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                        ),
-                      ),
+                      Text('Camera', style: TextStyle(color: Colors.white)),
                       const SizedBox(width: 8),
                       Switch.adaptive(
                         value: isCameraActive,
                         onChanged: _handleCameraToggle,
-                        activeColor: Theme.of(context).colorScheme.primary,
+                        activeColor:
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : lightTheme.colorScheme.background,
                         activeTrackColor:
-                            Theme.of(context).colorScheme.onSecondary,
+                            isDark
+                                ? lightTheme.colorScheme.primary
+                                : darkTheme.colorScheme.background,
                         inactiveThumbColor:
-                            Theme.of(context).colorScheme.primary,
+                            isDark
+                                ? darkTheme.colorScheme.primary
+                                : lightTheme.colorScheme.background,
                         inactiveTrackColor:
-                            Theme.of(context).colorScheme.onSecondary,
+                            isDark
+                                ? lightTheme.colorScheme.primary
+                                : darkTheme.colorScheme.background,
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
+
             Container(
+              height: 380,
+              width: double.infinity,
               padding: ResponsiveHelper.getScreenPadding(
                 context,
               ).copyWith(top: 20, bottom: 20, left: 20, right: 20),
               decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
+                color:
+                    isDark
+                        ? darkTheme.colorScheme.primary.withOpacity(0.6)
+                        : lightTheme.colorScheme.primary.withOpacity(0.6),
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      isDark
+                          ? darkTheme.colorScheme.secondary
+                          : lightTheme.colorScheme.secondary,
+                  width: 1,
+                ),
               ),
               child:
                   vm.isManualMode

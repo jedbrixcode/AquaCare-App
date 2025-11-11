@@ -72,10 +72,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                   Text(
                     'NOTIFICATION',
                     style: TextStyle(
-                      color:
-                          isDark
-                              ? darkTheme.textTheme.bodyMedium?.color
-                              : lightTheme.textTheme.bodyMedium?.color,
+                      color: Colors.white,
                       fontSize: ResponsiveHelper.getFontSize(context, 24),
                       fontWeight: FontWeight.bold,
                     ),
@@ -94,13 +91,22 @@ class _PhPageState extends ConsumerState<PhPage> {
                             );
                           },
                           // Align switch colors to temperature page
-                          activeColor: Theme.of(context).colorScheme.primary,
+                          activeColor:
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           activeTrackColor:
-                              Theme.of(context).colorScheme.onSecondary,
+                              isDark
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                           inactiveThumbColor:
-                              Theme.of(context).colorScheme.primary,
+                              isDark
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           inactiveTrackColor:
-                              Theme.of(context).colorScheme.onSecondary,
+                              isDark
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                         ),
                     loading:
                         () => SizedBox(
@@ -268,11 +274,10 @@ class _PhPageState extends ConsumerState<PhPage> {
                           ],
                         ),
                         SizedBox(
-                          width:
-                              ResponsiveHelper.horizontalPadding(context) + 16,
+                          width: ResponsiveHelper.horizontalPadding(context),
                         ),
                         Text(
-                          'pH',
+                          '—',
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getFontSize(context, 20),
                             color:
@@ -283,8 +288,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                           ),
                         ),
                         SizedBox(
-                          width:
-                              ResponsiveHelper.horizontalPadding(context) + 16,
+                          width: ResponsiveHelper.horizontalPadding(context),
                         ),
                         Column(
                           children: [
@@ -319,6 +323,21 @@ class _PhPageState extends ConsumerState<PhPage> {
                           width:
                               ResponsiveHelper.horizontalPadding(context) + 16,
                         ),
+                        Text(
+                          'pH',
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 20),
+                            color:
+                                isDark
+                                    ? darkTheme.textTheme.bodyLarge?.color
+                                    : lightTheme.textTheme.bodyLarge?.color,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(
+                          width:
+                              ResponsiveHelper.horizontalPadding(context) + 16,
+                        ),
                         ElevatedButton(
                           onPressed: () async {
                             final newMin = _minPhEditing ?? range.min;
@@ -336,6 +355,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                               phThresholdProvider(widget.aquariumId),
                             );
                           },
+
                           child: Text(
                             'SET',
                             style: TextStyle(
@@ -376,10 +396,10 @@ class _PhPageState extends ConsumerState<PhPage> {
                         ref.invalidate(phThresholdProvider(widget.aquariumId));
                       },
                       child: Text(
-                        'SET DEFAULT',
+                        'SET DEFAULT pH LEVELS',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: ResponsiveHelper.getFontSize(context, 16),
+                          fontSize: ResponsiveHelper.getFontSize(context, 18),
                         ),
                       ),
                     ),

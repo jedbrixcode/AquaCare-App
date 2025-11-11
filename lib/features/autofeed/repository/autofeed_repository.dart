@@ -44,13 +44,21 @@ class AutoFeedRepository {
     required String aquariumId,
     required String food,
   }) async {
-    final url = Uri.parse('$backendUrl/aquarium/$aquariumId/manual/hold_feed');
-    final response = await _client.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'food': food}),
-    );
-    return response.statusCode >= 200 && response.statusCode < 300;
+    try {
+      final url = Uri.parse(
+        '$backendUrl/aquarium/$aquariumId/manual/hold_feed',
+      );
+      final response = await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'food': food}),
+      );
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } on SocketException {
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<bool> stopManualFeeding({
@@ -67,13 +75,21 @@ class AutoFeedRepository {
     required int rotations,
     required String food,
   }) async {
-    final url = Uri.parse('$backendUrl/aquarium/$aquariumId/manual/cycle_feed');
-    final response = await _client.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'food': food, 'cycle': rotations.toString()}),
-    );
-    return response.statusCode >= 200 && response.statusCode < 300;
+    try {
+      final url = Uri.parse(
+        '$backendUrl/aquarium/$aquariumId/manual/cycle_feed',
+      );
+      final response = await _client.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'food': food, 'cycle': rotations.toString()}),
+      );
+      return response.statusCode >= 200 && response.statusCode < 300;
+    } on SocketException {
+      return false;
+    } catch (_) {
+      return false;
+    }
   }
 
   void disconnect() {}

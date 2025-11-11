@@ -121,6 +121,25 @@ class ScheduledAutofeedRepository {
           created,
         ];
         _cache[aquariumId] = list;
+        // persist to local immediately for offline-first
+        unawaited(
+          LocalStorageService.instance.cacheFeedingSchedules(
+            aquariumId,
+            list
+                .map(
+                  (e) =>
+                      FeedingScheduleCache()
+                        ..aquariumId = aquariumId
+                        ..scheduleId = e.id
+                        ..time = e.time
+                        ..cycles = e.cycles
+                        ..foodType = e.foodType
+                        ..isEnabled = e.isEnabled
+                        ..daily = e.daily,
+                )
+                .toList(),
+          ),
+        );
         return created;
       } else {
         throw Exception(
@@ -286,6 +305,25 @@ class ScheduledAutofeedRepository {
               .where((e) => e.id != scheduleId && e.time != scheduleId)
               .toList();
       _cache[aquariumId] = list;
+      // persist removal locally
+      unawaited(
+        LocalStorageService.instance.cacheFeedingSchedules(
+          aquariumId,
+          list
+              .map(
+                (e) =>
+                    FeedingScheduleCache()
+                      ..aquariumId = aquariumId
+                      ..scheduleId = e.id
+                      ..time = e.time
+                      ..cycles = e.cycles
+                      ..foodType = e.foodType
+                      ..isEnabled = e.isEnabled
+                      ..daily = e.daily,
+              )
+              .toList(),
+        ),
+      );
     } catch (e) {
       throw Exception('Error deleting feeding schedule: $e');
     }
@@ -312,6 +350,25 @@ class ScheduledAutofeedRepository {
             )
             .toList();
     _cache[aquariumId] = list;
+    // persist toggle locally
+    unawaited(
+      LocalStorageService.instance.cacheFeedingSchedules(
+        aquariumId,
+        list
+            .map(
+              (e) =>
+                  FeedingScheduleCache()
+                    ..aquariumId = aquariumId
+                    ..scheduleId = e.id
+                    ..time = e.time
+                    ..cycles = e.cycles
+                    ..foodType = e.foodType
+                    ..isEnabled = e.isEnabled
+                    ..daily = e.daily,
+            )
+            .toList(),
+      ),
+    );
   }
 
   // Get auto feeder status for an aquarium
@@ -480,5 +537,22 @@ class ScheduledAutofeedRepository {
     List<FeedingSchedule> items,
   ) async {
     _cache[aquariumId] = items;
+    // Also persist to Isar for offline
+    await LocalStorageService.instance.cacheFeedingSchedules(
+      aquariumId,
+      items
+          .map(
+            (e) =>
+                FeedingScheduleCache()
+                  ..aquariumId = aquariumId
+                  ..scheduleId = e.id
+                  ..time = e.time
+                  ..cycles = e.cycles
+                  ..foodType = e.foodType
+                  ..isEnabled = e.isEnabled
+                  ..daily = e.daily,
+          )
+          .toList(),
+    );
   }
 }

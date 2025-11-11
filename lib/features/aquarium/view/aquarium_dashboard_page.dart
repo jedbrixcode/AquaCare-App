@@ -344,6 +344,15 @@ class AquariumDashboardPage extends ConsumerWidget {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
+          shape: RoundedRectangleBorder(
+            side: BorderSide(
+              color:
+                  isDark
+                      ? darkTheme.colorScheme.primary
+                      : lightTheme.colorScheme.primary,
+            ),
+            borderRadius: BorderRadius.circular(16),
+          ),
           backgroundColor:
               isDark
                   ? darkTheme.colorScheme.background

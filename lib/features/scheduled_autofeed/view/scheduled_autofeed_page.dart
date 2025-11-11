@@ -141,7 +141,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 oneTimeState.schedules.isEmpty)
               _errorBanner(context, oneTimeState.errorMessage!, null)
             else if (oneTimeState.schedules.isEmpty)
-              _emptyOneTime(context)
+              _emptyOneTime(context, viewModel)
             else
               ListView.separated(
                 shrinkWrap: true,
@@ -233,10 +233,11 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     BuildContext context,
     ScheduledAutofeedViewModel viewModel,
   ) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isDark ? darkTheme.colorScheme.surface : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!),
       ),
@@ -252,7 +253,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 18),
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
               ),
             ),
             const SizedBox(height: 8),
@@ -260,7 +264,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               'Add a schedule to enable automatic feeding',
               style: TextStyle(
                 fontSize: ResponsiveHelper.getFontSize(context, 14),
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
               ),
               textAlign: TextAlign.center,
             ),
@@ -269,12 +276,18 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               onPressed: () => _showAddChoiceDialog(context, viewModel),
               icon: Icon(
                 Icons.add,
-                color: Theme.of(context).colorScheme.onSurface,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
               ),
               label: Text(
                 'Add First Schedule',
                 style: TextStyle(
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
               ),
               style: ElevatedButton.styleFrom(
@@ -290,58 +303,79 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     );
   }
 
-  Widget _emptyOneTime(BuildContext context) {
+  Widget _emptyOneTime(
+    BuildContext context,
+    ScheduledAutofeedViewModel viewModel,
+  ) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: isDark ? darkTheme.colorScheme.surface : Colors.grey[50],
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey[200]!),
       ),
-      child: Column(
-        children: [
-          Icon(Icons.schedule_outlined, size: 64, color: Colors.grey[400]),
-          const SizedBox(height: 16),
-          Text(
-            'No One-time Feeding Schedules',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 18),
-              fontWeight: FontWeight.bold,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Add a one-time schedule to enable automatic feeding',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 14),
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          ElevatedButton.icon(
-            onPressed:
-                () => _showAddChoiceDialog(
-                  context,
-                  ScheduledAutofeedViewModel(aquariumId),
-                ),
-            icon: Icon(
-              Icons.add,
-              color: Theme.of(context).colorScheme.onSurface,
-            ),
-            label: Text(
-              'Add First One-time Schedule',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-            ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.background,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Icon(Icons.schedule_outlined, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              'No One-time Feeding Schedules',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 18),
+                fontWeight: FontWeight.bold,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
               ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              'Add a one-time schedule to enable automatic feeding',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.getFontSize(context, 14),
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton.icon(
+              onPressed: () => _showAddChoiceDialog(context, viewModel),
+              icon: Icon(
+                Icons.add,
+                color:
+                    isDark
+                        ? darkTheme.textTheme.bodyLarge?.color
+                        : lightTheme.textTheme.bodyLarge?.color,
+              ),
+              label: Text(
+                'Add First One-time Schedule',
+                style: TextStyle(
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor:
+                    isDark
+                        ? darkTheme.colorScheme.background
+                        : lightTheme.colorScheme.background,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -765,6 +799,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (ctx) {
+        bool isDark = Theme.of(context).brightness == Brightness.dark;
         return Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -773,10 +808,13 @@ class ScheduledAutofeedPage extends ConsumerWidget {
             children: [
               Text(
                 'Create Schedule',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                style: TextStyle(
                   fontSize: ResponsiveHelper.getFontSize(context, 20),
                   fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
               ),
 
@@ -795,7 +833,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   'Daily',
                   style: TextStyle(
                     fontSize: ResponsiveHelper.getFontSize(context, 20),
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : Colors.white,
                   ),
                 ),
               ),
@@ -809,7 +850,10 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   'One-time',
                   style: TextStyle(
                     fontSize: ResponsiveHelper.getFontSize(context, 20),
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : Colors.white,
                   ),
                 ),
               ),
@@ -858,8 +902,8 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                 (context, setState) => AlertDialog(
                   backgroundColor:
                       isDark
-                          ? darkTheme.colorScheme.surface
-                          : lightTheme.colorScheme.surface,
+                          ? darkTheme.colorScheme.background
+                          : lightTheme.colorScheme.background,
                   content: SingleChildScrollView(
                     child: Form(
                       key: formKey,

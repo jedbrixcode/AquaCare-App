@@ -9,7 +9,10 @@ class AppInitializer {
     // 1. Local DB
     await LocalStorageService.instance.initialize();
 
-    // 2. Firebase + FCM (retry if offline)
+    // 2. Connectivity (so onlineStream is available early)
+    await ConnectivityService.instance.initialize();
+
+    // 3. Firebase + FCM (retry if offline)
     await _initializeFirebaseWithRetry();
   }
 

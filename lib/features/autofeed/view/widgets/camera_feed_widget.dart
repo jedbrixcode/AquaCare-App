@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart' as webview;
+import 'package:aquacare_v5/utils/theme.dart';
 
 class CameraFeedWidget extends StatelessWidget {
   final webview.WebViewController controller;
@@ -19,13 +20,23 @@ class CameraFeedWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Container(
       height: 250,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: Colors.blue[50],
+        color:
+            isDark
+                ? darkTheme.colorScheme.onSecondary.withOpacity(0.4)
+                : lightTheme.colorScheme.onSecondary.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blue[200]!, width: 2),
+        border: Border.all(
+          color:
+              isDark
+                  ? darkTheme.colorScheme.primary
+                  : lightTheme.colorScheme.primary,
+          width: 1,
+        ),
       ),
       child:
           (!isCameraOffline && isCameraActive)
@@ -39,13 +50,16 @@ class CameraFeedWidget extends StatelessWidget {
                   ],
                 ),
               )
-              : const Center(
+              : Center(
                 child: Text(
                   'Camera Offline',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
                   ),
                 ),
               ),

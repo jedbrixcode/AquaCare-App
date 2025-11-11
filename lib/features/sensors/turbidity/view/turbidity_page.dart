@@ -147,20 +147,20 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           },
                           activeColor:
                               isDark
-                                  ? darkTheme.colorScheme.background
-                                  : lightTheme.colorScheme.secondary,
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           activeTrackColor:
                               isDark
-                                  ? lightTheme.colorScheme.background
-                                  : lightTheme.colorScheme.secondary,
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                           inactiveThumbColor:
                               isDark
-                                  ? darkTheme.colorScheme.background
-                                  : lightTheme.colorScheme.secondary,
+                                  ? darkTheme.colorScheme.primary
+                                  : lightTheme.colorScheme.background,
                           inactiveTrackColor:
                               isDark
-                                  ? lightTheme.colorScheme.background
-                                  : lightTheme.colorScheme.secondary,
+                                  ? lightTheme.colorScheme.primary
+                                  : darkTheme.colorScheme.background,
                         ),
                     loading:
                         () => const SizedBox(
@@ -354,7 +354,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           ],
                         ),
                         Text(
-                          'NTU',
+                          '—',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.getFontSize(context, 20),
@@ -387,7 +387,15 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         ),
                         SizedBox(
                           width:
-                              ResponsiveHelper.horizontalPadding(context) / 1,
+                              ResponsiveHelper.horizontalPadding(context) / 14,
+                        ),
+                        Text(
+                          'NTU',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.getFontSize(context, 20),
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                         ElevatedButton(
                           onPressed: () async {
@@ -414,6 +422,10 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                                 18,
                               ),
                               fontWeight: FontWeight.bold,
+                              color:
+                                  isDark
+                                      ? darkTheme.textTheme.bodyLarge?.color
+                                      : lightTheme.textTheme.bodyLarge?.color,
                             ),
                           ),
                         ),
@@ -425,13 +437,13 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                     ),
                     ElevatedButton(
                       style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : lightTheme.colorScheme.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        backgroundColor: Theme.of(context).colorScheme.primary,
                         minimumSize: Size(
-                          ResponsiveHelper.getCardWidth(context) / 1,
-                          ResponsiveHelper.getCardHeight(context) / 5,
+                          ResponsiveHelper.getCardWidth(context) + 32,
+                          ResponsiveHelper.getCardHeight(context) / 3.5,
                         ),
                       ),
                       onPressed: () async {
@@ -447,7 +459,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         );
                       },
                       child: Text(
-                        'SET DEFAULT',
+                        'SET DEFAULT WATER TURBIDITY',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: ResponsiveHelper.getFontSize(context, 18),
