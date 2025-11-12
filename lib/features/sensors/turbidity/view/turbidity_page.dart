@@ -190,7 +190,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             vertical: ResponsiveHelper.verticalPadding(context),
                             horizontal:
                                 ResponsiveHelper.horizontalPadding(context) +
-                                24,
+                                32,
                           ),
                           decoration: BoxDecoration(
                             color: color,
@@ -214,9 +214,9 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                         Container(
                           padding: EdgeInsets.symmetric(
                             vertical: ResponsiveHelper.verticalPadding(context),
-                            horizontal: ResponsiveHelper.horizontalPadding(
-                              context,
-                            ),
+                            horizontal:
+                                ResponsiveHelper.horizontalPadding(context) +
+                                18,
                           ),
                           decoration: BoxDecoration(
                             color: color.withOpacity(0.2),
@@ -224,7 +224,9 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             border: Border.all(color: color, width: 1),
                           ),
                           child: Text(
-                            description,
+                            description.isEmpty
+                                ? 'No turbidity data yet'
+                                : description,
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getFontSize(
                                 context,
@@ -401,6 +403,17 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                           onPressed: () async {
                             final newMin = _minTurbidityEditing ?? range.min;
                             final newMax = _maxTurbidityEditing ?? range.max;
+                            if (newMin > newMax) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Invalid input: Minimum cannot be greater than Maximum.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
                             await vm.setTurbidityRange(
                               aquariumId: widget.aquariumId,
                               min: newMin,
@@ -491,7 +504,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                     ),
                   ),
             ),
-            Spacer(),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 155),
             Container(
               padding: ResponsiveHelper.getScreenPadding(
                 context,

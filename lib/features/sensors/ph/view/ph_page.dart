@@ -134,7 +134,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                     } else if (ph < range.min) {
                       color = Colors.blue[500]!;
                     } else {
-                      color = Colors.green[300]!;
+                      color = getPhColor(ph);
                     }
                     return Container(
                       width: double.infinity,
@@ -342,6 +342,17 @@ class _PhPageState extends ConsumerState<PhPage> {
                           onPressed: () async {
                             final newMin = _minPhEditing ?? range.min;
                             final newMax = _maxPhEditing ?? range.max;
+                            if (newMin > newMax) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    'Invalid input: Minimum cannot be greater than Maximum.',
+                                  ),
+                                ),
+                              );
+                              return;
+                            }
                             await vm.setPhRange(
                               aquariumId: widget.aquariumId,
                               min: newMin,
@@ -411,11 +422,11 @@ class _PhPageState extends ConsumerState<PhPage> {
                   (e, _) =>
                       const Center(child: Text('Error loading thresholds')),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: ResponsiveHelper.verticalPadding(context) + 250),
             Container(
               padding: ResponsiveHelper.getScreenPadding(
                 context,
-              ).copyWith(top: 12, bottom: 12, left: 40, right: 40),
+              ).copyWith(top: 12, bottom: 12, left: 55, right: 55),
               decoration: BoxDecoration(
                 color: Theme.of(context).colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
@@ -497,5 +508,15 @@ class _PhPageState extends ConsumerState<PhPage> {
         ),
       ],
     );
+  }
+
+  Color getPhColor(double ph) {
+    if (ph > 7.5) {
+      return Colors.red;
+    } else if (ph < 6.5) {
+      return Colors.blue;
+    } else {
+      return Colors.green;
+    }
   }
 }

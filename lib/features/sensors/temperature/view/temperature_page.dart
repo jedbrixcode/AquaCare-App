@@ -69,7 +69,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                             context,
                           ).copyWith(top: 12, bottom: 12, left: 25, right: 25),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.secondary,
+                            color: Theme.of(context).colorScheme.primary,
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
@@ -481,6 +481,19 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                                             _maxTempEditing ??
                                             range.max;
 
+                                        if (newMin > newMax) {
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(
+                                            context,
+                                          ).showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                'Invalid input: Minimum cannot be greater than Maximum.',
+                                              ),
+                                            ),
+                                          );
+                                          return;
+                                        }
                                         await vm.setTemperatureRange(
                                           aquariumId: widget.aquariumId,
                                           min: newMin,
@@ -565,7 +578,10 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                           ),
                         ),
 
-                        Spacer(),
+                        SizedBox(
+                          height:
+                              ResponsiveHelper.verticalPadding(context) + 250,
+                        ),
 
                         Container(
                           padding: ResponsiveHelper.getScreenPadding(

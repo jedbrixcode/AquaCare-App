@@ -39,7 +39,6 @@ class RotationFeedingWidget extends StatelessWidget {
                         : Colors.white,
               ),
             ),
-            _buildFoodToggle(context),
           ],
         ),
         const SizedBox(height: 8),
@@ -55,70 +54,6 @@ class RotationFeedingWidget extends StatelessWidget {
         const SizedBox(height: 20),
         _buildConfirmButton(context),
       ],
-    );
-  }
-
-  Widget _buildFoodToggle(BuildContext context) {
-    bool isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDark ? darkTheme.cardColor : lightTheme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: isDark ? darkTheme.colorScheme.primary : Colors.white,
-          width: 1,
-        ),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            'Pellets',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 13),
-              color:
-                  food == 'pellet'
-                      ? isDark
-                          ? darkTheme.textTheme.bodyLarge?.color
-                          : lightTheme.textTheme.bodyLarge?.color
-                      : isDark
-                      ? darkTheme.textTheme.bodyLarge?.color
-                      : lightTheme.textTheme.bodyLarge?.color,
-              fontWeight: food == 'pellet' ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 6),
-          CupertinoSwitch(
-            value: food == 'flakes',
-            onChanged: onFoodChanged,
-            activeColor:
-                isDark
-                    ? darkTheme.colorScheme.primary
-                    : darkTheme.colorScheme.primary,
-            trackColor:
-                isDark
-                    ? darkTheme.colorScheme.primary
-                    : lightTheme.colorScheme.primary,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            'Flakes',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.getFontSize(context, 13),
-              color:
-                  food == 'flakes'
-                      ? isDark
-                          ? darkTheme.textTheme.bodyLarge?.color
-                          : lightTheme.textTheme.bodyLarge?.color
-                      : isDark
-                      ? darkTheme.textTheme.bodyLarge?.color
-                      : lightTheme.textTheme.bodyLarge?.color,
-              fontWeight: food == 'flakes' ? FontWeight.w700 : FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -270,10 +205,7 @@ class RotationFeedingWidget extends StatelessWidget {
           style: TextStyle(
             fontSize: ResponsiveHelper.getFontSize(context, 16),
             fontWeight: FontWeight.bold,
-            color:
-                isDark
-                    ? darkTheme.textTheme.bodyLarge?.color
-                    : lightTheme.textTheme.bodyLarge?.color,
+            color: Colors.black,
           ),
         ),
       ),

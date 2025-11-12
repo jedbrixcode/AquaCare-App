@@ -16,7 +16,7 @@ class AquariumDashboardPage extends ConsumerWidget {
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    // Listen to connectivity changes to show/hide a persistent snackbar
+    // Listen to connectivity changes to show/hide a persistent snackbar (only when offline)
     ref.listen(connectivityStreamProvider, (prev, next) {
       next.whenOrNull(
         data: (isOnline) {
@@ -24,43 +24,13 @@ class AquariumDashboardPage extends ConsumerWidget {
             ScaffoldMessenger.of(context).clearSnackBars();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                 behavior: SnackBarBehavior.floating,
-                duration: const Duration(days: 1), // persistent
-                backgroundColor: Colors.blueAccent,
-                content: const Text(
-                  'Connecting to the internet... your connection may be slow.',
-                ),
-                action: SnackBarAction(
-                  label: 'Dismiss',
-                  textColor: Colors.white,
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  },
-                ),
+                duration: Duration(days: 1),
+                content: Text('No internet connection'),
               ),
             );
           }
-        },
-        loading: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(days: 1), // persistent
-              backgroundColor: Colors.blueAccent,
-              content: Text('Connecting to the internet...'),
-            ),
-          );
-        },
-        error: (_, __) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              behavior: SnackBarBehavior.floating,
-              duration: Duration(days: 1), // persistent
-              backgroundColor: Colors.blueAccent,
-              content: Text('Connecting to the internet...'),
-            ),
-          );
         },
       );
     });
@@ -199,11 +169,11 @@ class AquariumDashboardPage extends ConsumerWidget {
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.wifi, color: Colors.white, size: 20),
+                          Icon(Icons.wifi_off, color: Colors.white, size: 20),
                           SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Connecting to the internet... your connection may be slow.',
+                              'No internet connection',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600,
@@ -216,54 +186,8 @@ class AquariumDashboardPage extends ConsumerWidget {
                   }
                   return const SizedBox.shrink();
                 },
-                loading:
-                    () => Container(
-                      width: double.infinity,
-                      color: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.wifi, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Connecting to the internet...',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                error:
-                    (_, __) => Container(
-                      width: double.infinity,
-                      color: Colors.blueAccent,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 8,
-                        horizontal: 16,
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.wifi, color: Colors.white, size: 20),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'Connecting to the internet...',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                loading: () => const SizedBox.shrink(),
+                error: (_, __) => const SizedBox.shrink(),
               );
             },
           ),
@@ -338,7 +262,10 @@ class AquariumDashboardPage extends ConsumerWidget {
                               itemCount: summaries.length,
                               itemBuilder: (context, index) {
                                 final s = summaries[index];
-                                return _buildAquariumCard(context, s);
+                                return KeyedSubtree(
+                                  key: ValueKey(s.aquariumId),
+                                  child: _buildAquariumCard(context, s),
+                                );
                               },
                             ),
                           ),

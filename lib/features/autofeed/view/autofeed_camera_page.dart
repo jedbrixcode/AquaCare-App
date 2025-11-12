@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:aquacare_v5/utils/theme.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:aquacare_v5/core/config/backend_config.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/navigation/route_observer.dart';
@@ -11,7 +12,6 @@ import 'package:webview_flutter_android/webview_flutter_android.dart'
     as webview_android;
 import '../viewmodel/autofeed_viewmodel.dart';
 import 'widgets/camera_feed_widget.dart';
-import 'widgets/manual_feeding_widget.dart';
 import 'widgets/rotation_feeding_widget.dart';
 
 class CameraPage extends ConsumerStatefulWidget {
@@ -114,8 +114,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
 
   @override
   void didPushNext() {
-    // When navigating away, turn camera off safely
-    _handleCameraToggle(false);
+    // Keep camera ON when opening dialogs/sheets; user controls the toggle
   }
 
   @override
@@ -148,9 +147,9 @@ class _CameraPageState extends ConsumerState<CameraPage>
                   setState(() {
                     _isWebViewLoading = false;
                     _isCameraOffline = true;
-                    isCameraActive = false;
                   });
-                  _showOfflineSnackbar();
+                  _showReconnectingSnackbar();
+                  _scheduleReconnect();
                 }
               },
             ),
@@ -234,35 +233,102 @@ class _CameraPageState extends ConsumerState<CameraPage>
     messenger.clearSnackBars();
     messenger.showSnackBar(
       const SnackBar(
-        content: Text(
-          style: TextStyle(color: Colors.white),
-          'Camera offline. Using offline mode.',
-        ),
-        duration: Duration(seconds: 3),
+        content: Text('Camera offline.'),
+        duration: Duration(seconds: 2),
         backgroundColor: Colors.orange,
       ),
     );
   }
 
-  void _handleManualFeeding(bool isStarting) async {
-    if (isStarting) {
-      final ok = await ref
-          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-          .startManual(widget.aquariumId);
-      if (!ok) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Feeder offline. Cannot start manual feeding.'),
-            backgroundColor: Colors.red,
+  void _showReconnectingSnackbar() {
+    if (!mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.clearSnackBars();
+    messenger.showSnackBar(
+      const SnackBar(
+        content: Text('Reconnecting to camera...'),
+        duration: Duration(seconds: 2),
+      ),
+    );
+  }
+
+  void _scheduleReconnect() {
+    if (!mounted || !isCameraActive) return;
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted || !isCameraActive) return;
+      _webViewController.clearCache();
+      _loadStream();
+    });
+  }
+
+  Widget _buildFoodToggle(BuildContext context) {
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
+    final vm = ref.watch(autoFeedViewModelProvider(_cameraUrl));
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: isDark ? darkTheme.cardColor : lightTheme.cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? darkTheme.colorScheme.primary : Colors.white,
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Pellets',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getFontSize(context, 13),
+              color:
+                  vm.food == 'pellet'
+                      ? isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color
+                      : isDark
+                      ? darkTheme.textTheme.bodyLarge?.color
+                      : lightTheme.textTheme.bodyLarge?.color,
+              fontWeight:
+                  vm.food == 'pellet' ? FontWeight.w700 : FontWeight.w500,
+            ),
           ),
-        );
-      }
-    } else {
-      await ref
-          .read(autoFeedViewModelProvider(_cameraUrl).notifier)
-          .stopManual(widget.aquariumId);
-    }
+          const SizedBox(width: 6),
+          CupertinoSwitch(
+            value: vm.food == 'flakes',
+            onChanged:
+                (value) => ref
+                    .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+                    .setFood(value ? 'flakes' : 'pellet'),
+            activeColor:
+                isDark
+                    ? darkTheme.colorScheme.primary
+                    : darkTheme.colorScheme.primary,
+            trackColor:
+                isDark
+                    ? darkTheme.colorScheme.primary
+                    : lightTheme.colorScheme.primary,
+          ),
+          const SizedBox(width: 6),
+          Text(
+            'Flakes',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.getFontSize(context, 13),
+              color:
+                  vm.food == 'flakes'
+                      ? isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color
+                      : isDark
+                      ? darkTheme.textTheme.bodyLarge?.color
+                      : lightTheme.textTheme.bodyLarge?.color,
+              fontWeight:
+                  vm.food == 'flakes' ? FontWeight.w700 : FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleRotationFeeding() async {
@@ -379,7 +445,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
               isCameraOffline: _isCameraOffline,
             ),
             const SizedBox(height: 12),
-            // Row with feeding mode switch and camera toggle switch
+            // Row with camera toggle switch only
             Container(
               padding: ResponsiveHelper.getScreenPadding(
                 context,
@@ -401,74 +467,28 @@ class _CameraPageState extends ConsumerState<CameraPage>
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Rotation | Hold feeding switch
-                  Row(
-                    children: [
-                      Text(
-                        'Rotation',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Switch.adaptive(
-                        value: vm.isManualMode,
-                        onChanged:
-                            (value) => ref
-                                .read(
-                                  autoFeedViewModelProvider(
-                                    _cameraUrl,
-                                  ).notifier,
-                                )
-                                .setManualMode(value),
-                        activeColor:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : lightTheme.colorScheme.background,
-                        activeTrackColor:
-                            isDark
-                                ? lightTheme.colorScheme.primary
-                                : darkTheme.colorScheme.background,
-                        inactiveThumbColor:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : lightTheme.colorScheme.background,
-                        inactiveTrackColor:
-                            isDark
-                                ? lightTheme.colorScheme.primary
-                                : darkTheme.colorScheme.background,
-                      ),
-                      const SizedBox(width: 8),
-                      Text('Hold', style: TextStyle(color: Colors.white)),
-                    ],
-                  ),
-                  // Camera feed switch
-                  Row(
-                    children: [
-                      Text('Camera', style: TextStyle(color: Colors.white)),
-                      const SizedBox(width: 8),
-                      Switch.adaptive(
-                        value: isCameraActive,
-                        onChanged: _handleCameraToggle,
-                        activeColor:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : lightTheme.colorScheme.background,
-                        activeTrackColor:
-                            isDark
-                                ? lightTheme.colorScheme.primary
-                                : darkTheme.colorScheme.background,
-                        inactiveThumbColor:
-                            isDark
-                                ? darkTheme.colorScheme.primary
-                                : lightTheme.colorScheme.background,
-                        inactiveTrackColor:
-                            isDark
-                                ? lightTheme.colorScheme.primary
-                                : darkTheme.colorScheme.background,
-                      ),
-                    ],
+                  _buildFoodToggle(context),
+
+                  Text('Camera', style: TextStyle(color: Colors.white)),
+                  Switch.adaptive(
+                    value: isCameraActive,
+                    onChanged: _handleCameraToggle,
+                    activeColor:
+                        isDark
+                            ? darkTheme.colorScheme.primary
+                            : lightTheme.colorScheme.background,
+                    activeTrackColor:
+                        isDark
+                            ? lightTheme.colorScheme.primary
+                            : darkTheme.colorScheme.background,
+                    inactiveThumbColor:
+                        isDark
+                            ? darkTheme.colorScheme.primary
+                            : lightTheme.colorScheme.background,
+                    inactiveTrackColor:
+                        isDark
+                            ? lightTheme.colorScheme.primary
+                            : darkTheme.colorScheme.background,
                   ),
                 ],
               ),
@@ -476,7 +496,7 @@ class _CameraPageState extends ConsumerState<CameraPage>
             const SizedBox(height: 16),
 
             Container(
-              height: 380,
+              height: 330,
               width: double.infinity,
               padding: ResponsiveHelper.getScreenPadding(
                 context,
@@ -495,43 +515,19 @@ class _CameraPageState extends ConsumerState<CameraPage>
                   width: 1,
                 ),
               ),
-              child:
-                  vm.isManualMode
-                      ? ManualFeedingWidget(
-                        food: vm.food,
-                        isFeeding: vm.isFeeding,
-                        onFoodChanged:
-                            (value) => ref
-                                .read(
-                                  autoFeedViewModelProvider(
-                                    _cameraUrl,
-                                  ).notifier,
-                                )
-                                .setFood(value ? 'flakes' : 'pellet'),
-                        onFeedingStart: () => _handleManualFeeding(true),
-                        onFeedingStop: () => _handleManualFeeding(false),
-                      )
-                      : RotationFeedingWidget(
-                        food: vm.food,
-                        rotations: vm.rotations,
-                        onFoodChanged:
-                            (value) => ref
-                                .read(
-                                  autoFeedViewModelProvider(
-                                    _cameraUrl,
-                                  ).notifier,
-                                )
-                                .setFood(value ? 'flakes' : 'pellet'),
-                        onRotationsChanged:
-                            (value) => ref
-                                .read(
-                                  autoFeedViewModelProvider(
-                                    _cameraUrl,
-                                  ).notifier,
-                                )
-                                .setRotations(value),
-                        onConfirm: _showRotationConfirmation,
-                      ),
+              child: RotationFeedingWidget(
+                food: vm.food,
+                rotations: vm.rotations,
+                onFoodChanged:
+                    (value) => ref
+                        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+                        .setFood(value ? 'flakes' : 'pellet'),
+                onRotationsChanged:
+                    (value) => ref
+                        .read(autoFeedViewModelProvider(_cameraUrl).notifier)
+                        .setRotations(value),
+                onConfirm: _showRotationConfirmation,
+              ),
             ),
             const SizedBox(height: 32),
           ],

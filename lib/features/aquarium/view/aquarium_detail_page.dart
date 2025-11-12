@@ -238,7 +238,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: ResponsiveHelper.horizontalPadding(context) + 5,
-          vertical: ResponsiveHelper.verticalPadding(context) + 8,
+          vertical: ResponsiveHelper.verticalPadding(context) + 6,
         ),
         decoration: BoxDecoration(
           color: isDark ? darkTheme.colorScheme.surface : Colors.blue[50],
@@ -780,10 +780,7 @@ class _AquariumDetailPageState extends ConsumerState<AquariumDetailPage> {
                     style: TextStyle(
                       fontSize: ResponsiveHelper.getFontSize(context, 16),
                       fontWeight: FontWeight.bold,
-                      color:
-                          isDark
-                              ? Theme.of(context).textTheme.bodyMedium?.color
-                              : color,
+                      color: Colors.black,
                     ),
                   ),
                 ),
