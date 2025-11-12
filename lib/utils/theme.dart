@@ -9,6 +9,24 @@ import 'package:aquacare_v5/core/services/local_storage_service.dart';
 final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
   primaryColor: Colors.blue,
   scaffoldBackgroundColor: Colors.white,
+  dialogTheme: const DialogTheme(
+    backgroundColor: Colors.white,
+    surfaceTintColor: Colors.white,
+    titleTextStyle: TextStyle(
+      color: Colors.black87,
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+    ),
+    contentTextStyle: TextStyle(color: Colors.black87),
+  ),
+  datePickerTheme: DatePickerThemeData(
+    backgroundColor: Colors.white,
+    headerBackgroundColor: Colors.blue,
+    headerForegroundColor: Colors.white,
+    dayForegroundColor: const MaterialStatePropertyAll(Colors.black87),
+    yearForegroundColor: const MaterialStatePropertyAll(Colors.black87),
+    weekdayStyle: const TextStyle(color: Colors.black87),
+  ),
   appBarTheme: const AppBarTheme(
     backgroundColor: Colors.blue,
     foregroundColor: Colors.white,
@@ -40,8 +58,8 @@ final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
     secondary: Colors.blueAccent,
     background: Colors.white,
     onBackground: Colors.black87,
-    surface: const Color.fromARGB(255, 65, 65, 65),
-    onSurface: const Color.fromARGB(221, 36, 36, 36),
+    surface: Colors.white,
+    onSurface: Colors.black87,
     error: Colors.red.shade700,
     onError: Colors.white,
   ),
@@ -49,6 +67,24 @@ final lightTheme = ThemeData.light(useMaterial3: false).copyWith(
 
 final darkTheme = ThemeData.dark(useMaterial3: false).copyWith(
   scaffoldBackgroundColor: const Color(0xFF0B152B), // Dark background
+  dialogTheme: const DialogTheme(
+    backgroundColor: Color(0xFF1E293B),
+    surfaceTintColor: Color(0xFF1E293B),
+    titleTextStyle: TextStyle(
+      color: Colors.white,
+      fontSize: 20,
+      fontWeight: FontWeight.w600,
+    ),
+    contentTextStyle: TextStyle(color: Colors.white),
+  ),
+  datePickerTheme: const DatePickerThemeData(
+    backgroundColor: Color(0xFF1E293B),
+    headerBackgroundColor: Color(0xFF0B152B),
+    headerForegroundColor: Colors.white,
+    dayForegroundColor: MaterialStatePropertyAll(Colors.white),
+    yearForegroundColor: MaterialStatePropertyAll(Colors.white),
+    weekdayStyle: TextStyle(color: Colors.white70),
+  ),
   primaryColor: const Color(0xFF1E293B),
   appBarTheme: const AppBarTheme(
     backgroundColor: Color(0xFF1E293B),
@@ -81,8 +117,8 @@ final darkTheme = ThemeData.dark(useMaterial3: false).copyWith(
     secondary: Color.fromARGB(255, 0, 20, 49),
     background: Color(0xFF0B152B),
     onBackground: Colors.white,
-    surface: Color.fromARGB(255, 65, 65, 65),
-    onSurface: Color.fromARGB(221, 36, 36, 36),
+    surface: Color(0xFF1E293B),
+    onSurface: Colors.white,
     error: Colors.redAccent,
     onError: Colors.black,
   ),

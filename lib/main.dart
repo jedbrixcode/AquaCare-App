@@ -1,5 +1,7 @@
 import 'package:aquacare_v5/core/services/app_initializer.dart';
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/splash/view/splash_screen.dart';
 import 'core/navigation/route_observer.dart';
@@ -10,8 +12,27 @@ import 'features/settings/view/settings_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.dumpErrorToConsole(details);
+  };
+  // Catch uncaught async errors
+  ui.PlatformDispatcher.instance.onError = (error, stack) {
+    // Log and keep app running
+    // You can hook this into Crashlytics/Sentry if configured
+    debugPrint('Uncaught error: $error');
+    debugPrintStack(stackTrace: stack);
+    return true;
+  };
   await AppInitializer.initialize();
-  runApp(const ProviderScope(child: MyApp()));
+  runZonedGuarded(
+    () {
+      runApp(const ProviderScope(child: MyApp()));
+    },
+    (error, stack) {
+      debugPrint('Zoned error: $error');
+      debugPrintStack(stackTrace: stack);
+    },
+  );
 }
 
 class MyApp extends ConsumerWidget {

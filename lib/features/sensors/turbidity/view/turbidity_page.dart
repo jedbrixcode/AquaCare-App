@@ -106,7 +106,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: ResponsiveHelper.getScreenPadding(
           context,
         ).copyWith(top: 12, bottom: 12),

@@ -18,7 +18,8 @@ class AppLifecycleHandler extends WidgetsBindingObserver {
   void _closeOpenDialog() {
     final navigator = globalNavigatorKey.currentState;
     if (navigator?.canPop() ?? false) {
-      navigator!.popUntil((route) => route.isFirst);
+      // Only close popup/dialog routes, do not reset the stack to the first route
+      navigator!.popUntil((route) => route is! PopupRoute);
     }
   }
 }

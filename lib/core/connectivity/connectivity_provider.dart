@@ -21,7 +21,7 @@ final isOfflineProvider = Provider<bool>((ref) {
       .watch(connectivityStreamProvider)
       .maybeWhen(
         data: (isOnline) => !isOnline,
-        orElse: () => true, // Default to offline if unknown
+        orElse: () => false, // Default to connecting/unknown = not offline
       );
   return status;
 });

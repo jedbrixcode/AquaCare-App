@@ -49,7 +49,7 @@ class _PhPageState extends ConsumerState<PhPage> {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
           horizontal: ResponsiveHelper.horizontalPadding(context),
           vertical: ResponsiveHelper.verticalPadding(context),
@@ -411,7 +411,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                   (e, _) =>
                       const Center(child: Text('Error loading thresholds')),
             ),
-            Spacer(),
+            const SizedBox(height: 12),
             Container(
               padding: ResponsiveHelper.getScreenPadding(
                 context,

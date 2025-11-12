@@ -842,6 +842,12 @@ class ScheduledAutofeedPage extends ConsumerWidget {
               ),
               const SizedBox(height: 8),
               FilledButton.tonal(
+                style: FilledButton.styleFrom(
+                  backgroundColor:
+                      isDark
+                          ? darkTheme.colorScheme.primary
+                          : lightTheme.colorScheme.primary,
+                ),
                 onPressed: () {
                   Navigator.of(ctx).pop();
                   _showOneTimeDialog(context, viewModel);
@@ -1250,6 +1256,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
     final cyclesController = TextEditingController(text: '1');
     String selectedFood = 'pellet';
+    bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     showDialog(
       context: context,
@@ -1263,12 +1270,25 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                     child: SingleChildScrollView(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
+
                         children: [
                           // Date picker
                           ListTile(
-                            leading: const Icon(Icons.calendar_today),
+                            leading: Icon(
+                              Icons.calendar_today,
+                              color:
+                                  isDark
+                                      ? darkTheme.textTheme.bodyLarge?.color
+                                      : lightTheme.textTheme.bodyLarge?.color,
+                            ),
                             title: Text(
                               '${selectedDate.year}-${selectedDate.month.toString().padLeft(2, '0')}-${selectedDate.day.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
                             ),
                             onTap: () async {
                               final picked = await showDatePicker(
@@ -1285,10 +1305,25 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             },
                           ),
                           const SizedBox(height: 8),
+
                           // Time picker AM/PM
                           ListTile(
-                            leading: const Icon(Icons.access_time),
-                            title: Text(_formatDisplay(selectedTime)),
+                            leading: Icon(
+                              Icons.access_time,
+                              color:
+                                  isDark
+                                      ? darkTheme.textTheme.bodyLarge?.color
+                                      : lightTheme.textTheme.bodyLarge?.color,
+                            ),
+                            title: Text(
+                              _formatDisplay(selectedTime),
+                              style: TextStyle(
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
+                            ),
                             onTap: () async {
                               final picked = await showTimePicker(
                                 context: context,
@@ -1309,10 +1344,22 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                           const SizedBox(height: 12),
                           TextFormField(
                             controller: cyclesController,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
+                              labelStyle: TextStyle(
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
                               labelText: 'Cycles',
                               border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.repeat),
+                              prefixIcon: Icon(
+                                Icons.repeat,
+                                color:
+                                    isDark
+                                        ? darkTheme.textTheme.bodyLarge?.color
+                                        : lightTheme.textTheme.bodyLarge?.color,
+                              ),
                             ),
                             keyboardType: TextInputType.number,
                             validator: (v) {
@@ -1359,7 +1406,15 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.of(ctx).pop(),
-                      child: const Text('Cancel'),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color:
+                              isDark
+                                  ? darkTheme.textTheme.bodyLarge?.color
+                                  : lightTheme.textTheme.bodyLarge?.color,
+                        ),
+                      ),
                     ),
                     FilledButton(
                       onPressed: () async {
@@ -1380,7 +1435,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                         );
                         if (context.mounted) Navigator.of(ctx).pop();
                       },
-                      child: const Text('Add'),
+                      child: Text('Add', style: TextStyle(color: Colors.white)),
                     ),
                   ],
                 ),

@@ -47,16 +47,19 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
           style: TextStyle(
             color:
                 isDark
-                    ? darkTheme.textTheme.displayLarge?.color
-                    : lightTheme.textTheme.displayLarge?.color,
-            fontSize: 24,
+                    ? darkTheme.appBarTheme.titleTextStyle?.color
+                    : lightTheme.appBarTheme.titleTextStyle?.color,
+            fontSize: ResponsiveHelper.getFontSize(context, 24),
             fontWeight: FontWeight.bold,
           ),
         ),
         elevation: 0,
       ),
       body: Padding(
-        padding: ResponsiveHelper.getScreenPadding(context),
+        padding: EdgeInsets.symmetric(
+          horizontal: ResponsiveHelper.horizontalPadding(context),
+          vertical: ResponsiveHelper.verticalPadding(context),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -164,38 +167,43 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               ),
               const SizedBox(height: 12),
               Expanded(
-                child: ListView.builder(
-                  itemCount: vm.devices.length,
-                  itemBuilder: (context, index) {
-                    final device = vm.devices[index];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: Icon(
-                          Icons.bluetooth_connected,
-                          size: 50,
-                          color:
-                              isDark
-                                  ? darkTheme.colorScheme.secondary
-                                  : Colors.blue[600],
+                child: RepaintBoundary(
+                  child: ListView.builder(
+                    cacheExtent: 600.0,
+                    itemCount: vm.devices.length,
+                    itemBuilder: (context, index) {
+                      final device = vm.devices[index];
+                      return Card(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        child: ListTile(
+                          leading: Icon(
+                            Icons.bluetooth_connected,
+                            size: 50,
+                            color:
+                                isDark
+                                    ? darkTheme.colorScheme.secondary
+                                    : Colors.blue[600],
+                          ),
+                          title: Text(
+                            device.platformName.isNotEmpty
+                                ? device.platformName
+                                : 'Unknown Device',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          subtitle: Text('ID: ${device.remoteId}'),
+                          trailing: ElevatedButton(
+                            onPressed:
+                                vm.isConnected
+                                    ? null
+                                    : () => _connectToDevice(device),
+                            child: Text(
+                              vm.isConnected ? 'Connected' : 'Connect',
+                            ),
+                          ),
                         ),
-                        title: Text(
-                          device.platformName.isNotEmpty
-                              ? device.platformName
-                              : 'Unknown Device',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
-                        ),
-                        subtitle: Text('ID: ${device.remoteId}'),
-                        trailing: ElevatedButton(
-                          onPressed:
-                              vm.isConnected
-                                  ? null
-                                  : () => _connectToDevice(device),
-                          child: Text(vm.isConnected ? 'Connected' : 'Connect'),
-                        ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

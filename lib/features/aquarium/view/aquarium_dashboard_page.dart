@@ -16,6 +16,55 @@ class AquariumDashboardPage extends ConsumerWidget {
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Listen to connectivity changes to show/hide a persistent snackbar
+    ref.listen(connectivityStreamProvider, (prev, next) {
+      next.whenOrNull(
+        data: (isOnline) {
+          if (isOnline) {
+            ScaffoldMessenger.of(context).clearSnackBars();
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                behavior: SnackBarBehavior.floating,
+                duration: const Duration(days: 1), // persistent
+                backgroundColor: Colors.blueAccent,
+                content: const Text(
+                  'Connecting to the internet... your connection may be slow.',
+                ),
+                action: SnackBarAction(
+                  label: 'Dismiss',
+                  textColor: Colors.white,
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  },
+                ),
+              ),
+            );
+          }
+        },
+        loading: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(days: 1), // persistent
+              backgroundColor: Colors.blueAccent,
+              content: Text('Connecting to the internet...'),
+            ),
+          );
+        },
+        error: (_, __) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(days: 1), // persistent
+              backgroundColor: Colors.blueAccent,
+              content: Text('Connecting to the internet...'),
+            ),
+          );
+        },
+      );
+    });
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('AquaCare Dashboard'),
@@ -137,30 +186,85 @@ class AquariumDashboardPage extends ConsumerWidget {
           // Offline Banner
           Consumer(
             builder: (context, ref, child) {
-              final isOffline = ref.watch(isOfflineProvider);
-              if (isOffline) {
-                return Container(
-                  width: double.infinity,
-                  color: Colors.orange,
-                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                  child: Row(
-                    children: [
-                      Icon(Icons.wifi_off, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          'You are currently offline. Some features may be limited.',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+              final conn = ref.watch(connectivityStreamProvider);
+              return conn.when(
+                data: (isOnline) {
+                  if (!isOnline) {
+                    return Container(
+                      width: double.infinity,
+                      color: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
                       ),
-                    ],
-                  ),
-                );
-              }
-              return const SizedBox.shrink();
+                      child: const Row(
+                        children: [
+                          Icon(Icons.wifi, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Connecting to the internet... your connection may be slow.',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+                loading:
+                    () => Container(
+                      width: double.infinity,
+                      color: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.wifi, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Connecting to the internet...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                error:
+                    (_, __) => Container(
+                      width: double.infinity,
+                      color: Colors.blueAccent,
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 8,
+                        horizontal: 16,
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(Icons.wifi, color: Colors.white, size: 20),
+                          SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Connecting to the internet...',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+              );
             },
           ),
 
@@ -227,13 +331,16 @@ class AquariumDashboardPage extends ConsumerWidget {
                               await ref.read(aquariumsSummaryProvider.future);
                             } catch (_) {}
                           },
-                          child: ListView.builder(
-                            scrollDirection: Axis.vertical,
-                            itemCount: summaries.length,
-                            itemBuilder: (context, index) {
-                              final s = summaries[index];
-                              return _buildAquariumCard(context, s);
-                            },
+                          child: RepaintBoundary(
+                            child: ListView.builder(
+                              cacheExtent: 600.0,
+                              scrollDirection: Axis.vertical,
+                              itemCount: summaries.length,
+                              itemBuilder: (context, index) {
+                                final s = summaries[index];
+                                return _buildAquariumCard(context, s);
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -306,19 +413,27 @@ class AquariumDashboardPage extends ConsumerWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              SizedBox(height: 25),
               ListTile(
                 leading: Icon(
                   Icons.bluetooth,
-                  color: Theme.of(context).colorScheme.onSurface,
+                  color:
+                      isDark
+                          ? darkTheme.textTheme.bodyLarge?.color
+                          : lightTheme.textTheme.bodyLarge?.color,
                 ),
                 title: Text(
                   'TankPi Setup (Bluetooth)',
                   style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurface,
+                    color:
+                        isDark
+                            ? darkTheme.textTheme.bodyLarge?.color
+                            : lightTheme.textTheme.bodyLarge?.color,
                   ),
                 ),
                 onTap: () {
@@ -331,6 +446,7 @@ class AquariumDashboardPage extends ConsumerWidget {
                   );
                 },
               ),
+              SizedBox(height: 12),
             ],
           ),
         );

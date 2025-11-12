@@ -21,73 +21,79 @@ class SettingsPage extends ConsumerWidget {
           fontWeight: FontWeight.bold,
         ),
       ),
-      body: Theme(
-        data: Theme.of(context).copyWith(
-          listTileTheme: ListTileThemeData(
-            textColor:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
-            iconColor:
-                Theme.of(context).brightness == Brightness.dark
-                    ? Colors.white
-                    : Colors.black,
+      body: Padding(
+        padding: ResponsiveHelper.getScreenPadding(context),
+        child: Theme(
+          data: Theme.of(context).copyWith(
+            listTileTheme: ListTileThemeData(
+              textColor:
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+              iconColor:
+                  Theme.of(context).brightness == Brightness.dark
+                      ? Colors.white
+                      : Colors.black,
+            ),
           ),
-        ),
-        child: ListView(
-          children: [
-            ListTile(
-              title: Text(
-                'Theme',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.getFontSize(context, 20),
-                  color: isDark ? Colors.white : Colors.black,
+          child: ListView(
+            children: [
+              ListTile(
+                title: Text(
+                  'Theme',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.getFontSize(context, 20),
+                    color: isDark ? Colors.white : Colors.black,
+                  ),
                 ),
               ),
-            ),
-            RadioListTile<ThemeMode>(
-              title: Text(
-                'System Settings',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+              RadioListTile<ThemeMode>(
+                title: Text(
+                  'System Settings',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
+                value: ThemeMode.system,
+                groupValue: themeMode,
+                onChanged:
+                    (m) =>
+                        ref.read(themeModeProvider.notifier).setThemeMode(m!),
+                activeColor: Theme.of(context).textTheme.bodyMedium?.color,
               ),
-              value: ThemeMode.system,
-              groupValue: themeMode,
-              onChanged:
-                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
-              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-            RadioListTile<ThemeMode>(
-              title: Text(
-                'Light',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+              RadioListTile<ThemeMode>(
+                title: Text(
+                  'Light',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
+                value: ThemeMode.light,
+                groupValue: themeMode,
+                onChanged:
+                    (m) =>
+                        ref.read(themeModeProvider.notifier).setThemeMode(m!),
+                activeColor: Theme.of(context).textTheme.bodyMedium?.color,
               ),
-              value: ThemeMode.light,
-              groupValue: themeMode,
-              onChanged:
-                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
-              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-            RadioListTile<ThemeMode>(
-              title: Text(
-                'Dark',
-                style: TextStyle(
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
+              RadioListTile<ThemeMode>(
+                title: Text(
+                  'Dark',
+                  style: TextStyle(
+                    color: Theme.of(context).textTheme.bodyMedium?.color,
+                  ),
                 ),
+                value: ThemeMode.dark,
+                groupValue: themeMode,
+                onChanged:
+                    (m) =>
+                        ref.read(themeModeProvider.notifier).setThemeMode(m!),
+                activeColor: Theme.of(context).textTheme.bodyMedium?.color,
               ),
-              value: ThemeMode.dark,
-              groupValue: themeMode,
-              onChanged:
-                  (m) => ref.read(themeModeProvider.notifier).setThemeMode(m!),
-              activeColor: Theme.of(context).textTheme.bodyMedium?.color,
-            ),
-            const Divider(color: Colors.grey, thickness: 1),
-            _GlobalNotificationsTile(),
-            const Divider(color: Colors.grey, thickness: 1),
-          ],
+              const Divider(color: Colors.grey, thickness: 1),
+              _GlobalNotificationsTile(),
+              const Divider(color: Colors.grey, thickness: 1),
+            ],
+          ),
         ),
       ),
     );

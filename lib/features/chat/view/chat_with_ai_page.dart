@@ -243,29 +243,32 @@ class _AIChatPageState extends ConsumerState<AIChatPage> {
                       overScroll.disallowIndicator();
                       return true;
                     },
-                    child: ListView.builder(
-                      controller: _scroll,
-                      reverse: false,
-                      itemCount:
-                          chat.messages.length + (chat.isSending ? 1 : 0),
-                      itemBuilder: (context, index) {
-                        // Show the waveDots loader at the BOTTOM
-                        if (index == chat.messages.length && chat.isSending) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8.0),
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: Center(
-                                child: LoadingAnimationWidget.waveDots(
-                                  color: Colors.teal,
-                                  size: 50,
+                    child: RepaintBoundary(
+                      child: ListView.builder(
+                        controller: _scroll,
+                        reverse: false,
+                        cacheExtent: 600.0,
+                        itemCount:
+                            chat.messages.length + (chat.isSending ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          // Show the waveDots loader at the BOTTOM
+                          if (index == chat.messages.length && chat.isSending) {
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8.0),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Center(
+                                  child: LoadingAnimationWidget.waveDots(
+                                    color: Colors.teal,
+                                    size: 50,
+                                  ),
                                 ),
                               ),
-                            ),
-                          );
-                        }
-                        return _buildChatMessage(chat.messages[index]);
-                      },
+                            );
+                          }
+                          return _buildChatMessage(chat.messages[index]);
+                        },
+                      ),
                     ),
                   ),
                 ),
