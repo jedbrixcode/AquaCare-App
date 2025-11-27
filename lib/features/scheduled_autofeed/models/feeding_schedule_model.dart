@@ -1,3 +1,40 @@
+// Helper function to safely parse DateTime from various formats
+DateTime? _parseDateTime(dynamic value) {
+  if (value == null) return null;
+  
+  try {
+    // If it's already a DateTime, return it
+    if (value is DateTime) return value;
+    
+    // If it's a number (timestamp in milliseconds or seconds)
+    if (value is num) {
+      final timestamp = value.toInt();
+      // Check if it's in seconds (less than year 2000 in milliseconds)
+      if (timestamp < 946684800000) {
+        // Likely seconds, convert to milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      } else {
+        // Likely milliseconds
+        return DateTime.fromMillisecondsSinceEpoch(timestamp);
+      }
+    }
+    
+    // Try parsing as string
+    final str = value.toString().trim();
+    if (str.isEmpty) return null;
+    
+    // Try ISO8601 format first
+    final parsed = DateTime.tryParse(str);
+    if (parsed != null) return parsed;
+    
+    // If parsing fails, return null (no exception thrown)
+    return null;
+  } catch (e) {
+    // Catch any unexpected errors and return null
+    return null;
+  }
+}
+
 class FeedingSchedule {
   final String id;
   final String aquariumId;
@@ -37,13 +74,10 @@ class FeedingSchedule {
       foodType: (json['food_type'] ?? json['food']).toString(),
       isEnabled: (json['is_enabled'] ?? json['switch'] ?? false) == true,
       daily: (json['daily'] ?? true) == true,
-      createdAt:
-          DateTime.tryParse(json['created_at']?.toString() ?? '') ??
-          DateTime.now(),
-      updatedAt:
-          json['updated_at'] != null
-              ? DateTime.tryParse(json['updated_at'].toString())
-              : null,
+      createdAt: _parseDateTime(json['created_at']) ?? DateTime.now(),
+      updatedAt: json['updated_at'] != null
+          ? _parseDateTime(json['updated_at'])
+          : null,
     );
   }
 
@@ -116,9 +150,7 @@ class AutoFeederStatus {
     return AutoFeederStatus(
       aquariumId: json['aquarium_id']?.toString() ?? '',
       isEnabled: json['enabled'] == true,
-      lastUpdated:
-          DateTime.tryParse(json['last_updated']?.toString() ?? '') ??
-          DateTime.now(),
+      lastUpdated: _parseDateTime(json['last_updated']) ?? DateTime.now(),
     );
   }
 

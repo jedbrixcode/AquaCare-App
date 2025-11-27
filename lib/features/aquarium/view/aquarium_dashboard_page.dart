@@ -7,12 +7,39 @@ import 'package:aquacare_v5/features/aquarium/view/aquarium_detail_page.dart';
 import 'package:aquacare_v5/features/bluetooth/view/bluetooth_setup_page.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:aquacare_v5/core/connectivity/connectivity_provider.dart';
+import 'package:aquacare_v5/core/navigation/route_observer.dart';
 
-class AquariumDashboardPage extends ConsumerWidget {
+class AquariumDashboardPage extends ConsumerStatefulWidget {
   const AquariumDashboardPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AquariumDashboardPage> createState() => _AquariumDashboardPageState();
+}
+
+class _AquariumDashboardPageState extends ConsumerState<AquariumDashboardPage> with RouteAware {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    appRouteObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // Refresh data when returning from detail page
+    ref.invalidate(aquariumsSummaryProvider);
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final summaryAsync = ref.watch(aquariumsSummaryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 

@@ -85,13 +85,24 @@ class ScheduledAutofeedViewModel extends StateNotifier<ScheduledAutofeedState> {
       // 1. Daily schedules from RTDB
       final daily = await _repository.getFeedingSchedules(aquariumId);
 
-      // 2. One-time schedules from Firestore
+      // 2. One-time schedules from Firestore (or cached if offline)
       final oneTimeRepo = FirestoreScheduleRepository();
       final oneTimeStream = oneTimeRepo.getOneTimeSchedules(
         int.tryParse(aquariumId) ?? 0,
       );
-      final oneTime =
-          await oneTimeStream.first; // one-time fetch (initial load)
+      List<OneTimeSchedule> oneTime = [];
+      try {
+        oneTime = await oneTimeStream.first.timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => [],
+        );
+      } catch (_) {
+        // If stream fails, try to get cached data
+        final cached = await oneTimeRepo.getCachedSchedules(
+          int.tryParse(aquariumId) ?? 0,
+        );
+        oneTime = cached ?? [];
+      }
 
       // 3. Merge results
       final merged = [

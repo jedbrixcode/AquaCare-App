@@ -15,42 +15,113 @@ class LocalStorageService {
   static final LocalStorageService instance = LocalStorageService._private();
 
   late Isar _isar;
+  bool _isInitializing = false;
+  bool _isInitialized = false;
+  static Completer<void>? _globalInitCompleter;
 
-  // Initialize Isar database once
+  // Initialize Isar database once (thread-safe)
   Future<void> initialize() async {
+    // If already initialized, return immediately
+    if (_isInitialized) {
+      try {
+        _isar = Isar.getInstance()!;
+        return;
+      } catch (_) {
+        // If getInstance fails, re-initialize
+        _isInitialized = false;
+      }
+    }
+
+    // Check if there's an existing instance
     final existing = Isar.getInstance();
     if (existing != null) {
       _isar = existing;
+      _isInitialized = true;
       return;
     }
-    final dir = await getApplicationDocumentsDirectory();
 
-    int retries = 0;
-    const maxRetries = 10;
-    const retryDelay = Duration(milliseconds: 100);
-    while (retries < maxRetries) {
+    // If another initialization is in progress, wait for it
+    if (_isInitializing && _globalInitCompleter != null && !_globalInitCompleter!.isCompleted) {
       try {
-        _isar = await Isar.open([
-          LatestSensorSchema,
-          HourlyLogSchema,
-          AverageLogSchema,
-          AppSettingsSchema,
-          ChatMessageIsarSchema,
-          FeedingScheduleCacheSchema,
-          OneTimeScheduleCacheSchema,
-        ], directory: dir.path);
-        return; // ✅ Successfully opened
-      } catch (e) {
-        if (e.toString().contains('MdbxError (11)') &&
-            retries < maxRetries - 1) {
-          retries++;
-          await Future.delayed(retryDelay);
-        } else {
-          rethrow;
+        await _globalInitCompleter!.future;
+        final instance = Isar.getInstance();
+        if (instance != null) {
+          _isar = instance;
+          _isInitialized = true;
+          return;
         }
+      } catch (_) {
+        // If the previous initialization failed, we'll try again
+        _globalInitCompleter = null;
+        _isInitializing = false;
       }
     }
-    throw Exception('Failed to open Isar database after $maxRetries retries');
+
+    // Start new initialization - set flag and create completer
+    _isInitializing = true;
+    _globalInitCompleter = Completer<void>();
+
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+
+      int retries = 0;
+      const maxRetries = 20; // Increased retries
+      Duration retryDelay = const Duration(milliseconds: 100);
+
+      while (retries < maxRetries) {
+        try {
+          // Double-check for existing instance before opening
+          final existingCheck = Isar.getInstance();
+          if (existingCheck != null) {
+            _isar = existingCheck;
+            _isInitialized = true;
+            _globalInitCompleter?.complete();
+            return;
+          }
+
+          _isar = await Isar.open([
+            LatestSensorSchema,
+            HourlyLogSchema,
+            AverageLogSchema,
+            AppSettingsSchema,
+            ChatMessageIsarSchema,
+            FeedingScheduleCacheSchema,
+            OneTimeScheduleCacheSchema,
+          ], directory: dir.path);
+          
+          _isInitialized = true;
+          _globalInitCompleter?.complete();
+          return; // ✅ Successfully opened
+        } catch (e) {
+          final errorStr = e.toString();
+          if (errorStr.contains('MdbxError (11)') && retries < maxRetries - 1) {
+            retries++;
+            // Exponential backoff: 100ms, 200ms, 400ms, 800ms, etc. (max 2 seconds)
+            retryDelay = Duration(
+              milliseconds: (100 * (1 << retries.clamp(0, 4))).clamp(100, 2000),
+            );
+            await Future.delayed(retryDelay);
+          } else {
+            _isInitializing = false;
+            _globalInitCompleter?.completeError(e);
+            _globalInitCompleter = null;
+            rethrow;
+          }
+        }
+      }
+      
+      _isInitializing = false;
+      _globalInitCompleter?.completeError(
+        Exception('Failed to open Isar database after $maxRetries retries'),
+      );
+      _globalInitCompleter = null;
+      throw Exception('Failed to open Isar database after $maxRetries retries');
+    } catch (e) {
+      _isInitializing = false;
+      _globalInitCompleter?.completeError(e);
+      _globalInitCompleter = null;
+      rethrow;
+    }
   }
 
   // Cache latest sensor values per aquarium
@@ -60,17 +131,99 @@ class LocalStorageService {
     required double ph,
     required double turbidity,
     required int timestampMs,
+    String? name,
   }) async {
+    // Get existing entry to preserve name if not provided
+    final existing = await _isar.latestSensors
+        .filter()
+        .aquariumIdEqualTo(aquariumId)
+        .sortByTimestampMsDesc()
+        .findFirst();
+    
     final entry =
         LatestSensor()
           ..aquariumId = aquariumId
           ..temperature = temperature
           ..ph = ph
           ..turbidity = turbidity
-          ..timestampMs = timestampMs;
+          ..timestampMs = timestampMs
+          ..name = name ?? existing?.name;
 
     await _isar.writeTxn(() async {
       await _isar.latestSensors.put(entry);
+    });
+  }
+
+  // Cache aquarium name
+  Future<void> cacheAquariumName(String aquariumId, String name) async {
+    final existing = await _isar.latestSensors
+        .filter()
+        .aquariumIdEqualTo(aquariumId)
+        .sortByTimestampMsDesc()
+        .findFirst();
+    
+    if (existing != null) {
+      existing.name = name;
+      await _isar.writeTxn(() async {
+        await _isar.latestSensors.put(existing);
+      });
+    } else {
+      // Create a minimal entry with just the name
+      final entry = LatestSensor()
+        ..aquariumId = aquariumId
+        ..temperature = 0
+        ..ph = 0
+        ..turbidity = 0
+        ..timestampMs = DateTime.now().millisecondsSinceEpoch
+        ..name = name;
+      await _isar.writeTxn(() async {
+        await _isar.latestSensors.put(entry);
+      });
+    }
+  }
+
+  // Get aquarium name from cache
+  Future<String?> getAquariumName(String aquariumId) async {
+    final entry = await _isar.latestSensors
+        .filter()
+        .aquariumIdEqualTo(aquariumId)
+        .sortByTimestampMsDesc()
+        .findFirst();
+    return entry?.name;
+  }
+
+  // Delete all aquarium data from local DB using aquarium ID as reference
+  Future<void> deleteAquariumData(String aquariumId) async {
+    await _isar.writeTxn(() async {
+      // Delete latest sensors for this aquarium
+      await _isar.latestSensors
+          .filter()
+          .aquariumIdEqualTo(aquariumId)
+          .deleteAll();
+      
+      // Delete hourly logs for this aquarium
+      await _isar.hourlyLogs
+          .filter()
+          .aquariumIdEqualTo(aquariumId)
+          .deleteAll();
+      
+      // Delete average logs for this aquarium
+      await _isar.averageLogs
+          .filter()
+          .aquariumIdEqualTo(aquariumId)
+          .deleteAll();
+      
+      // Delete feeding schedules for this aquarium
+      await _isar.feedingScheduleCaches
+          .filter()
+          .aquariumIdEqualTo(aquariumId)
+          .deleteAll();
+      
+      // Delete one-time schedules for this aquarium
+      await _isar.oneTimeScheduleCaches
+          .filter()
+          .aquariumIdEqualTo(aquariumId)
+          .deleteAll();
     });
   }
 
@@ -133,6 +286,7 @@ class LocalStorageService {
       'ph': data.ph,
       'turbidity': data.turbidity,
       'timestampMs': data.timestampMs,
+      'name': data.name,
     };
   }
 
@@ -154,6 +308,7 @@ class LocalStorageService {
             'ph': e.ph,
             'turbidity': e.turbidity,
             'timestampMs': e.timestampMs,
+            'name': e.name,
           },
         )
         .toList();

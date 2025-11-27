@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 class AutoFeedRepository {
@@ -7,7 +9,7 @@ class AutoFeedRepository {
 
   final http.Client _client;
 
-  Future<void> toggleCamera({
+  Future<bool> toggleCamera({
     required String backendUrl,
     required String aquariumId,
     required bool on,
@@ -17,14 +19,39 @@ class AutoFeedRepository {
       '$backendUrl/aquarium/$aquariumId/camera_switch/$onParam',
     );
     try {
-      final resp = await _client.post(url);
+      final resp = await _client.post(url).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw TimeoutException('Camera toggle request timed out');
+        },
+      );
       if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        throw Exception('HTTP ${resp.statusCode}');
+        // Log error but don't throw - allow app to continue
+        debugPrint('Camera toggle failed with HTTP ${resp.statusCode}');
+        return false;
       }
+      return true;
     } on SocketException catch (e) {
-      throw Exception('Camera connection failed: ${e.message}');
+      // Handle connection errors including "Connection reset by peer"
+      debugPrint('Camera connection failed: ${e.message} (${e.osError?.message ?? ''})');
+      return false;
+    } on http.ClientException catch (e) {
+      // Handle HTTP client exceptions (often wraps SocketException)
+      debugPrint('Camera client error: ${e.message}');
+      return false;
+    } on TimeoutException catch (e) {
+      debugPrint('Camera toggle timeout: ${e.message}');
+      return false;
+    } on HttpException catch (e) {
+      debugPrint('Camera HTTP error: ${e.message}');
+      return false;
+    } on FormatException catch (e) {
+      debugPrint('Camera format error: ${e.message}');
+      return false;
     } catch (e) {
-      throw Exception('Camera error: $e');
+      // Catch any other exceptions to prevent app crash
+      debugPrint('Camera error: $e');
+      return false;
     }
   }
 

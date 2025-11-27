@@ -194,6 +194,7 @@ class _TemperaturePageState extends ConsumerState<TemperaturePage> {
                                           context,
                                           18,
                                         ),
+                                        fontWeight: FontWeight.bold,
                                         color: Colors.white,
                                       ),
                                     ),

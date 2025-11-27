@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart' show Firebase;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:aquacare_v5/features/chat/repository/chat_repository.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
@@ -130,8 +131,14 @@ class ChatViewModel extends StateNotifier<ChatState> {
     state = state.copyWith(messages: []);
     await LocalStorageService.instance.clearChatMessages();
 
-    final databaseRef = FirebaseDatabase.instance.ref();
-    await databaseRef.child('chats').remove();
+    // Check if Firebase is initialized before accessing
+    try {
+      Firebase.app();
+      final databaseRef = FirebaseDatabase.instance.ref();
+      await databaseRef.child('chats').remove();
+    } catch (_) {
+      // Firebase not initialized - local clear is already done
+    }
   }
 
   Future<void> send() async {

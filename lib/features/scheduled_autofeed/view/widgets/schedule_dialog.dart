@@ -32,6 +32,11 @@ Future<void> showScheduleDialog({
     text: (schedule?.cycles ?? 1).toString(),
   );
   bool isEnabled = schedule?.isEnabled ?? true;
+  String selectedFood =
+      (schedule?.foodType.toLowerCase() == 'flakes') ? 'flakes' : 'pellets';
+  TimeOfDay selectedTime =
+      parseTimeOfDay(schedule?.time ?? '08:00') ??
+          const TimeOfDay(hour: 8, minute: 0);
 
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -53,12 +58,9 @@ Future<void> showScheduleDialog({
                       children: [
                         GestureDetector(
                           onTap: () async {
-                            final initial =
-                                parseTimeOfDayDisplay(timeController.text) ??
-                                const TimeOfDay(hour: 12, minute: 0);
                             final picked = await showTimePicker(
                               context: context,
-                              initialTime: initial,
+                              initialTime: selectedTime,
                               builder: (context, child) {
                                 return MediaQuery(
                                   data: MediaQuery.of(
@@ -69,7 +71,10 @@ Future<void> showScheduleDialog({
                               },
                             );
                             if (picked != null) {
-                              timeController.text = formatDisplay(picked);
+                              setState(() {
+                                selectedTime = picked;
+                                timeController.text = formatDisplay(picked);
+                              });
                             }
                           },
                           child: AbsorbPointer(
@@ -111,13 +116,10 @@ Future<void> showScheduleDialog({
                           height: ResponsiveHelper.verticalPadding(context),
                         ),
                         DropdownButtonFormField<String>(
-                          value:
-                              (schedule?.foodType.toLowerCase() == 'flakes')
-                                  ? 'flakes'
-                                  : 'pellet',
+                          value: selectedFood,
                           items: const [
                             DropdownMenuItem(
-                              value: 'pellet',
+                              value: 'pellets',
                               child: Text('Pellets'),
                             ),
                             DropdownMenuItem(
@@ -125,7 +127,10 @@ Future<void> showScheduleDialog({
                               child: Text('Flakes'),
                             ),
                           ],
-                          onChanged: (_) {},
+                          onChanged: (value) {
+                            if (value == null) return;
+                            setState(() => selectedFood = value);
+                          },
                           decoration: const InputDecoration(
                             labelText: 'Food Type',
                             border: OutlineInputBorder(),
@@ -134,7 +139,7 @@ Future<void> showScheduleDialog({
                           validator:
                               (v) =>
                                   (v == null ||
-                                          (v != 'pellet' && v != 'flakes'))
+                                          (v != 'pellets' && v != 'flakes'))
                                       ? 'Select food'
                                       : null,
                         ),
@@ -174,29 +179,23 @@ Future<void> showScheduleDialog({
                           FilledButton(
                             onPressed: () {
                               if (!formKey.currentState!.validate()) return;
-                              final time = format24FromDisplay(
-                                timeController.text.trim(),
-                              );
+                              final time = formatTimeOfDay(selectedTime);
                               final cycles = int.parse(
                                 cyclesController.text.trim(),
                               );
-                              final foodType =
-                                  (schedule?.foodType.toLowerCase() == 'flakes')
-                                      ? 'flakes'
-                                      : 'pellet';
                               if (schedule != null) {
                                 viewModel.updateSchedule(
                                   scheduleId: schedule.id,
                                   time: time,
                                   cycles: cycles,
-                                  foodType: foodType,
+                                  foodType: selectedFood,
                                   isEnabled: isEnabled,
                                 );
                               } else {
                                 viewModel.addSchedule(
                                   time: time,
                                   cycles: cycles,
-                                  foodType: foodType,
+                                  foodType: selectedFood,
                                   isEnabled: true,
                                 );
                               }

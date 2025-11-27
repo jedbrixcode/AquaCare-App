@@ -10,4 +10,5 @@ class LatestSensor {
   late double ph;
   late double turbidity;
   late int timestampMs;
+  String? name; // Aquarium name for offline access
 }

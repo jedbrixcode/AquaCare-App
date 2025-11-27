@@ -23,12 +23,127 @@ class AquariumSummary {
 
 class AquariumRepository {
   DatabaseReference? _dbRef() {
+    // Check if Firebase is initialized using a safer method
+    if (Firebase.apps.isEmpty) {
+      return null; // Firebase not initialized (offline-first mode)
+    }
+    return FirebaseDatabase.instance.ref();
+  }
+
+  // Sync all aquarium names from Firebase to local DB
+  // Ensures local DB matches Firebase exactly - removes what Firebase doesn't have
+  Future<void> syncAquariumNamesFromFirebase() async {
+    final db = _dbRef();
+    if (db == null) {
+      debugPrint('Cannot sync aquarium names: Firebase not initialized');
+      return;
+    }
+
     try {
-      // Returns null if Firebase is not yet initialized (offline-first mode)
-      Firebase.app();
-      return FirebaseDatabase.instance.ref();
-    } catch (_) {
-      return null;
+      final snapshot = await db.child('aquariums').get();
+      
+      // Get all current aquarium IDs from local DB
+      final cached = await LocalStorageService.instance.getAllLatestSensorsLatest();
+      final cachedIds = cached
+          .map((e) => (e['aquariumId'] ?? '').toString())
+          .where((id) => id.isNotEmpty)
+          .toSet();
+      
+      final Set<String> firebaseAquariumIds = {};
+      
+      if (!snapshot.exists || snapshot.value == null) {
+        // Firebase has no aquariums - delete ALL from local DB
+        debugPrint('🔄 Firebase has 0 aquariums - deleting all ${cachedIds.length} from local DB');
+        for (final id in cachedIds) {
+          await LocalStorageService.instance.deleteAquariumData(id);
+        }
+        debugPrint('✅ Local DB now has 0 aquariums (synced with Firebase)');
+        return;
+      }
+
+      final data = snapshot.value;
+      final syncPromises = <Future>[];
+      
+      if (data is Map) {
+        for (final entry in data.entries) {
+          final aquariumId = entry.key.toString();
+          final aquariumData = entry.value;
+          if (aquariumData is Map) {
+            final name = (aquariumData['name'] ?? '').toString();
+            final sensors = aquariumData['sensors'] as Map?;
+            if (name.isNotEmpty && sensors != null) {
+              firebaseAquariumIds.add(aquariumId);
+              
+              // Sync to local DB using aquarium ID as reference
+              syncPromises.add(
+                LocalStorageService.instance.cacheLatestSensors(
+                  aquariumId: aquariumId,
+                  temperature: (sensors['temperature'] ?? 0).toDouble(),
+                  ph: (sensors['ph'] ?? 0).toDouble(),
+                  turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                  timestampMs: DateTime.now().millisecondsSinceEpoch,
+                  name: name,
+                ),
+              );
+            }
+          }
+        }
+        
+        // Wait for all sync operations to complete
+        await Future.wait(syncPromises);
+        debugPrint('✅ Synced ${firebaseAquariumIds.length} aquariums from Firebase to local DB');
+        
+        // Delete aquariums from local DB that no longer exist in Firebase
+        final deletedIds = cachedIds.difference(firebaseAquariumIds);
+        if (deletedIds.isNotEmpty) {
+          debugPrint('🔄 Deleting ${deletedIds.length} aquariums from local DB (not in Firebase): $deletedIds');
+          for (final deletedId in deletedIds) {
+            await LocalStorageService.instance.deleteAquariumData(deletedId);
+          }
+        }
+        
+        debugPrint('✅ Local DB now has ${firebaseAquariumIds.length} aquariums (synced with Firebase)');
+      } else if (data is List) {
+        for (final item in data) {
+          if (item is Map) {
+            final aquariumId = (item['aquarium_id'] ?? item['id'] ?? '').toString();
+            final name = (item['name'] ?? '').toString();
+            final sensors = item['sensors'] as Map?;
+            if (aquariumId.isNotEmpty && name.isNotEmpty && sensors != null) {
+              firebaseAquariumIds.add(aquariumId);
+              
+              // Sync to local DB using aquarium ID as reference
+              syncPromises.add(
+                LocalStorageService.instance.cacheLatestSensors(
+                  aquariumId: aquariumId,
+                  temperature: (sensors['temperature'] ?? 0).toDouble(),
+                  ph: (sensors['ph'] ?? 0).toDouble(),
+                  turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                  timestampMs: DateTime.now().millisecondsSinceEpoch,
+                  name: name,
+                ),
+              );
+            }
+          }
+        }
+        
+        // Wait for all sync operations to complete
+        await Future.wait(syncPromises);
+        debugPrint('✅ Synced ${firebaseAquariumIds.length} aquariums from Firebase to local DB');
+        
+        // Delete aquariums from local DB that no longer exist in Firebase
+        final deletedIds = cachedIds.difference(firebaseAquariumIds);
+        if (deletedIds.isNotEmpty) {
+          debugPrint('🔄 Deleting ${deletedIds.length} aquariums from local DB (not in Firebase): $deletedIds');
+          for (final deletedId in deletedIds) {
+            await LocalStorageService.instance.deleteAquariumData(deletedId);
+          }
+        }
+        
+        debugPrint('✅ Local DB now has ${firebaseAquariumIds.length} aquariums (synced with Firebase)');
+      }
+    } catch (e) {
+      debugPrint('Error syncing aquarium names from Firebase: $e');
     }
   }
 
@@ -105,15 +220,18 @@ class AquariumRepository {
               turbidity: (data['turbidity'] ?? 0).toDouble(),
               ph: (data['ph'] ?? 0).toDouble(),
             );
-            // cache latest for offline
+            // cache latest for offline - preserve existing name if available
             unawaited(
-              LocalStorageService.instance.cacheLatestSensors(
-                aquariumId: aquariumId,
-                temperature: sensor.temperature,
-                ph: sensor.ph,
-                turbidity: sensor.turbidity,
-                timestampMs: DateTime.now().millisecondsSinceEpoch,
-              ),
+              LocalStorageService.instance.getLatestSensors(aquariumId).then((existing) {
+                return LocalStorageService.instance.cacheLatestSensors(
+                  aquariumId: aquariumId,
+                  temperature: sensor.temperature,
+                  ph: sensor.ph,
+                  turbidity: sensor.turbidity,
+                  timestampMs: DateTime.now().millisecondsSinceEpoch,
+                  name: existing?['name'] as String?,
+                );
+              }),
             );
             return sensor;
           } catch (e) {
@@ -131,15 +249,17 @@ class AquariumRepository {
         });
   }
 
-  // Stream of all aquariums with name and sensors, offline-first (emit cached immediately)
-  Stream<List<AquariumSummary>> getAllAquariumsSummary() {
-    final cached$ = Stream.fromFuture(
+  // Helper method to get cached data as a stream
+  Stream<List<AquariumSummary>> _getCachedStream() {
+    return Stream.fromFuture(
       LocalStorageService.instance.getAllLatestSensorsLatest().then((list) {
         return list
             .map(
               (e) => AquariumSummary(
                 aquariumId: (e['aquariumId'] ?? '').toString(),
-                name: '', // name is unknown from cache; UI can fallback
+                name: (e['name'] ?? '').toString().isEmpty 
+                    ? 'Aquarium ${(e['aquariumId'] ?? '').toString()}' 
+                    : (e['name'] ?? '').toString(),
                 sensor: Sensor(
                   temperature: (e['temperature'] ?? 0).toDouble(),
                   turbidity: (e['turbidity'] ?? 0).toDouble(),
@@ -150,119 +270,210 @@ class AquariumRepository {
             .toList();
       }),
     );
+  }
 
-    // Live stream that (re)attaches when connectivity changes and when Firebase becomes available
+  // Stream of all aquariums with name and sensors, Firebase-first when online
+  Stream<List<AquariumSummary>> getAllAquariumsSummary() {
+    // Live stream from Firebase - this is the source of truth when online
     final online$ = ConnectivityService.instance.onlineStream.startWith(true);
-    final live$ = online$.switchMap((_) {
+    
+    // When online: prioritize Firebase, fall back to cached when offline
+    return online$.switchMap((isOnline) async* {
       final db = _dbRef();
-      if (db == null) {
-        return const Stream<List<AquariumSummary>>.empty();
-      }
-      return db
-          .child('aquariums')
-          .onValue
-          .map((event) {
-            try {
-              final dynamic data = event.snapshot.value;
-              final List<AquariumSummary> result = [];
-              if (data == null) return result;
-
-              if (data is Map) {
-                data.forEach((key, value) {
-                  try {
-                    if (value is Map && value.isNotEmpty) {
-                      final sensors = value['sensors'] as Map?;
-                      final name = (value['name'] ?? 'New Aquarium').toString();
-                      if (sensors != null && sensors.isNotEmpty) {
-                        result.add(
-                          AquariumSummary(
-                            aquariumId: key.toString(),
-                            name: name,
-                            sensor: Sensor(
-                              temperature:
-                                  (sensors['temperature'] ?? 0).toDouble(),
-                              turbidity: (sensors['turbidity'] ?? 0).toDouble(),
-                              ph: (sensors['ph'] ?? 0).toDouble(),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    debugPrint('Error processing aquarium $key: $e');
+      
+      if (isOnline && db != null && Firebase.apps.isNotEmpty) {
+        // Online: Firebase is source of truth, but show cached first for instant display
+        // Get cached data first, then start Firebase stream
+        final cachedData = await LocalStorageService.instance.getAllLatestSensorsLatest();
+        final cachedList = cachedData
+            .map(
+              (e) => AquariumSummary(
+                aquariumId: (e['aquariumId'] ?? '').toString(),
+                name: (e['name'] ?? '').toString().isEmpty 
+                    ? 'Aquarium ${(e['aquariumId'] ?? '').toString()}' 
+                    : (e['name'] ?? '').toString(),
+                sensor: Sensor(
+                  temperature: (e['temperature'] ?? 0).toDouble(),
+                  turbidity: (e['turbidity'] ?? 0).toDouble(),
+                  ph: (e['ph'] ?? 0).toDouble(),
+                ),
+              ),
+            )
+            .toList();
+        
+        final live$ = db
+            .child('aquariums')
+            .onValue
+            .asyncMap((event) async {
+              try {
+                final dynamic data = event.snapshot.value;
+                final List<AquariumSummary> result = [];
+                final Set<String> firebaseAquariumIds = {};
+                
+                // Get all current aquarium IDs from local DB BEFORE processing Firebase data
+                final cached = await LocalStorageService.instance.getAllLatestSensorsLatest();
+                final cachedIds = cached
+                    .map((e) => (e['aquariumId'] ?? '').toString())
+                    .where((id) => id.isNotEmpty)
+                    .toSet();
+                
+                if (data == null) {
+                  // Firebase has no aquariums - delete ALL from local DB to keep in sync
+                  debugPrint('🔄 Firebase has 0 aquariums - deleting all ${cachedIds.length} from local DB');
+                  for (final id in cachedIds) {
+                    await LocalStorageService.instance.deleteAquariumData(id);
+                    debugPrint('✅ Deleted aquarium $id from local DB');
                   }
-                });
-                return result;
-              }
-
-              if (data is List) {
-                for (final item in data) {
-                  try {
-                    if (item is Map && item.isNotEmpty) {
-                      final String id =
-                          (item['aquarium_id'] ?? item['id'] ?? '').toString();
-                      if (id.isEmpty) continue;
-                      final String name =
-                          (item['name'] ?? 'New Aquarium').toString();
-                      final sensors = item['sensors'] as Map?;
-                      if (sensors != null && sensors.isNotEmpty) {
-                        result.add(
-                          AquariumSummary(
-                            aquariumId: id,
-                            name: name,
-                            sensor: Sensor(
-                              temperature:
-                                  (sensors['temperature'] ?? 0).toDouble(),
-                              turbidity: (sensors['turbidity'] ?? 0).toDouble(),
-                              ph: (sensors['ph'] ?? 0).toDouble(),
-                            ),
-                          ),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    debugPrint('Error processing aquarium item: $e');
-                  }
+                  debugPrint('✅ Local DB now has 0 aquariums (synced with Firebase)');
+                  return result;
                 }
+
+                // Process Firebase data and sync to local DB
+                if (data is Map) {
+                  // First, sync all aquariums from Firebase to local DB
+                  final syncPromises = <Future>[];
+                  
+                  data.forEach((key, value) {
+                    try {
+                      if (value is Map && value.isNotEmpty) {
+                        final sensors = value['sensors'] as Map?;
+                        final name = (value['name'] ?? 'New Aquarium').toString();
+                        if (sensors != null && sensors.isNotEmpty) {
+                          final aquariumId = key.toString();
+                          firebaseAquariumIds.add(aquariumId);
+                          
+                          // Sync to local DB - await all sync operations
+                          syncPromises.add(
+                            LocalStorageService.instance.cacheLatestSensors(
+                              aquariumId: aquariumId,
+                              temperature: (sensors['temperature'] ?? 0).toDouble(),
+                              ph: (sensors['ph'] ?? 0).toDouble(),
+                              turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                              timestampMs: DateTime.now().millisecondsSinceEpoch,
+                              name: name,
+                            ),
+                          );
+                          
+                          result.add(
+                            AquariumSummary(
+                              aquariumId: aquariumId,
+                              name: name,
+                              sensor: Sensor(
+                                temperature:
+                                    (sensors['temperature'] ?? 0).toDouble(),
+                                turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                                ph: (sensors['ph'] ?? 0).toDouble(),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('Error processing aquarium $key: $e');
+                    }
+                  });
+                  
+                  // Wait for all sync operations to complete
+                  await Future.wait(syncPromises);
+                  debugPrint('✅ Synced ${firebaseAquariumIds.length} aquariums from Firebase to local DB');
+                  
+                  // Delete aquariums from local DB that no longer exist in Firebase
+                  final deletedIds = cachedIds.difference(firebaseAquariumIds);
+                  if (deletedIds.isNotEmpty) {
+                    debugPrint('🔄 Deleting ${deletedIds.length} aquariums from local DB (not in Firebase): $deletedIds');
+                    for (final deletedId in deletedIds) {
+                      await LocalStorageService.instance.deleteAquariumData(deletedId);
+                      debugPrint('✅ Deleted aquarium $deletedId from local DB');
+                    }
+                  }
+                  
+                  debugPrint('✅ Local DB now has ${firebaseAquariumIds.length} aquariums (synced with Firebase)');
+                  return result;
+                }
+
+                if (data is List) {
+                  // First, sync all aquariums from Firebase to local DB
+                  final syncPromises = <Future>[];
+
+                  for (final item in data) {
+                    try {
+                      if (item is Map && item.isNotEmpty) {
+                        final String id =
+                            (item['aquarium_id'] ?? item['id'] ?? '').toString();
+                        if (id.isEmpty) continue;
+                        final String name =
+                            (item['name'] ?? 'New Aquarium').toString();
+                        final sensors = item['sensors'] as Map?;
+                        if (sensors != null && sensors.isNotEmpty) {
+                          firebaseAquariumIds.add(id);
+                          
+                          // Sync to local DB - await all sync operations
+                          syncPromises.add(
+                            LocalStorageService.instance.cacheLatestSensors(
+                              aquariumId: id,
+                              temperature: (sensors['temperature'] ?? 0).toDouble(),
+                              ph: (sensors['ph'] ?? 0).toDouble(),
+                              turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                              timestampMs: DateTime.now().millisecondsSinceEpoch,
+                              name: name,
+                            ),
+                          );
+                          
+                          result.add(
+                            AquariumSummary(
+                              aquariumId: id,
+                              name: name,
+                              sensor: Sensor(
+                                temperature:
+                                    (sensors['temperature'] ?? 0).toDouble(),
+                                turbidity: (sensors['turbidity'] ?? 0).toDouble(),
+                                ph: (sensors['ph'] ?? 0).toDouble(),
+                              ),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
+                      debugPrint('Error processing aquarium item: $e');
+                    }
+                  }
+                  
+                  // Wait for all sync operations to complete
+                  await Future.wait(syncPromises);
+                  debugPrint('✅ Synced ${firebaseAquariumIds.length} aquariums from Firebase to local DB');
+                  
+                  // Delete aquariums from local DB that no longer exist in Firebase
+                  final deletedIds = cachedIds.difference(firebaseAquariumIds);
+                  if (deletedIds.isNotEmpty) {
+                    debugPrint('🔄 Deleting ${deletedIds.length} aquariums from local DB (not in Firebase): $deletedIds');
+                    for (final deletedId in deletedIds) {
+                      await LocalStorageService.instance.deleteAquariumData(deletedId);
+                      debugPrint('✅ Deleted aquarium $deletedId from local DB');
+                    }
+                  }
+                  
+                  debugPrint('✅ Local DB now has ${firebaseAquariumIds.length} aquariums (synced with Firebase)');
+                  return result;
+                }
+
                 return result;
+              } catch (e) {
+                debugPrint('Error in getAllAquariumsSummary: $e');
+                return <AquariumSummary>[];
               }
-
-              return result;
-            } catch (e) {
-              debugPrint('Error in getAllAquariumsSummary: $e');
+            })
+            .handleError((error) {
+              debugPrint('Firebase error in getAllAquariumsSummary: $error');
               return <AquariumSummary>[];
-            }
-          })
-          .handleError((error) {
-            debugPrint('Firebase error in getAllAquariumsSummary: $error');
-            return <AquariumSummary>[];
-          });
+            });
+        
+        // Show cached first for instant display, then switch to Firebase (source of truth)
+        yield* live$.startWith(cachedList);
+      } else {
+        // Offline: use cached data only - create fresh stream each time
+        yield* _getCachedStream();
+      }
     });
-
-    // Emit cached first, then live; also update when local cache changes
-    final cacheWatch$ = LocalStorageService.instance
-        .watchAllLatestSensorsLazy()
-        .asyncMap(
-          (_) => LocalStorageService.instance.getAllLatestSensorsLatest().then(
-            (list) =>
-                list
-                    .map(
-                      (e) => AquariumSummary(
-                        aquariumId: (e['aquariumId'] ?? '').toString(),
-                        name: '',
-                        sensor: Sensor(
-                          temperature: (e['temperature'] ?? 0).toDouble(),
-                          turbidity: (e['turbidity'] ?? 0).toDouble(),
-                          ph: (e['ph'] ?? 0).toDouble(),
-                        ),
-                      ),
-                    )
-                    .toList(),
-          ),
-        )
-        .onErrorReturn(<AquariumSummary>[]);
-
-    return Rx.merge<List<AquariumSummary>>([cached$, cacheWatch$, live$]);
   }
 
   Future<Threshold> fetchThresholds(String aquariumId) async {
@@ -370,6 +581,10 @@ class AquariumRepository {
         'average': {},
       });
 
+      // Save to local DB using aquarium ID as reference
+      await LocalStorageService.instance.cacheAquariumName(nextId, name);
+      debugPrint('✅ Created aquarium $nextId ($name) and saved to local DB');
+
       return nextId;
     } catch (e) {
       debugPrint('Error creating aquarium: $e');
@@ -382,6 +597,10 @@ class AquariumRepository {
       final db = _dbRef();
       if (db == null) throw Exception('Offline mode: cannot rename aquarium');
       await db.child('aquariums/$aquariumId/name').set(newName);
+      
+      // Update local DB using aquarium ID as reference
+      await LocalStorageService.instance.cacheAquariumName(aquariumId, newName);
+      debugPrint('✅ Updated aquarium $aquariumId name to "$newName" in local DB');
     } catch (e) {
       debugPrint('Error updating aquarium name: $e');
       rethrow;
@@ -392,7 +611,15 @@ class AquariumRepository {
     try {
       final db = _dbRef();
       if (db == null) throw Exception('Offline mode: cannot delete aquarium');
+      
+      // Delete from Firebase first
       await db.child('aquariums/$aquariumId').remove();
+      debugPrint('✅ Deleted aquarium $aquariumId from Firebase');
+      
+      // Delete from local DB using aquarium ID as reference
+      // This ensures the aquarium is removed from local cache immediately
+      await LocalStorageService.instance.deleteAquariumData(aquariumId);
+      debugPrint('✅ Deleted aquarium $aquariumId from local DB');
     } catch (e) {
       debugPrint('Error deleting aquarium: $e');
       rethrow;

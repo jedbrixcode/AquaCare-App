@@ -37,7 +37,7 @@ class AutoFeedState {
 
   factory AutoFeedState.initial() => const AutoFeedState(
     isManualMode: false,
-    rotations: 3,
+    rotations: 1,
     isFeeding: false,
     isCameraLoading: true,
     isConnected: false,
@@ -66,12 +66,18 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
     state = state.copyWith(isConnected: _repo.isWsConnected);
   }
 
-  Future<void> toggleCamera(String aquariumId, bool on) async {
-    await _repo.toggleCamera(
-      backendUrl: backendUrl,
-      aquariumId: aquariumId,
-      on: on,
-    );
+  Future<bool> toggleCamera(String aquariumId, bool on) async {
+    try {
+      final success = await _repo.toggleCamera(
+        backendUrl: backendUrl,
+        aquariumId: aquariumId,
+        on: on,
+      );
+      return success;
+    } catch (e) {
+      debugPrint('Error in toggleCamera: $e');
+      return false;
+    }
   }
 
   void setManualMode(bool manual) {
@@ -112,12 +118,23 @@ class AutoFeedViewModel extends StateNotifier<AutoFeedState> {
   }
 
   Future<bool> sendRotation(String aquariumId) async {
-    return _repo.sendRotationFeeding(
-      backendUrl: backendUrl,
-      aquariumId: aquariumId,
-      rotations: state.rotations,
-      food: state.food,
-    );
+    state = state.copyWith(isFeeding: true);
+    try {
+      final result = await _repo.sendRotationFeeding(
+        backendUrl: backendUrl,
+        aquariumId: aquariumId,
+        rotations: state.rotations,
+        food: state.food,
+      );
+      // Reset feeding state after a delay (feeding typically takes a few seconds)
+      Future.delayed(const Duration(seconds: 5), () {
+        state = state.copyWith(isFeeding: false);
+      });
+      return result;
+    } catch (e) {
+      state = state.copyWith(isFeeding: false);
+      return false;
+    }
   }
 
   void disconnect() => _repo.disconnect();

@@ -11,7 +11,7 @@ Future<void> showOneTimeScheduleDialog(
   DateTime selectedDate = DateTime.now();
   TimeOfDay selectedTime = const TimeOfDay(hour: 8, minute: 0);
   final cyclesController = TextEditingController(text: '1');
-  String selectedFood = 'pellet';
+  String selectedFood = 'pellets';
   final isDark = Theme.of(context).brightness == Brightness.dark;
 
   await showDialog(
@@ -125,10 +125,10 @@ Future<void> showOneTimeScheduleDialog(
                 DropdownButtonFormField<String>(
                   value: selectedFood,
                   items: const [
-                    DropdownMenuItem(value: 'pellet', child: Text('Pellets')),
+                    DropdownMenuItem(value: 'pellets', child: Text('Pellets')),
                     DropdownMenuItem(value: 'flakes', child: Text('Flakes')),
                   ],
-                  onChanged: (val) => selectedFood = val ?? 'pellet',
+                  onChanged: (val) => selectedFood = val ?? 'pellets',
                   decoration: const InputDecoration(
                     labelText: 'Food Type',
                     border: OutlineInputBorder(),
@@ -136,7 +136,7 @@ Future<void> showOneTimeScheduleDialog(
                   ),
                   validator:
                       (v) =>
-                          (v == null || (v != 'pellet' && v != 'flakes'))
+                          (v == null || (v != 'pellets' && v != 'flakes'))
                               ? 'Select food'
                               : null,
                 ),

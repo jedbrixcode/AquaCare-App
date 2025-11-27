@@ -187,12 +187,6 @@ class ScheduledAutofeedPage extends ConsumerWidget {
     );
   }
 
-  // trimmed legacy helpers (migrated to widgets/ui_helpers.dart)
-
-  // trimmed legacy helpers (migrated to widgets/ui_helpers.dart)
-
-  // trimmed legacy helpers (migrated to widgets/ui_helpers.dart)
-
   Widget _oneTimeCard(
     BuildContext context,
     OneTimeSchedule schedule,
@@ -327,7 +321,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
       text: schedule.cycle.toString(),
     );
     String selectedFood =
-        schedule.food.toLowerCase() == 'flakes' ? 'flakes' : 'pellet';
+        schedule.food.toLowerCase() == 'flakes' ? 'flakes' : 'pellets';
 
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     await showDialog(
@@ -458,7 +452,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             value: selectedFood,
                             items: const [
                               DropdownMenuItem(
-                                value: 'pellet',
+                                value: 'pellets',
                                 child: Text('Pellets'),
                               ),
                               DropdownMenuItem(
@@ -468,7 +462,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             ],
                             onChanged:
                                 (v) => setState(
-                                  () => selectedFood = (v ?? 'pellet'),
+                                  () => selectedFood = (v ?? 'pellets'),
                                 ),
                             decoration: const InputDecoration(
                               labelText: 'Food Type',
@@ -478,7 +472,7 @@ class ScheduledAutofeedPage extends ConsumerWidget {
                             validator:
                                 (v) =>
                                     (v == null ||
-                                            (v != 'pellet' && v != 'flakes'))
+                                            (v != 'pellets' && v != 'flakes'))
                                         ? 'Select food'
                                         : null,
                           ),
@@ -691,10 +685,4 @@ class ScheduledAutofeedPage extends ConsumerWidget {
   ) {
     showEditScheduleDialog(context, schedule, viewModel);
   }
-
-  // trimmed legacy dialog (migrated to widgets/schedule_dialog.dart)
-
-  // trimmed legacy dialog (migrated to widgets/delete_confirmation_dialog.dart)
-
-  // trimmed legacy dialog (migrated to widgets/one_time_schedule_dialog.dart)
 }

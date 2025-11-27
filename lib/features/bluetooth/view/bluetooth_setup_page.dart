@@ -5,6 +5,7 @@ import '../viewmodel/bluetooth_setup_viewmodel.dart';
 import 'package:aquacare_v5/utils/responsive_helper.dart';
 import 'package:flutter_blue_plus/flutter_blue_plus.dart' as blue;
 import 'package:aquacare_v5/utils/theme.dart';
+import 'package:aquacare_v5/core/navigation/route_observer.dart';
 
 class BluetoothSetupPage extends ConsumerStatefulWidget {
   const BluetoothSetupPage({super.key});
@@ -13,9 +14,12 @@ class BluetoothSetupPage extends ConsumerStatefulWidget {
   ConsumerState<BluetoothSetupPage> createState() => _BluetoothSetupPageState();
 }
 
-class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
+class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> with RouteAware {
   final TextEditingController _ssidController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+  final FocusNode _ssidFocusNode = FocusNode();
+  final FocusNode _passwordFocusNode = FocusNode();
 
   StreamSubscription<List<blue.BluetoothDevice>>?
   _devicesSub; // deprecated usage, kept to avoid sudden removal
@@ -23,21 +27,106 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
   _connSub; // deprecated usage
   StreamSubscription<String>? _statusSub; // deprecated usage
 
+  StreamSubscription<blue.BluetoothAdapterState>? _adapterStateSub;
+
   @override
   void initState() {
     super.initState();
     _initializeBluetooth();
+    _monitorBluetoothState();
+    _setupFocusListeners();
+  }
+
+  void _setupFocusListeners() {
+    _ssidFocusNode.addListener(() {
+      if (_ssidFocusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    });
+    _passwordFocusNode.addListener(() {
+      if (_passwordFocusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPop() {
+    // Disconnect when leaving the page
+    ref.read(bluetoothSetupViewModelProvider.notifier).disconnect();
   }
 
   void _initializeBluetooth() async {
     await ref.read(bluetoothSetupViewModelProvider.notifier).initialize();
   }
 
+  void _monitorBluetoothState() {
+    // Monitor bluetooth adapter state changes
+    _adapterStateSub = blue.FlutterBluePlus.adapterState.listen((state) {
+      if (!mounted) return;
+      
+      final vm = ref.read(bluetoothSetupViewModelProvider);
+      // If bluetooth is turned off while connected, show message to user
+      if (state != blue.BluetoothAdapterState.on && vm.isConnected) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Bluetooth was turned off. Please turn it back on to maintain connection.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 5),
+          ),
+        );
+        // Disconnect since bluetooth is off
+        ref.read(bluetoothSetupViewModelProvider.notifier).disconnect();
+      }
+    });
+  }
+
+  @override
+    void dispose() {
+      appRouteObserver.unsubscribe(this);
+      _adapterStateSub?.cancel();
+      _ssidController.dispose();
+      _passwordController.dispose();
+      _scrollController.dispose();
+      _ssidFocusNode.dispose();
+      _passwordFocusNode.dispose();
+      _devicesSub?.cancel();
+      _connSub?.cancel();
+      _statusSub?.cancel();
+      super.dispose();
+    }
+
   @override
   Widget build(BuildContext context) {
     final vm = ref.watch(bluetoothSetupViewModelProvider);
     bool isDark = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       backgroundColor: isDark ? darkTheme.colorScheme.background : Colors.white,
       appBar: AppBar(
         backgroundColor:
@@ -60,11 +149,18 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
           horizontal: ResponsiveHelper.horizontalPadding(context),
           vertical: ResponsiveHelper.verticalPadding(context),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status Card
-            Container(
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+              // Status Card
+              Container(
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -166,7 +262,8 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                 ),
               ),
               const SizedBox(height: 12),
-              Expanded(
+              SizedBox(
+                height: 300,
                 child: RepaintBoundary(
                   child: ListView.builder(
                     cacheExtent: 600.0,
@@ -175,14 +272,12 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                       final device = vm.devices[index];
                       return Card(
                         margin: const EdgeInsets.only(bottom: 8),
+                        color: isDark ? darkTheme.colorScheme.surface : Colors.blue[50],
                         child: ListTile(
                           leading: Icon(
                             Icons.bluetooth_connected,
                             size: 50,
-                            color:
-                                isDark
-                                    ? darkTheme.colorScheme.secondary
-                                    : Colors.blue[600],
+                            color:Colors.blue[600],
                           ),
                           title: Text(
                             device.platformName.isNotEmpty
@@ -197,8 +292,13 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                                     ? null
                                     : () => _connectToDevice(device),
                             child: Text(
-                              vm.isConnected ? 'Connected' : 'Connect',
-                            ),
+                              style: TextStyle(
+                                color: isDark
+                                    ? darkTheme.textTheme.bodyLarge?.color
+                                    : Colors.white,
+                              ),
+                                vm.isConnected ? 'Connected' : 'Connect',
+                              ),
                           ),
                         ),
                       );
@@ -226,6 +326,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               // WiFi SSID
               TextField(
                 controller: _ssidController,
+                focusNode: _ssidFocusNode,
                 decoration: const InputDecoration(
                   labelText: 'WiFi Network Name (SSID)',
                   hintText: 'Enter your WiFi network name',
@@ -237,6 +338,7 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
               // WiFi Password
               TextField(
                 controller: _passwordController,
+                focusNode: _passwordFocusNode,
                 decoration: const InputDecoration(
                   labelText: 'WiFi Password',
                   hintText: 'Enter your WiFi password',
@@ -269,8 +371,11 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
                   ),
                 ),
               ),
+              SizedBox(height: 20),
             ],
           ],
+            ),
+          ),
         ),
       ),
     );
@@ -348,14 +453,5 @@ class _BluetoothSetupPageState extends ConsumerState<BluetoothSetupPage> {
       );
     }
   }
-
-  @override
-  void dispose() {
-    _ssidController.dispose();
-    _passwordController.dispose();
-    _devicesSub?.cancel();
-    _connSub?.cancel();
-    _statusSub?.cancel();
-    super.dispose();
-  }
 }
+

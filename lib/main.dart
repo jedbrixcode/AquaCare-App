@@ -11,21 +11,21 @@ import 'features/graphs/view/sensor_graphs_page.dart';
 import 'features/settings/view/settings_page.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.dumpErrorToConsole(details);
-  };
-  // Catch uncaught async errors
-  ui.PlatformDispatcher.instance.onError = (error, stack) {
-    // Log and keep app running
-    // You can hook this into Crashlytics/Sentry if configured
-    debugPrint('Uncaught error: $error');
-    debugPrintStack(stackTrace: stack);
-    return true;
-  };
-  await AppInitializer.initialize();
   runZonedGuarded(
-    () {
+    () async {
+      WidgetsFlutterBinding.ensureInitialized();
+      FlutterError.onError = (FlutterErrorDetails details) {
+        FlutterError.dumpErrorToConsole(details);
+      };
+      // Catch uncaught async errors
+      ui.PlatformDispatcher.instance.onError = (error, stack) {
+        // Log and keep app running
+        // You can hook this into Crashlytics/Sentry if configured
+        debugPrint('Uncaught error: $error');
+        debugPrintStack(stackTrace: stack);
+        return true;
+      };
+      await AppInitializer.initialize();
       runApp(const ProviderScope(child: MyApp()));
     },
     (error, stack) {

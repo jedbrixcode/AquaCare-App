@@ -1,8 +1,12 @@
 import 'dart:convert';
 import 'dart:async';
+import 'dart:developer' as developer;
+import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:aquacare_v5/core/config/backend_config.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart' show Firebase;
 import '../models/feeding_schedule_model.dart';
 import 'package:aquacare_v5/core/services/local_storage_service.dart';
 import 'package:aquacare_v5/core/models/feeding_schedule_cache.dart';
@@ -13,10 +17,81 @@ class ScheduledAutofeedRepository {
   // Simple in-memory cache placeholder. Swap with Hive/Prefs/Isar.
   final Map<String, List<FeedingSchedule>> _cache = {};
 
+  Future<http.Response> _sendRequest(
+    Future<http.Response> Function(http.Client client) sender,
+  ) async {
+    http.Client client = http.Client();
+    try {
+      return await sender(client).timeout(const Duration(seconds: 20));
+    } on HandshakeException catch (e) {
+      client.close();
+      developer.log(
+        'HTTPS handshake failed ($e). Retrying with relaxed certificate validation.',
+        name: 'ScheduledAutofeedRepository',
+      );
+      final insecure = IOClient(
+        HttpClient()
+          ..badCertificateCallback =
+              (X509Certificate cert, String host, int port) {
+            developer.log(
+              '⚠️ Accepting certificate from $host:$port',
+              name: 'ScheduledAutofeedRepository',
+            );
+            return true;
+          },
+      );
+      try {
+        return await sender(insecure).timeout(const Duration(seconds: 20));
+      } finally {
+        insecure.close();
+      }
+    } on TimeoutException {
+      client.close();
+      rethrow;
+    } finally {
+      client.close();
+    }
+  }
+
+  DatabaseReference? _dbRef() {
+    try {
+      // Returns null if Firebase is not yet initialized (offline-first mode)
+      Firebase.app();
+      return FirebaseDatabase.instance.ref();
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Get all feeding schedules for an aquarium (read from Firebase Realtime DB)
   Future<List<FeedingSchedule>> getFeedingSchedules(String aquariumId) async {
+    final db = _dbRef();
+    if (db == null) {
+      // Offline fallback: return cached schedules
+      final cached = await LocalStorageService.instance.getFeedingSchedules(
+        aquariumId,
+      );
+      if (cached.isNotEmpty) {
+        return cached
+            .map(
+              (e) => FeedingSchedule(
+                id: e.scheduleId,
+                aquariumId: aquariumId,
+                time: e.time,
+                cycles: e.cycles,
+                foodType: e.foodType,
+                isEnabled: e.isEnabled,
+                createdAt: DateTime.now(),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.time.compareTo(b.time));
+      }
+      return const <FeedingSchedule>[];
+    }
+    
     try {
-      final ref = FirebaseDatabase.instance.ref(
+      final ref = db.child(
         'aquariums/$aquariumId/auto_feeder/schedule',
       );
       final snapshot = await ref.get();
@@ -97,20 +172,22 @@ class ScheduledAutofeedRepository {
   }) async {
     try {
       // Normalize food naming for backend compatibility
-      final String normalizedFood =
-          foodType.toLowerCase() == 'pellet'
-              ? 'pellets'
-              : foodType.toLowerCase();
-      final response = await http.post(
-        Uri.parse('$baseUrl/add_schedule/$aquariumId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'time': time,
-          'cycle': cycles,
-          'switch': isEnabled,
-          'food': normalizedFood,
-          'daily': daily,
-        }),
+      // Backend expects 'flakes' or 'pellets'
+      final String normalizedFood = foodType.toLowerCase() == 'pellets'
+          ? 'pellets'
+          : (foodType.toLowerCase() == 'flakes' ? 'flakes' : foodType.toLowerCase());
+      final response = await _sendRequest(
+        (client) => client.post(
+          Uri.parse('$baseUrl/add_schedule/$aquariumId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({
+            'time': time,
+            'cycle': cycles,
+            'switch': isEnabled,
+            'food': normalizedFood,
+            'daily': daily,
+          }),
+        ),
       );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
@@ -159,11 +236,13 @@ class ScheduledAutofeedRepository {
   }) async {
     try {
       final encodedTime = Uri.encodeComponent(time);
-      final response = await http.patch(
-        Uri.parse(
-          '$baseUrl/update_schedule_cycle/$aquariumId/$encodedTime/$cycles',
+      final response = await _sendRequest(
+        (client) => client.patch(
+          Uri.parse(
+            '$baseUrl/update_schedule_cycle/$aquariumId/$encodedTime/$cycles',
+          ),
+          headers: {'Content-Type': 'application/json'},
         ),
-        headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode != 200) {
         throw Exception('Failed to update cycle: ${response.statusCode}');
@@ -180,11 +259,13 @@ class ScheduledAutofeedRepository {
   }) async {
     try {
       final encodedTime = Uri.encodeComponent(time);
-      final response = await http.patch(
-        Uri.parse(
-          '$baseUrl/update_schedule_switch/$aquariumId/$encodedTime/${isEnabled ? 'true' : 'false'}',
+      final response = await _sendRequest(
+        (client) => client.patch(
+          Uri.parse(
+            '$baseUrl/update_schedule_switch/$aquariumId/$encodedTime/${isEnabled ? 'true' : 'false'}',
+          ),
+          headers: {'Content-Type': 'application/json'},
         ),
-        headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode != 200) {
         throw Exception('Failed to update switch: ${response.statusCode}');
@@ -201,11 +282,13 @@ class ScheduledAutofeedRepository {
   }) async {
     try {
       final encodedTime = Uri.encodeComponent(time);
-      final response = await http.patch(
-        Uri.parse(
-          '$baseUrl/update_daily/$aquariumId/$encodedTime/${daily ? 'true' : 'false'}',
+      final response = await _sendRequest(
+        (client) => client.patch(
+          Uri.parse(
+            '$baseUrl/update_daily/$aquariumId/$encodedTime/${daily ? 'true' : 'false'}',
+          ),
+          headers: {'Content-Type': 'application/json'},
         ),
-        headers: {'Content-Type': 'application/json'},
       );
       if (response.statusCode != 200) {
         throw Exception('Failed to update daily: ${response.statusCode}');
@@ -227,12 +310,17 @@ class ScheduledAutofeedRepository {
         'cycle': cycles,
         'schedule_time': _formatDateTime(scheduleDateTime),
         // Normalize food naming for backend compatibility
-        'food': food.toLowerCase() == 'pellet' ? 'pellets' : food.toLowerCase(),
+        // Backend expects 'flakes' or 'pellets'
+        'food': food.toLowerCase() == 'pellets'
+            ? 'pellets'
+            : (food.toLowerCase() == 'flakes' ? 'flakes' : food.toLowerCase()),
       };
-      final response = await http.post(
-        Uri.parse('$baseUrl/task/$aquariumId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(payload),
+      final response = await _sendRequest(
+        (client) => client.post(
+          Uri.parse('$baseUrl/task/$aquariumId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(payload),
+        ),
       );
       if (response.statusCode != 200) {
         throw Exception('Failed to add one-time task: ${response.statusCode}');
@@ -254,10 +342,12 @@ class ScheduledAutofeedRepository {
         // Prefer provided documentId; fallback to conventional id pattern
         'document_id': documentId ?? '${aquariumId}_schedule_at_$scheduleTime',
       };
-      final response = await http.post(
-        Uri.parse('$baseUrl/task/delete/$aquariumId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(payload),
+      final response = await _sendRequest(
+        (client) => client.post(
+          Uri.parse('$baseUrl/task/delete/$aquariumId'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(payload),
+        ),
       );
       if (response.statusCode != 200) {
         throw Exception(
@@ -289,9 +379,11 @@ class ScheduledAutofeedRepository {
     try {
       // scheduleId maps to time string for backend; ensure safe URL
       final encodedTime = Uri.encodeComponent(scheduleId);
-      final response = await http.delete(
-        Uri.parse('$baseUrl/delete_schedule/$aquariumId/$encodedTime'),
-        headers: {'Content-Type': 'application/json'},
+      final response = await _sendRequest(
+        (client) => client.delete(
+          Uri.parse('$baseUrl/delete_schedule/$aquariumId/$encodedTime'),
+          headers: {'Content-Type': 'application/json'},
+        ),
       );
 
       if (response.statusCode != 200 && response.statusCode != 204) {
@@ -373,9 +465,29 @@ class ScheduledAutofeedRepository {
 
   // Get auto feeder status for an aquarium
   Future<AutoFeederStatus> getAutoFeederStatus(String aquariumId) async {
+    final db = _dbRef();
+    if (db == null) {
+      // Offline fallback: check cached schedules
+      final cached = await LocalStorageService.instance.getFeedingSchedules(
+        aquariumId,
+      );
+      bool enabled = false;
+      for (final schedule in cached) {
+        if (schedule.isEnabled) {
+          enabled = true;
+          break;
+        }
+      }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: enabled,
+        lastUpdated: DateTime.now(),
+      );
+    }
+    
     try {
       // Compute status from Firebase schedules: enabled if any schedule.switch == true
-      final ref = FirebaseDatabase.instance.ref(
+      final ref = db.child(
         'aquariums/$aquariumId/auto_feeder/schedule',
       );
       final snapshot = await ref.get();
@@ -396,7 +508,22 @@ class ScheduledAutofeedRepository {
         lastUpdated: DateTime.now(),
       );
     } catch (e) {
-      throw Exception('Error fetching auto feeder status: $e');
+      // Fallback to cached status
+      final cached = await LocalStorageService.instance.getFeedingSchedules(
+        aquariumId,
+      );
+      bool enabled = false;
+      for (final schedule in cached) {
+        if (schedule.isEnabled) {
+          enabled = true;
+          break;
+        }
+      }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: enabled,
+        lastUpdated: DateTime.now(),
+      );
     }
   }
 
@@ -405,9 +532,29 @@ class ScheduledAutofeedRepository {
     required String aquariumId,
     required bool isEnabled,
   }) async {
+    final db = _dbRef();
+    if (db == null) {
+      // Offline mode: cannot toggle, return current cached status
+      final cached = await LocalStorageService.instance.getFeedingSchedules(
+        aquariumId,
+      );
+      bool enabled = false;
+      for (final schedule in cached) {
+        if (schedule.isEnabled) {
+          enabled = true;
+          break;
+        }
+      }
+      return AutoFeederStatus(
+        aquariumId: aquariumId,
+        isEnabled: enabled,
+        lastUpdated: DateTime.now(),
+      );
+    }
+    
     try {
       // Batch toggle all schedules' switch to the desired state using Flask route
-      final ref = FirebaseDatabase.instance.ref(
+      final ref = db.child(
         'aquariums/$aquariumId/auto_feeder/schedule',
       );
       final snapshot = await ref.get();
@@ -440,7 +587,30 @@ class ScheduledAutofeedRepository {
 
   // Realtime subscriptions and caching APIs (stubs). Replace with Firebase/WS streams.
   Stream<List<FeedingSchedule>> subscribeSchedules(String aquariumId) {
-    final ref = FirebaseDatabase.instance.ref(
+    final db = _dbRef();
+    if (db == null) {
+      // Offline fallback: return cached schedules as a stream
+      return Stream.fromFuture(
+        LocalStorageService.instance.getFeedingSchedules(aquariumId).then(
+          (cached) => cached
+              .map(
+                (e) => FeedingSchedule(
+                  id: e.scheduleId,
+                  aquariumId: aquariumId,
+                  time: e.time,
+                  cycles: e.cycles,
+                  foodType: e.foodType,
+                  isEnabled: e.isEnabled,
+                  createdAt: DateTime.now(),
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.time.compareTo(b.time)),
+        ),
+      );
+    }
+    
+    final ref = db.child(
       'aquariums/$aquariumId/auto_feeder/schedule',
     );
     return ref.onValue.map((event) {
@@ -481,11 +651,52 @@ class ScheduledAutofeedRepository {
         ),
       );
       return items;
+    }).handleError((error) {
+      // On error, return cached schedules
+      return LocalStorageService.instance.getFeedingSchedules(aquariumId).then(
+        (cached) => cached
+            .map(
+              (e) => FeedingSchedule(
+                id: e.scheduleId,
+                aquariumId: aquariumId,
+                time: e.time,
+                cycles: e.cycles,
+                foodType: e.foodType,
+                isEnabled: e.isEnabled,
+                createdAt: DateTime.now(),
+              ),
+            )
+            .toList()
+          ..sort((a, b) => a.time.compareTo(b.time)),
+      );
     });
   }
 
   Stream<AutoFeederStatus> subscribeAutoFeederStatus(String aquariumId) {
-    final ref = FirebaseDatabase.instance.ref(
+    final db = _dbRef();
+    if (db == null) {
+      // Offline fallback: return cached status as a stream
+      return Stream.fromFuture(
+        LocalStorageService.instance.getFeedingSchedules(aquariumId).then(
+          (cached) {
+            bool enabled = false;
+            for (final schedule in cached) {
+              if (schedule.isEnabled) {
+                enabled = true;
+                break;
+              }
+            }
+            return AutoFeederStatus(
+              aquariumId: aquariumId,
+              isEnabled: enabled,
+              lastUpdated: DateTime.now(),
+            );
+          },
+        ),
+      );
+    }
+    
+    final ref = db.child(
       'aquariums/$aquariumId/auto_feeder/schedule',
     );
     return ref.onValue.map((event) {

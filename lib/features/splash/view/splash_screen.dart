@@ -47,7 +47,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         },
         error: (err, _) {
           _initComplete = true;
-          _tryNavigate(); // ✅ Try to navigate when init completes
+          _tryNavigate(); // ✅ Try to navigate when init completes (offline mode)
         },
       );
     });
@@ -519,6 +519,32 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     style: TextStyle(color: Colors.white.withOpacity(0.9)),
                   ),
                 ),
+              const SizedBox(height: 32),
+              // Offline mode button
+              TextButton(
+                onPressed: () {
+                  ref.read(splashViewModelProvider.notifier).skipFirebaseAndContinue();
+                },
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: Colors.white, width: 1),
+                  ),
+                ),
+                child: const Text(
+                  'Continue Offline',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

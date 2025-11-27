@@ -151,6 +151,7 @@ class _PhPageState extends ConsumerState<PhPage> {
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: ResponsiveHelper.getFontSize(context, 18),
+                          fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),

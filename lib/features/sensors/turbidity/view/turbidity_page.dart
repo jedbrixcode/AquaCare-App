@@ -197,7 +197,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
-                            'CURRENT TURBIDITY: ${turbidity.toStringAsFixed(1)} NTU',
+                            'CURRENT TURBIDITY: ${turbidity.toStringAsFixed(0)}%',
                             style: TextStyle(
                               fontSize: ResponsiveHelper.getFontSize(
                                 context,
@@ -514,7 +514,7 @@ class _TurbidityPageState extends ConsumerState<TurbidityPage> {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
-                'Note: NTU (Nephelometric Turbidity Units) measures water clarity.',
+                'Water clarity descriptions are based on turbidity: lower values mean clearer water, higher values mean cloudier water.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,

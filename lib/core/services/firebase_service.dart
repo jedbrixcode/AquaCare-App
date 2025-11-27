@@ -8,17 +8,30 @@ class FirebaseService {
 
   static Future<void> ensureInitialized() async {
     if (_initialized) return;
+    // Check if Firebase is already initialized using a safer method
+    if (Firebase.apps.isNotEmpty) {
+      _initialized = true;
+      return;
+    }
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     _initialized = true;
   }
 
-  static DatabaseReference db() {
+  static DatabaseReference? db() {
+    // Check if Firebase is initialized using a safer method
+    if (Firebase.apps.isEmpty) {
+      return null; // Firebase not initialized
+    }
     return FirebaseDatabase.instance.ref();
   }
 
-  static FirebaseMessaging messaging() {
+  static FirebaseMessaging? messaging() {
+    // Check if Firebase is initialized using a safer method
+    if (Firebase.apps.isEmpty) {
+      return null; // Firebase not initialized
+    }
     return FirebaseMessaging.instance;
   }
 }

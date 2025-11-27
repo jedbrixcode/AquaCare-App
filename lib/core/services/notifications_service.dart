@@ -1,7 +1,9 @@
 // lib/core/services/notifications_service.dart
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:firebase_core/firebase_core.dart' show Firebase;
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -33,21 +35,35 @@ class NotificationsService {
           >()
           ?.createNotificationChannel(_channel);
 
-      await FirebaseMessaging.instance.requestPermission();
+      // Check if Firebase is initialized before accessing FCM
+      if (Firebase.apps.isNotEmpty) {
+        // Try to access FirebaseMessaging - this might still throw if not fully initialized
+        try {
+          await FirebaseMessaging.instance.requestPermission();
 
-      // Timezone init for zoned scheduling
-      tz.initializeTimeZones();
+          // Timezone init for zoned scheduling
+          tz.initializeTimeZones();
 
-      FirebaseMessaging.onMessage.listen((RemoteMessage m) {
-        // Only show manually if message does NOT have `notification` payload
-        if (m.notification == null) {
-          final data = m.data;
-          showLocal(
-            title: data['title'] ?? 'AquaCare',
-            body: data['body'] ?? 'You have a new sensor alert.',
-          );
+          FirebaseMessaging.onMessage.listen((RemoteMessage m) {
+            // Only show manually if message does NOT have `notification` payload
+            if (m.notification == null) {
+              final data = m.data;
+              showLocal(
+                title: data['title'] ?? 'AquaCare',
+                body: data['body'] ?? 'You have a new sensor alert.',
+              );
+            }
+          });
+        } catch (e) {
+          // FirebaseMessaging not available - skip FCM setup
+          debugPrint('FirebaseMessaging not available: $e');
+          // Still initialize timezone
+          tz.initializeTimeZones();
         }
-      });
+      } else {
+        // Firebase not initialized - skip FCM setup, but still initialize timezone
+        tz.initializeTimeZones();
+      }
     } catch (e) {
       if (!silentOnFailure) rethrow;
     }

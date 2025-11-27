@@ -89,22 +89,56 @@ class BluetoothSetupViewModel extends StateNotifier<BluetoothSetupState> {
       statusMessage:
           'Scanning for devices... (Ensure that the device is powered on and advertising)',
     );
-    await _service.startScan();
-    state = state.copyWith(isScanning: false);
-    if (state.devices.isEmpty) {
+    // Run scan asynchronously to avoid blocking UI thread
+    try {
+      await _service.startScan();
+      // Wait a bit for devices to be discovered via stream
+      await Future.delayed(const Duration(milliseconds: 100));
+      state = state.copyWith(isScanning: false);
+      if (state.devices.isEmpty) {
+        state = state.copyWith(
+          statusMessage:
+              'No devices found. Ensure TankPi is powered and advertising.',
+        );
+      }
+    } catch (e) {
       state = state.copyWith(
-        statusMessage:
-            'No devices found. Ensure TankPi is powered and advertising.',
+        isScanning: false,
+        statusMessage: 'Scan error: $e',
       );
     }
   }
 
   Future<bool> connect(blue.BluetoothDevice device) async {
-    final ok = await _service.connectToDevice(device);
-    if (!ok) {
-      state = state.copyWith(statusMessage: 'Failed to connect to device');
+    try {
+      final ok = await _service.connectToDevice(device);
+      if (!ok) {
+        state = state.copyWith(statusMessage: 'Failed to connect to device');
+      }
+      return ok;
+    } catch (e) {
+      // Handle PlatformException when bluetooth is turned off
+      if (e.toString().contains('Bluetooth must be turned on')) {
+        state = state.copyWith(
+          statusMessage: 'Bluetooth must be turned on to connect',
+          isConnected: false,
+        );
+      } else {
+        state = state.copyWith(
+          statusMessage: 'Connection error: $e',
+          isConnected: false,
+        );
+      }
+      return false;
     }
-    return ok;
+  }
+
+  void disconnect() {
+    _service.disconnect();
+    state = state.copyWith(
+      isConnected: false,
+      statusMessage: 'Disconnected from TankPi device',
+    );
   }
 
   Future<void> sendWifiCredentials({

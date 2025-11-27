@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart' show Firebase;
 // import 'package:collection/collection.dart';
 
 import '../../scheduled_autofeed/models/one_time_schedule_model.dart';
@@ -8,14 +9,25 @@ import '../../../core/models/one_time_schedule_cache.dart';
 
 class FirestoreScheduleRepository {
   FirestoreScheduleRepository({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? _getFirestoreInstance();
 
-  final FirebaseFirestore _firestore;
+  final FirebaseFirestore? _firestore;
+  
+  static FirebaseFirestore? _getFirestoreInstance() {
+    try {
+      Firebase.app(); // Check if Firebase is initialized
+      return FirebaseFirestore.instance;
+    } catch (_) {
+      return null; // Firebase not initialized
+    }
+  }
   static const String _rootCollection = 'Schedules';
   static const int _pageSize = 20;
 
-  Query<Map<String, dynamic>> getSchedulesQuery(int aquariumId) {
-    return _firestore
+  Query<Map<String, dynamic>>? getSchedulesQuery(int aquariumId) {
+    final firestore = _firestore;
+    if (firestore == null) return null;
+    return firestore
         .collection(_rootCollection)
         .where('aquarium_id', isEqualTo: aquariumId.toString())
         .limit(_pageSize);
@@ -23,6 +35,18 @@ class FirestoreScheduleRepository {
 
   Stream<List<OneTimeSchedule>> getOneTimeSchedules(int aquariumId) {
     final controller = StreamController<List<OneTimeSchedule>>.broadcast();
+
+    // If Firebase is not initialized, return cached data
+    if (_firestore == null) {
+      getCachedSchedules(aquariumId).then((cached) {
+        if (cached != null) {
+          controller.add(cached);
+        } else {
+          controller.add([]);
+        }
+      });
+      return controller.stream;
+    }
 
     List<OneTimeSchedule> mapSnapshotToSchedules(
       QuerySnapshot<Map<String, dynamic>> snap,
@@ -40,10 +64,13 @@ class FirestoreScheduleRepository {
       return items;
     }
 
-    final numericQuery = _firestore
+    // Safe to use _firestore here because we checked for null above
+    // Dart flow analysis promotes _firestore to non-null after the check
+    final firestore = _firestore;
+    final numericQuery = firestore
         .collection(_rootCollection)
         .where('aquarium_id', isEqualTo: aquariumId);
-    final stringQuery = _firestore
+    final stringQuery = firestore
         .collection(_rootCollection)
         .where('aquarium_id', isEqualTo: aquariumId.toString());
 
