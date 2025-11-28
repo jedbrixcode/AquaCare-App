@@ -1,0 +1,25 @@
+class WiFiCharacteristic(dbus.service.Object):
+    def __init__(self, bus, index, service):
+        ...
+        self.flags = ['write-without-response']
+        self._buffer = bytearray()
+
+    @dbus.service.method('org.bluez.GattCharacteristic1',
+                         in_signature='aya{sv}', out_signature='')
+    def WriteValue(self, value, options):
+        try:
+            # Accumulate incoming fragments
+            self._buffer.extend(bytes(value))
+
+            try:
+                decoded = self._buffer.decode('utf-8')
+                creds = json.loads(decoded)          # succeeds only when JSON complete
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return                               # wait for more data
+
+            print(f"[BLE] Received Wi-Fi credentials: {decoded}")
+            handle_wifi_credentials(decoded)
+            self._buffer.clear()                     # reset for next request
+        except Exception as e:
+            print(f"[BLE] WriteValue error: {e}")
+            self._buffer.clear()
